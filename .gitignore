@@ -1,0 +1,26 @@
+# Node.js dependencies
+node_modules/
+pnpm-lock.yaml
+yarn.lock
+package-lock.json
+
+# Build outputs
+dist/
+.out/
+.next/
+
+# Env variables (NO SUBIRLAS NUNCA)
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE y sistema operativo (archivos innecesarios)
+.vscode/
+.DS_Store
+Thumbs.db
+
+# Logs y caché
+logs/
+*.log
+.cache/

@@ -1,0 +1,5 @@
+export enum Role {
+  USUARIO = "USUARIO",
+  MODERADOR = "MODERADOR",
+  ADMINISTRADOR = "ADMINISTRADOR",
+}

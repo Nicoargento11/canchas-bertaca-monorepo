@@ -1,0 +1,154 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  USUARIO
+  MODERADOR
+  ADMINISTRADOR
+}
+
+enum Status {
+  APROBADO
+  PENDIENTE
+  RECHAZADO
+}
+
+enum ReserveType {
+  NORMAL
+  FIJO
+}
+
+enum PricingType {
+  NoLights
+  WithLights
+  HolidayLights
+  HolidayNoLights
+  MidNight
+}
+
+model User {
+  id                 String          @id @default(cuid())
+  name               String
+  email              String?         @unique
+  emailVerified      DateTime?
+  hashedRefreshToken String?
+  image              String?
+  password           String
+  phone              String?
+  role               Role            @default(USUARIO)
+  createdAt          DateTime        @default(now())
+  updatedAt          DateTime        @updatedAt
+  Reserve            Reserves[]
+  FixedSchedule      FixedSchedule[]
+}
+
+model Reserves {
+  id                String         @id @default(cuid())
+  date              DateTime
+  schedule          String
+  court             Int
+  price             Int?
+  reservationAmount Int?
+  status            Status         @default(PENDIENTE)
+  paymentUrl        String?
+  paymentId         String?
+  phone             String?
+  clientName        String?
+  reserveType       ReserveType?
+  User              User           @relation(fields: [userId], references: [id])
+  userId            String
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  paymentToken      String?        @unique
+  FixedSchedule     FixedSchedule? @relation(fields: [fixedScheduleId], references: [id])
+  fixedScheduleId   String?
+}
+
+model Court {
+  id                String    @id @default(cuid())
+  name              String    @unique
+  numberCourts      Int?
+  reservationAmount Int
+  pricing           Pricing[]
+}
+
+// TODO: eliminar tabla despues de la migracion (cuando se integre Schedule)
+model Pricing {
+  id      String      @id @default(cuid())
+  type    PricingType // Ejemplo: "NoLights", "WithLights", "HolidayNoLights"
+  amount  Int
+  courtId String
+  court   Court       @relation(fields: [courtId], references: [id])
+}
+
+model Schedule {
+  id            String      @id @default(cuid())
+  startTime     String
+  endTime       String
+  rates         Rate[]
+  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
+  scheduleDayId String
+  benefits      Benefit[]
+}
+
+model ScheduleDay {
+  id            String          @id @default(cuid())
+  dayOfWeek     Int             @unique // 0 = Sunday, ..., 6 = Saturday
+  isActive      Boolean         @default(false)
+  schedules     Schedule[] // Un día puede tener varios horarios
+  FixedSchedule FixedSchedule[]
+}
+
+model Benefit {
+  id          String     @id @default(cuid())
+  clientType  String // Ejemplo: "Normal", "Fijo", "+10 reservas"
+  name        String // Ejemplo: "Descuento por 10 reservas"
+  description String? // Opcional: descripción del beneficio
+  condition   String? // Opcional: condición para aplicar el beneficio
+  discount    Int // Porcentaje o monto fijo de descuento
+  schedules   Schedule[] // Relación muchos a muchos con horarios
+}
+
+model Rate {
+  id                String          @id @default(cuid())
+  name              String
+  price             Int
+  reservationAmount Int
+  schedules         Schedule[] // Relación muchos a muchos con horarios
+  FixedSchedule     FixedSchedule[]
+}
+
+model UnavailableDay {
+  id     String   @id @default(cuid())
+  date   DateTime @unique // Día específico en el que no se podrá reservar
+  reason String? // Opcional: motivo (Ej: "Mantenimiento", "Feriado")
+}
+
+model FixedSchedule {
+  id            String      @id @default(cuid())
+  startTime     String // Hora de inicio del turno fijo
+  endTime       String // Hora de fin del turno fijo
+  court         Int // Número de cancha
+  isActive      Boolean     @default(true)
+  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
+  scheduleDayId String // Relación con el día de la semana
+  rate          Rate        @relation(fields: [rateId], references: [id])
+  rateId        String // Relación con la tarifa
+  reserves      Reserves[] // Relación con las reservas
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
