@@ -14,24 +14,10 @@ import { navBarItems } from "@/constants";
 import { Session } from "@/services/auth/session";
 import { Button } from "../ui/button";
 import { useModal } from "@/contexts/modalContext";
+import { scrollToSection } from "@/utils/scrollToSection";
 
 interface NavBarProps {
   currentUser?: Session | null;
-}
-
-function scrollToSection(event: React.MouseEvent<HTMLAnchorElement> | any) {
-  event.preventDefault(); // Evita que el enlace funcione como un enlace estándar
-  const targetId = event.currentTarget.getAttribute("href").substring(1); // Obtiene el ID de la sección a la que quieres desplazarte
-  const targetElement = document.getElementById(targetId); // Encuentra el elemento de destino
-  if (targetElement) {
-    const navbarHeight = 65;
-    const targetPosition = targetElement.offsetTop - navbarHeight;
-
-    window.scroll({
-      top: targetPosition,
-      behavior: "auto",
-    });
-  }
 }
 
 const NavBar = ({ currentUser }: NavBarProps) => {

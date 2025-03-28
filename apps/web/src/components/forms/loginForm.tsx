@@ -15,7 +15,6 @@ import { loginSchema } from "@/schemas";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "../ui/button";
-import Link from "next/link";
 import { Social } from "@/components/social";
 import { FormError } from "@/components/form-error";
 import { FormSucces } from "@/components/form-succes";

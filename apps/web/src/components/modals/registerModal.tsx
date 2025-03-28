@@ -6,10 +6,9 @@ import Link from "next/link";
 import { Button } from "../ui/button";
 
 const RegisterModal = () => {
-  const { isOpenRegister, onCloseRegister, onOpenLogin, handleChangeRegister } =
-    useModal();
+  const { isOpenRegister, onCloseRegister, onOpenLogin } = useModal();
 
-  let footerContent = (
+  const footerContent = (
     <div className="flex items-center w-full justify-center">
       <p className="text-gray-600 text-center text-sm">
         ¿Ya tienes una cuenta?

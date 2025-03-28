@@ -1,7 +1,5 @@
 "use client";
 import React, { useEffect } from "react";
-// import { ReservaAgrupada } from "@/types";
-// import { generateTableData } from "@/utils/biTabledataTransform";
 import { Button } from "@/components/ui/button";
 
 import {
@@ -71,6 +69,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
 
   useEffect(() => {
     getReservesByDay(selectedDate!);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [date]);
 
   return (

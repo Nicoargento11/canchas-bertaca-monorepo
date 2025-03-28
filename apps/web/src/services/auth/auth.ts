@@ -12,7 +12,8 @@ export const signUp = async (values: z.infer<typeof registerSchema>) => {
   if (!validationFields.success) {
     return { error: "Campos invalidos" };
   }
-  const { confirmPassword, ...payload } = validationFields.data;
+  // confirm password
+  const { ...payload } = validationFields.data;
 
   const response = await fetch(`${BACKEND_URL}/auth/signup`, {
     method: "POST",
@@ -76,16 +77,16 @@ export const signOut = async () => {
     const response = await authFetch(`${BACKEND_URL}/auth/signout`, {
       method: "POST",
     });
-    
+
     if (!response.ok) {
-      return { error: 'Error al cerrar sesión' };
+      return { error: "Error al cerrar sesión" };
     }
-    
+
     await deleteSession();
     return { success: true };
   } catch (error) {
-    console.error('Error during sign out:', error);
-    return { error: 'Error al cerrar sesión' };
+    console.error("Error during sign out:", error);
+    return { error: "Error al cerrar sesión" };
   }
 };
 

@@ -6,7 +6,7 @@ import { Button } from "../../../../../components/ui/button";
 
 import { Input } from "../../../../../components/ui/input";
 import "react-phone-number-input/style.css";
-import { useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Form,
   FormControl,
@@ -39,9 +39,11 @@ import { editReserve } from "@/services/reserves/reserves";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
+import { getSchedules, Schedule } from "@/services/schedule/schedule";
 
 export const EditReserveForm = () => {
   const [isPending, startTransition] = useTransition();
+  const [schedules, setSchedules] = useState<Schedule[] | null>();
 
   const { handleChangeDetails } = useDashboardDetailsModalStore(
     (state) => state
@@ -57,13 +59,15 @@ export const EditReserveForm = () => {
   const router = useRouter();
 
   const form = useForm<z.infer<typeof editReserveAdminSchema>>({
-    defaultValues: reserve! && {
-      court: reserve.court,
-      date: date,
-      schedule: reserve.schedule,
-      clientName: reserve.clientName || reserve.User.name,
-    },
+    defaultValues: reserve! &&
+      reserve.User && {
+        court: reserve.court,
+        date: date,
+        schedule: reserve.schedule,
+        clientName: reserve.clientName || reserve.User.name,
+      },
   });
+
   const onSubmit = (values: z.infer<typeof editReserveAdminSchema>) => {
     if (reserve) {
       startTransition(() => {
@@ -95,6 +99,16 @@ export const EditReserveForm = () => {
       });
     }
   };
+
+  useEffect(() => {
+    if (reserve) {
+      const fetchData = async () => {
+        const data = await getSchedules(); // Ej: fetch API
+        setSchedules(data);
+      };
+      fetchData();
+    }
+  }, [reserve]); // Se ejecuta cuando 'reserve' cambia
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
@@ -173,11 +187,14 @@ export const EditReserveForm = () => {
                   </FormControl>
                   <SelectContent>
                     {reserve &&
-                      dayHours(new Date(reserve.date)).map((hour, index) => (
-                        <SelectItem key={index} value={hour}>
-                          {hour}
-                        </SelectItem>
-                      ))}
+                      schedules &&
+                      dayHours(new Date(reserve.date).getDay(), schedules).map(
+                        (hour, index) => (
+                          <SelectItem key={index} value={hour}>
+                            {hour}
+                          </SelectItem>
+                        )
+                      )}
                   </SelectContent>
                 </Select>
               </FormItem>

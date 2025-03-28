@@ -93,6 +93,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
         setLoading(false);
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reserveForm, currentUser]);
 
   if (!currentUser) {

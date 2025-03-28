@@ -28,6 +28,7 @@ const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
   useEffect(() => {
     getAvailableReservesByDay(formatedDay);
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Obtener el día de la semana del día seleccionado (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)

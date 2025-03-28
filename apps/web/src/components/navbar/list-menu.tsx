@@ -1,21 +1,6 @@
 import Link from "next/link";
 import { navBarItems } from "@/constants";
-
-function scrollToSection(event) {
-  event.preventDefault();
-  const targetId = event.currentTarget.getAttribute("href").substring(1);
-  const targetElement = document.getElementById(targetId);
-
-  if (targetElement) {
-    const navbarHeight = 65;
-    const targetPosition = targetElement.offsetTop - navbarHeight;
-
-    window.scrollTo({
-      top: targetPosition,
-      behavior: "smooth",
-    });
-  }
-}
+import { scrollToSection } from "@/utils/scrollToSection";
 
 export const ListMenu = () => {
   return (

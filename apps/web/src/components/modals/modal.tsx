@@ -6,7 +6,7 @@ import { X } from "lucide-react";
 interface ModalProps {
   isOpen?: boolean;
   onClose: () => void;
-  onSubmit?: (values?: any) => void;
+  onSubmit?: (values?: unknown) => void;
   title?: string;
   body?: React.ReactElement;
   footer?: React.ReactElement;

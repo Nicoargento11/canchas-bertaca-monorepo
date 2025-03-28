@@ -13,6 +13,7 @@ const AvailableFields = () => {
   useEffect(() => {
     getAvailableReservesByHour(formatedDay, reserveForm.hour);
     setLoading(false);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
