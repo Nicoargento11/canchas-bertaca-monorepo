@@ -15,7 +15,6 @@ import {
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 
 import canEditReservation from "@/utils/canEditReservation";
-import { Status } from "@prisma/client";
 import { useDashboardDetailsModalStore } from "@/store/reserveDashboardDetailsModalStore";
 import { Modal } from "@/components/modals/modal";
 import { useDashboardEditReserveModalStore } from "@/store/editReserveDashboardModalStore";
@@ -93,9 +92,9 @@ const ReserveDetailsModal = () => {
             <AlertCircle color="green" size={25} />
             <span className="text-lg">
               <p>
-                {reserve?.status === Status.APROBADO
+                {reserve?.status === "APROBADO"
                   ? "Reserva aprovada"
-                  : reserve?.status === Status.PENDIENTE
+                  : reserve?.status === "PENDIENTE"
                     ? "Reserva Cancelada"
                     : "Reserva Pendiente"}
               </p>
