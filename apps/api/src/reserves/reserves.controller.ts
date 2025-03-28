@@ -45,13 +45,25 @@ export class ReservesController {
     if (!date) {
       throw new BadRequestException('The "date" query parameter is required.');
     }
+
+    // 1. Validar formato de fecha
+    const parsedDate = new Date(date.replace(/-/g, '/'));
+    if (isNaN(parsedDate.getTime())) {
+      throw new BadRequestException(
+        'Formato de fecha inválido. Use YYYY-MM-DD',
+      );
+    }
+
     const dayOfWeek = new Date(date.replace(/-/g, '/')).getDay();
     const scheduleDays = await this.scheduleDaysService.findByDay(dayOfWeek);
 
+    if (!scheduleDays) {
+      return []; // No hay horarios definidos para ese día
+    }
+
     // Obtener los turnos fijos activos para ese día
-    const fixedSchedules = scheduleDays.FixedSchedule.filter(
-      (fixed) => fixed.isActive,
-    );
+    const fixedSchedules =
+      scheduleDays.FixedSchedule.filter((fixed) => fixed.isActive) || [];
 
     // Función para dividir un rango en intervalos de una hora
     const splitIntoOneHourIntervals = (
@@ -78,9 +90,10 @@ export class ReservesController {
     };
 
     // Generar allSchedules dinámicamente a partir de scheduleDays.schedules
-    const allSchedules = scheduleDays.schedules.flatMap((schedule) => {
-      return splitIntoOneHourIntervals(schedule.startTime, schedule.endTime);
-    });
+    const allSchedules =
+      scheduleDays.schedules.flatMap((schedule) => {
+        return splitIntoOneHourIntervals(schedule.startTime, schedule.endTime);
+      }) || [];
 
     // Ordenar allSchedules de menor a mayor (por startTime)
     allSchedules.sort((a, b) => {
@@ -89,7 +102,7 @@ export class ReservesController {
       return startA.localeCompare(startB);
     });
 
-    const reservedDays = await this.reservesService.findByDay(date);
+    const reservedDays = (await this.reservesService.findByDay(date)) || [];
 
     // Combinar reservas y turnos fijos
     const allReservations = [
