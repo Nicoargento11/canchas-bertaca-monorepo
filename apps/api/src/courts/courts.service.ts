@@ -21,15 +21,15 @@ export class CourtsService {
     });
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return `This action returns a #${id} court`;
   }
 
-  update(id: number, updateCourtDto: UpdateCourtDto) {
+  update(id: string, updateCourtDto: UpdateCourtDto) {
     return `This action updates a #${id} court`;
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} court`;
   }
 }

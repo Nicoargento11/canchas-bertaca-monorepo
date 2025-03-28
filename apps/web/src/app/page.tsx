@@ -18,7 +18,6 @@ export default async function HomePage() {
   const scheduleDays = await getScheduleDays();
   const fixedSchedules = await getfixedSchedules();
   const schedules = await getSchedules();
-  console.log(sessionUser);
 
   const reservesDay = await getAvailableTurnsByDay(
     format(new Date(), "yyyy-MM-dd")

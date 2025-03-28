@@ -6,6 +6,8 @@ import {
   Patch,
   Param,
   Delete,
+  NotFoundException,
+  ConflictException,
 } from '@nestjs/common';
 import { CourtsService } from './courts.service';
 import { CreateCourtDto } from './dto/create-court.dto';
@@ -17,9 +19,18 @@ export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
   @Post()
-  create(@Body() createCourtDto: CreateCourtDto) {
+  async create(@Body() createCourtDto: CreateCourtDto) {
+    const existingCourt = await this.courtsService.findByName(
+      createCourtDto.name,
+    );
+    if (existingCourt) {
+      throw new ConflictException(
+        `La cancha "${createCourtDto.name}" ya existe`,
+      );
+    }
     return this.courtsService.create(createCourtDto);
   }
+
   @Public()
   @Get()
   findAll() {
@@ -29,16 +40,31 @@ export class CourtsController {
   @Public()
   @Get(':name')
   findOne(@Param('name') name: string) {
-    return this.courtsService.findByName(name);
+    const court = this.courtsService.findByName(name);
+    if (!court) {
+      throw new NotFoundException(`Cancha con nombre "${name}" no encontrada`);
+    }
+    return court;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateCourtDto: UpdateCourtDto) {
-    return this.courtsService.update(+id, updateCourtDto);
+  async update(
+    @Param('id') id: string,
+    @Body() updateCourtDto: UpdateCourtDto,
+  ) {
+    const updatedCourt = this.courtsService.update(id, updateCourtDto);
+    if (!updatedCourt) {
+      throw new NotFoundException(`Cancha con ID ${id} no encontrada`);
+    }
+    return updatedCourt;
   }
 
   @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.courtsService.remove(+id);
+  async remove(@Param('id') id: string) {
+    const deletedCourt = this.courtsService.remove(id);
+    if (!deletedCourt) {
+      throw new NotFoundException(`Cancha con ID ${id} no encontrada`);
+    }
+    return { message: `Cancha con ID ${id} eliminada correctamente` };
   }
 }

@@ -42,6 +42,7 @@ export class ReservesController {
   @Public()
   @Get('available-turns-day')
   async getAvailableSchedulesByDay(@Query('date') date: string) {
+    console.log(date);
     if (!date) {
       throw new BadRequestException('The "date" query parameter is required.');
     }
@@ -153,6 +154,7 @@ export class ReservesController {
         court: availableCourts,
       };
     });
+    console.log(reservationsForSchedule);
 
     return reservationsForSchedule;
   }

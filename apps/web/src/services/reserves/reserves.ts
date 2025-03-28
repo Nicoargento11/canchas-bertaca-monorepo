@@ -64,7 +64,6 @@ export const getAvailableTurnsByDay = async (
   const response = await fetch(
     `${BACKEND_URL}/reserves/available-turns-day?date=${date}`
   );
-  console.log(response);
   if (response.ok) {
     const availableSchedules = await response.json();
     return availableSchedules;
@@ -83,6 +82,8 @@ export const getAvailableTurnsByHour = async (
   console.log(response);
   if (response.ok) {
     const availableSchedules = await response.json();
+    console.log(availableSchedules);
+
     return availableSchedules;
   } else {
     return null;
