@@ -8,7 +8,7 @@ async function bootstrap() {
   app.enableCors({
     origin: [
       'http://localhost:3000', // Desarrollo
-      'https://canchas-bertaca-monorepo-web-oxkg.vercel.app/', // Producción
+      'https://canchas-bertaca-monorepo-web.vercel.app', // Producción
       'https://www.tudominio.com', // Alternativa con www
     ],
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], // Permitir estos métodos
