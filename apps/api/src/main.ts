@@ -6,7 +6,11 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.enableCors({
-    origin: 'http://localhost:3000', // Permitir solo el frontend
+    origin: [
+      'http://localhost:3000', // Desarrollo
+      'https://canchas-bertaca-monorepo-web-oxkg.vercel.app/', // Producción
+      'https://www.tudominio.com', // Alternativa con www
+    ],
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], // Permitir estos métodos
     allowedHeaders: ['Content-Type', 'Authorization'], // Ajusta si tienes otros headers
   });
