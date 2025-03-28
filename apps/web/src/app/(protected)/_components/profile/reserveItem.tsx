@@ -1,4 +1,3 @@
-import { Status } from "@prisma/client";
 import React from "react";
 // import worldCup from "@/public/court2.jpg";
 import { ReserveDetail } from "./reserveDetail";
@@ -78,7 +77,7 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
             )
           }`}
         />
-        {reserve.status === Status.PENDIENTE ? (
+        {reserve.status === "PENDIENTE" ? (
           <div className="px-2 pt-2 w-full flex justify-end gap-2">
             <ButtonCancel
               reserveId={reserve.id}
@@ -106,9 +105,9 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
       <Tooltip>
         <TooltipTrigger asChild>
           <div className="absolute flex items-center top-2 right-2 gap-2 bg-gray-300 border-r-1 border-b-1 border-gray-400 shadow-lg rounded-full text-black font-semibold py-1 px-2 lg:py-2 lg:px-4">
-            {reserve.status === Status.APROBADO ? (
+            {reserve.status === "APROBADO" ? (
               <CheckCircle2 className="text-Primary" size={20} />
-            ) : reserve.status === Status.RECHAZADO ? (
+            ) : reserve.status === "RECHAZADO" ? (
               <TriangleAlert color="red" size={20} />
             ) : (
               <TriangleAlert color="orange" size={20} />
@@ -118,9 +117,9 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
         </TooltipTrigger>
         <TooltipContent className="text-gray-800 font-semibold bg-gray-100">
           <p>
-            {reserve.status === Status.APROBADO
+            {reserve.status === "APROBADO"
               ? "Reservado"
-              : reserve.status === Status.RECHAZADO
+              : reserve.status === "RECHAZADO"
                 ? "Reserva Cancelada"
                 : "Reserva Pendiente"}
           </p>
