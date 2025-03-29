@@ -67,7 +67,6 @@ export class AuthController {
   @UseGuards(GoogleAuthGuard)
   @Get('google/callback')
   async googleCallback(@Request() req, @Res() res: Response) {
-    console.log(req.user);
     const response = await this.authService.login(
       req.user.id,
       req.user.name,
@@ -75,9 +74,9 @@ export class AuthController {
       req.user.email,
       req.user.phone,
     );
-
+    console.log(process.env.FRONT_END_URL);
     res.redirect(
-      `${process.env.FRONT_END_URL}/api/auth/google/callback?userId=${response.id}&name=${response.name}&accessToken=${response.accessToken}&refreshToken=${response.refreshToken}&role=${response.role}&email=${response.email}&phone=${response.phone || ''}`,
+      `http://localhost:3000/api/auth/google/callback?userId=${response.id}&name=${response.name}&accessToken=${response.accessToken}&refreshToken=${response.refreshToken}&role=${response.role}&email=${response.email}&phone=${response.phone || ''}`,
     );
   }
 

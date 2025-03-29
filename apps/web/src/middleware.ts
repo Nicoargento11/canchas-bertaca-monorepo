@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { Session } from "@/services/auth/session";
 
+import { apiAuthPrefix } from "./route";
 // 1. Specify protected and public routes
 const protectedRoutes = ["/dashboard", "/profile"];
 const publicRoutes = ["/"];
@@ -14,32 +15,35 @@ export default async function middleware(req: NextRequest) {
   // 2. Check if the current route is protected or public
   const path = req.nextUrl.pathname;
   console.log(path);
+
+  const isApiAuthRoute = req.nextUrl.pathname.startsWith(apiAuthPrefix);
   const isProtectedRoute = protectedRoutes.includes(path);
   const isPublicRoute = publicRoutes.includes(path);
 
+  if (isApiAuthRoute) {
+    return;
+  }
+  if (path == "/payment/succes" || path == "/payment/failure") {
+    const payment = req.nextUrl.searchParams.get("external_reference");
+    if (!payment) {
+      return Response.redirect(new URL("/", req.nextUrl));
+    }
+  }
   // 3. Decrypt the session from the cookie
   const cookie = (await cookies()).get("session")?.value;
 
-  if (!cookie) return null;
-
-  const { payload: session } = await jwtVerify<Session>(cookie, encodedKey, {
-    algorithms: ["HS256"],
-  });
-  console.log(session);
-  //   const session = await decrypt(cookie)
-
-  // 4. Redirect to /login if the user is not authenticated
-  if (isProtectedRoute && !session.user.id) {
-    return NextResponse.redirect(new URL("/login", req.nextUrl));
+  if (!cookie && isProtectedRoute) {
+    return Response.redirect(new URL("/", req.nextUrl));
+  }
+  if (!cookie && isPublicRoute) {
+    return NextResponse.next();
   }
 
-  // 5. Redirect to /dashboard if the user is authenticated
-  if (
-    isPublicRoute &&
-    session?.userId &&
-    !req.nextUrl.pathname.startsWith("/dashboard")
-  ) {
-    return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
+  const { payload: session } = await jwtVerify<Session>(cookie!, encodedKey, {
+    algorithms: ["HS256"],
+  });
+  if (!session.user.id && isProtectedRoute) {
+    return Response.redirect(new URL("/", req.nextUrl));
   }
 
   return NextResponse.next();
@@ -47,5 +51,5 @@ export default async function middleware(req: NextRequest) {
 
 // Routes Middleware should not run on
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
+  matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };

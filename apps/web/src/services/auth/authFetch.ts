@@ -10,14 +10,11 @@ export const authFetch = async (
   options: FetchOptions = {}
 ) => {
   const session = await getSession();
-  console.log(session);
   options.headers = {
     ...options.headers,
     Authorization: `Bearer ${session?.accessToken}`,
   };
-  console.log(options);
   let response = await fetch(url, options);
-  console.log(response);
   if (response.status === 401) {
     if (!session?.refreshToken) throw new Error("refresh token not found!");
 
@@ -28,6 +25,5 @@ export const authFetch = async (
       response = await fetch(url, options);
     }
   }
-  console.log(response);
   return response;
 };
