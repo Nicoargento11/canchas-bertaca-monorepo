@@ -202,12 +202,16 @@ const PageDashboardReserves = () => {
                 <TableCell className="text-center">
                   <Badge
                     className={`${
-                      paymentId || status == "RECHAZADO"
+                      paymentId ||
+                      status == "RECHAZADO" ||
+                      status == "PENDIENTE"
                         ? "bg-Info"
                         : "bg-Success"
                     } rounded-full p-[5px]`}
                   >
-                    {paymentId || status == "RECHAZADO" ? (
+                    {paymentId ||
+                    status == "RECHAZADO" ||
+                    status == "PENDIENTE" ? (
                       <MonitorCheck size={20} />
                     ) : (
                       <Hand size={20} />
