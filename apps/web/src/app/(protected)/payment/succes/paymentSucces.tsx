@@ -36,10 +36,10 @@ export default function PaymentSucces() {
             <p className="text-gray-600 ">
               ¡El pago se ha completado correctamente!
             </p>
-            <p className="text-gray-600 ">Se ha enviado un comprobante a:</p>
+            {/* <p className="text-gray-600 ">Se ha enviado un comprobante a:</p>
             {reserve?.User && (
               <p className="text-gray-600 ">{reserve?.User.email}</p>
-            )}
+            )} */}
           </div>
           <Separator />
           {isPending ? (
