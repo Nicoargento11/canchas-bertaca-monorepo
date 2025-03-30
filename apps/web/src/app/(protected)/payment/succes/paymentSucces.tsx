@@ -1,13 +1,11 @@
 "use client";
 import { Separator } from "@/components/ui/separator";
 import { getReserveByIdFetch, Reserve } from "@/services/reserves/reserves";
-import converDate from "@/utils/convertDate";
-import { format } from "date-fns";
-import { es } from "date-fns/locale";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { useEffect, useState, useTransition } from "react";
 import { SkeletonPayment } from "../skeletonPayment";
+import formatDateUTC from "@/utils/formatDateUtc";
 
 export default function PaymentSucces() {
   const searchParams = useSearchParams();
@@ -47,49 +45,44 @@ export default function PaymentSucces() {
           {isPending ? (
             <SkeletonPayment />
           ) : (
-            <div className=" bg-gray-100  p-4 rounded-md w-full">
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Fecha:</span>
-                <span className="text-gray-900">
-                  {reserve &&
-                    format(
-                      converDate(reserve?.date),
-                      "EEEE, d 'de' MMMM 'de' yyyy",
-                      { locale: es }
-                    )}
-                </span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Hora:</span>
-                <span className="text-gray-900">{reserve?.schedule}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Cancha:</span>
-                <span className="text-gray-900">Cancha {reserve?.court}</span>
-              </div>
-              <div className="flex justify-between mb-2">
-                <span className="text-gray-600">Monto Pagado:</span>
-                <span className="text-gray-900">
-                  $
-                  {reserve &&
-                    reserve.reservationAmount!.toLocaleString("es-AR", {
+            reserve && (
+              <div className=" bg-gray-100  p-4 rounded-md w-full">
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Fecha:</span>
+                  <span className="text-gray-900">
+                    {formatDateUTC(reserve.date)}
+                  </span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Hora:</span>
+                  <span className="text-gray-900">{reserve?.schedule}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Cancha:</span>
+                  <span className="text-gray-900">Cancha {reserve?.court}</span>
+                </div>
+                <div className="flex justify-between mb-2">
+                  <span className="text-gray-600">Monto Pagado:</span>
+                  <span className="text-gray-900">
+                    $
+                    {reserve.reservationAmount!.toLocaleString("es-AR", {
                       currency: "ARS",
                     })}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Monto Faltante:</span>
-                <span className="text-gray-900">
-                  $
-                  {reserve &&
-                    (
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Monto Faltante:</span>
+                  <span className="text-gray-900">
+                    $
+                    {(
                       reserve.price! - reserve.reservationAmount!
                     ).toLocaleString("es-AR", {
                       currency: "ARS",
                     })}
-                </span>
+                  </span>
+                </div>
               </div>
-            </div>
+            )
           )}
           <div className="w-full flex flex-col mt-6 gap-2 items-center justify-center">
             <Link

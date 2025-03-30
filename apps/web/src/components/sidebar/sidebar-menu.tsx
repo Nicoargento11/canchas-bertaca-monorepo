@@ -9,6 +9,7 @@ import {
 // import { Logo } from "../navbar/logo";
 import { useSideBarContext } from "@/contexts/sideBarContext";
 import { Session } from "@/services/auth/session";
+import { Logo } from "../logo";
 
 interface SideBarProps {
   children: React.ReactNode;
@@ -30,7 +31,7 @@ export const SidebarMenu: React.FC<SideBarProps> = ({ children, user }) => {
               !expanded && "w-0"
             }`}
           >
-            {/* <Logo /> */}
+            <Logo />
           </div>
           <Button
             onClick={() => {

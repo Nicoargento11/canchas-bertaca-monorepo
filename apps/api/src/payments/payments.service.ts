@@ -4,9 +4,8 @@ import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReservesService } from 'src/reserves/reserves.service';
-import { JwtService, TokenExpiredError } from '@nestjs/jwt';
+import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
-import { createPublicKey } from 'crypto';
 
 @Injectable()
 export class PaymentsService {
@@ -35,9 +34,6 @@ export class PaymentsService {
     );
   }
   createPreference({
-    userId,
-    phone,
-    price,
     court,
     date,
     reservationAmount,
@@ -63,8 +59,8 @@ export class PaymentsService {
           },
         ],
         back_urls: {
-          success: `${process.env.PAYMENT_BACK_URL}/`,
-          failure: `${process.env.PAYMENT_BACK_URL}/`,
+          success: `${process.env.PAYMENT_BACK_URL}/payment/succes`,
+          failure: `${process.env.PAYMENT_BACK_URL}/payment/failure`,
           pending: `${process.env.PAYMENT_BACK_URL}/`,
         },
         notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago`,

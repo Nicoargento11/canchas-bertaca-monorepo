@@ -58,6 +58,12 @@ const SideBar = ({ currentUser }: SideBarProps) => {
         onClick={() => handleClick(1, "/dashboard/reserves")}
       />
       <SideBarItem
+        icon={<Settings size={25} />}
+        active={active == 4}
+        text="Configuracion"
+        onClick={() => handleClick(4, "/dashboard/settings")}
+      />
+      <SideBarItem
         icon={<CreditCard size={25} />}
         active={active == 2}
         text="Historial de pagos"
@@ -66,19 +72,15 @@ const SideBar = ({ currentUser }: SideBarProps) => {
       <SideBarItem
         icon={<ClipboardPen size={25} />}
         active={active == 3}
-        text="Stock final"
+        text="Stock"
+        isDisabled={true}
         onClick={() => handleClick(3, "/dashboard/stock")}
-      />
-      <SideBarItem
-        icon={<Settings size={25} />}
-        active={active == 4}
-        text="Configuracion"
-        onClick={() => handleClick(4, "/dashboard/settings")}
       />
       <SideBarItem
         icon={<BarChart4 size={25} />}
         active={active == 5}
         text="Estadisticas"
+        isDisabled={true}
         onClick={() => handleClick(5, "/dashboard/statistics")}
       />
     </SidebarMenu>

@@ -32,41 +32,40 @@ const ReserveDetailsModal = () => {
 
   const { reserve } = useDashboardDataStore((state) => state);
   const { date } = useDashboardDataStore((state) => state);
-  console.log(date);
   const reserveDetails =
     reserve && reserve.User ? (
       <div className="flex flex-col gap-2">
         <ul className=" pl-6 text-gray-900">
           <li className="flex items-center gap-4 font-semibold">
-            <UserCircle2 color="green" size={25} />
+            <UserCircle2 className="text-Primary-dark" size={25} />
             <span className="text-lg">
               {reserve.clientName ? reserve.clientName : reserve.User.name}
             </span>
           </li>
           <li className="flex items-center gap-4 font-semibold">
-            <Mail color="green" size={25} />
+            <Mail className="text-Primary-dark" size={25} />
             <span className="text-lg">{reserve.User.email}</span>
           </li>
           <li className="flex items-center gap-4 font-semibold">
-            <Phone color="green" size={25} />
+            <Phone className="text-Primary-dark" size={25} />
             <span className="text-lg"> {reserve.phone}</span>
           </li>
           <li className="flex items-center gap-4 font-semibold">
-            <CalendarDays size={25} color="green" />
+            <CalendarDays size={25} className="text-Primary-dark" />
             <span className="text-lg">{format(date, "yyyy-MM-dd")}</span>
           </li>
 
           <li className="flex items-center gap-4 font-semibold">
-            <Clock9 size={25} color="green" />
+            <Clock9 size={25} className="text-Primary-dark" />
             <span className="text-lg">{reserve?.schedule}</span>
           </li>
 
           <li className="flex items-center gap-4 font-semibold">
-            <GiSoccerField color="green" size={25} />
+            <GiSoccerField className="text-Primary-dark" size={25} />
             <span className="text-lg">Cancha {reserve?.court}</span>
           </li>
           <li className="flex items-center gap-4 font-semibold">
-            <Coins color="green" size={25} />
+            <Coins className="text-Primary-dark" size={25} />
             <span className="text-lg">
               Reserva{" "}
               {reserve?.reservationAmount.toLocaleString("es-AR", {
@@ -75,7 +74,7 @@ const ReserveDetailsModal = () => {
             </span>
           </li>
           <li className="flex items-center gap-4 font-semibold">
-            <Receipt color="green" size={25} />
+            <Receipt className="text-Primary-dark" size={25} />
             <span className="text-lg">
               Monto faltante{" "}
               {(reserve?.price - reserve.reservationAmount).toLocaleString(
@@ -89,7 +88,7 @@ const ReserveDetailsModal = () => {
           </li>
 
           <li className="flex items-center gap-4 font-semibold">
-            <AlertCircle color="green" size={25} />
+            <AlertCircle className="text-Primary-dark" size={25} />
             <span className="text-lg">
               <p>
                 {reserve?.status === "APROBADO"

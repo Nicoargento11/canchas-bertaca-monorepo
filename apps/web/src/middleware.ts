@@ -14,7 +14,6 @@ const encodedKey = new TextEncoder().encode(secretKey);
 export default async function middleware(req: NextRequest) {
   // 2. Check if the current route is protected or public
   const path = req.nextUrl.pathname;
-  console.log(path);
 
   const isApiAuthRoute = req.nextUrl.pathname.startsWith(apiAuthPrefix);
   const isProtectedRoute = protectedRoutes.includes(path);
