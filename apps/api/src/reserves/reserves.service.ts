@@ -47,6 +47,22 @@ export class ReservesService {
     });
   }
 
+  async paginate(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+
+    const total = await this.prisma.reserves.count();
+    const reserves = await this.prisma.reserves.findMany({
+      skip,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+      include: {
+        User: true,
+      },
+    });
+
+    return { total, reserves };
+  }
+
   findAll() {
     return this.prisma.reserves.findMany();
   }

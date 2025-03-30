@@ -117,6 +117,22 @@ export const getReserveByIdFetch = async (
     return null;
   }
 };
+
+export const getAllReservesPagination = async (
+  page: number,
+  limit: number
+): Promise<{ total: number; reserves: Reserve[] } | null> => {
+  const response = await fetch(
+    `${BACKEND_URL}/reserves/paginate?page=${page}&limit=${limit}`
+  );
+  if (response.ok) {
+    const reserves = await response.json();
+    return reserves;
+  } else {
+    return null;
+  }
+};
+
 export const createReserve = async (
   values: z.infer<typeof createReserveAdminSchema>
 ) => {

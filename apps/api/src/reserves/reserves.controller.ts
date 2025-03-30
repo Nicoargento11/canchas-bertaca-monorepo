@@ -216,6 +216,16 @@ export class ReservesController {
   }
 
   @Public()
+  @Get('paginate')
+  async paginate(@Query('page') page: number, @Query('limit') limit: number) {
+    const reserves = await this.reservesService.paginate(
+      Number(page),
+      Number(limit),
+    );
+    return reserves;
+  }
+
+  @Public()
   @Get('reserves-turns-day')
   async getReservesTurnsByDay(@Query('date') date: string) {
     if (!date) {
