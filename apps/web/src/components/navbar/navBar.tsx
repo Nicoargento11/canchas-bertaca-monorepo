@@ -27,7 +27,9 @@ const NavBar = ({ currentUser }: NavBarProps) => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const handleMobileLinkClick = (event: React.MouseEvent, href: string) => {
+  const handleMobileLinkClick = (
+    event: React.MouseEvent<HTMLAnchorElement, MouseEvent>
+  ) => {
     scrollToSection(event);
     setIsMobileMenuOpen(false);
   };
@@ -117,7 +119,7 @@ const NavBar = ({ currentUser }: NavBarProps) => {
                   key={href}
                   href={`#${href}`}
                   className="px-4 py-3 rounded-md hover:bg-white/10 text-white font-medium text-center transition-colors"
-                  onClick={(e) => handleMobileLinkClick(e, href)}
+                  onClick={(e) => handleMobileLinkClick(e)}
                 >
                   {title}
                 </Link>
