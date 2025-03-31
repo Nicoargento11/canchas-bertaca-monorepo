@@ -128,8 +128,8 @@ const NavBar = ({ currentUser }: NavBarProps) => {
               {!currentUser && (
                 <div className="flex flex-col gap-3 pt-3 border-t border-white/20">
                   <Button
-                    variant="outline"
-                    className="w-full border-white text-white hover:bg-white/10"
+                    variant="default"
+                    className="w-full bg-Primary text-white hover:bg-Primary-darker "
                     onClick={() => {
                       handleChangeLogin();
                       setIsMobileMenuOpen(false);
@@ -138,7 +138,8 @@ const NavBar = ({ currentUser }: NavBarProps) => {
                     Iniciar Sesión
                   </Button>
                   <Button
-                    className="w-full bg-Primary hover:bg-Primary-dark"
+                    variant="default"
+                    className="w-full bg-Complementary text-white hover:bg-Accent-1"
                     onClick={() => {
                       handleChangeRegister();
                       setIsMobileMenuOpen(false);
