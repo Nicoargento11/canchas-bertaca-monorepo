@@ -118,7 +118,7 @@ export const EditReserveForm = () => {
             name="court"
             render={({ field }) => (
               <FormItem className="flex items-center justify-center gap-2 ">
-                <GiSoccerField color="green" className="mt-2" size={20} />
+                <GiSoccerField className="mt-2 text-Primary" size={20} />
 
                 <FormControl>
                   <Input
@@ -138,7 +138,7 @@ export const EditReserveForm = () => {
             name="date"
             render={({ field }) => (
               <FormItem className="flex items-center justify-center gap-2">
-                <CalendarDays color="green" className="mt-2" size={20} />
+                <CalendarDays className="mt-2 text-Primary" size={20} />
 
                 <Popover>
                   <PopoverTrigger asChild>
@@ -175,7 +175,7 @@ export const EditReserveForm = () => {
             name="schedule"
             render={({ field }) => (
               <FormItem className="flex items-center justify-center gap-2">
-                <Clock9 color="green" className="mt-2" size={20} />
+                <Clock9 className="mt-2 text-Primary" size={20} />
                 <Select
                   onValueChange={field.onChange}
                   defaultValue={field.value}
@@ -205,7 +205,7 @@ export const EditReserveForm = () => {
             name="clientName"
             render={({ field }) => (
               <FormItem className="flex items-center justify-center gap-2">
-                <CircleUserRound color="green" className="mt-2" size={20} />
+                <CircleUserRound className="mt-2 text-Primary" size={20} />
 
                 <FormControl>
                   <Input
