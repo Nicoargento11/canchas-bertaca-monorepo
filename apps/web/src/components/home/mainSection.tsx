@@ -62,7 +62,7 @@ export const MainSection = () => {
             {/* Botón secundario */}
             <Link
               href="#TurnosHoy"
-              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl text-Complementary font-bold text-2xl sm:text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center justify-center gap-3 border-[2px] border-transparent hover:border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
+              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl text-Complementary font-bold text-2xl sm:text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center justify-center gap-3 border-[2px] border-transparent border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
             >
               <CalendarCheck size={30} />
               <span>Ver horarios</span>
@@ -77,7 +77,7 @@ export const MainSection = () => {
           <motion.div
             animate={{ y: [0, 12, 0] }}
             transition={{ repeat: Infinity, duration: 1.5 }}
-            className="flex items-center justify-center w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-br from-Primary-light to-Primary-dark rounded-full shadow-2xl hover:scale-110 transition hover:shadow-3xl"
+            className="flex items-center justify-center w-12 h-12 sm:w-12 sm:h-12 bg-gradient-to-br from-Primary-light to-Primary-dark rounded-full shadow-2xl hover:scale-110 transition hover:shadow-3xl"
           >
             <ChevronsDown color="yellow" size={36} className="sm:size-[40px]" />
           </motion.div>
