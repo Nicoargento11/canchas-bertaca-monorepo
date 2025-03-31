@@ -23,7 +23,7 @@ import { useModal } from "@/contexts/modalContext";
 
 export const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
-  const { oncloseLogin } = useModal();
+  const { oncloseLogin, onOpenReserve } = useModal();
 
   const [errror, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
@@ -44,6 +44,11 @@ export const LoginForm = () => {
       signIn(values).then((data) => {
         if (data.succes) {
           oncloseLogin();
+          const reservaTemporal = localStorage.getItem("reserveData");
+          if (reservaTemporal) {
+            onOpenReserve();
+            localStorage.removeItem("reserveData");
+          }
         }
         setError(data?.error);
         setSucces(data?.succes);

@@ -25,7 +25,7 @@ import { useModal } from "@/contexts/modalContext";
 export const RegisterForm = () => {
   const [error, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
-  const { onCloseRegister } = useModal();
+  const { onCloseRegister, onOpenReserve } = useModal();
 
   const [isPending, startTransition] = useTransition();
 
@@ -49,7 +49,11 @@ export const RegisterForm = () => {
         if (data.succes) {
           signIn({ email: values.email, password: values.password });
           onCloseRegister();
-          //TODO add popup ok register
+          const reservaTemporal = localStorage.getItem("reserveData");
+          if (reservaTemporal) {
+            onOpenReserve();
+            localStorage.removeItem("reserveData");
+          }
         }
       });
     });

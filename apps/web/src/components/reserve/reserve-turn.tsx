@@ -7,9 +7,10 @@ import {
   Clock9,
   CalendarDays,
   Coins,
-  Gift,
+  // Gift,
   Receipt,
   Phone,
+  AlertCircle,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { es } from "date-fns/locale";
@@ -17,7 +18,7 @@ import { SkeletonModal } from "../skeletonModal";
 import { initMercadoPago, Wallet } from "@mercadopago/sdk-react";
 import { FormError } from "../form-error";
 import { FormSucces } from "../form-succes";
-import beerService from "@/utils/beerService";
+// import beerService from "@/utils/beerService";
 import { useReserve } from "@/contexts/reserveContext";
 import { useForm } from "react-hook-form";
 import {
@@ -34,8 +35,9 @@ import { Session } from "@/services/auth/session";
 import { getCourtByName } from "@/services/courts/courts";
 import { createPayment } from "@/services/payments/payments";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
-import priceDiscount from "@/utils/priceDiscount";
+// import priceDiscount from "@/utils/priceDiscount";
 import priceCalculator from "@/utils/priceCalculator";
+import { getUserById, User } from "@/services/users/users";
 
 initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY as string, {
   locale: "es-AR",
@@ -47,14 +49,18 @@ interface ReserveTurnProps {
 
 const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
   const { reserveForm } = useReserve();
-  const { oncloseReserve, onOpenRegister } = useModal();
-  console.log(currentUser);
-
+  const {
+    oncloseReserve,
+    // onOpenRegister,
+    handleChangeLogin,
+    handleChangeRegister,
+  } = useModal();
   const [error, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
   const [isLoading, setLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [preferenceId, setPreferenceId] = useState<string | null>();
+  const [user, setUser] = useState<User | null>(null);
 
   const form = useForm<z.infer<typeof reserveTurnSchema>>({
     resolver: zodResolver(reserveTurnSchema),
@@ -73,6 +79,12 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
     setLoading(true);
     if (reserveForm.hour && reserveForm.field && reserveForm.day) {
       startTransition(() => {
+        if (currentUser) {
+          getUserById(currentUser?.user.id).then((user) => {
+            setUser(user);
+          });
+        }
+
         getCourtByName("dimasf5").then((value) => {
           const calculatedPrice = priceCalculator(
             reserveForm.day,
@@ -97,7 +109,61 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
   }, [reserveForm, currentUser]);
 
   if (!currentUser) {
-    return <p>Debes registrarte para completar la reserva</p>;
+    return (
+      <div className="text-center p-6 bg-Primary-light/10 rounded-lg border border-Primary-light">
+        <div className="flex flex-col items-center gap-4">
+          <AlertCircle className="h-10 w-10 text-Primary" />
+          <h3 className="text-xl font-semibold text-Primary-dark">
+            Registro Requerido
+          </h3>
+          <p className="text-gray-700">
+            Para completar tu reserva necesitas una cuenta. Es rápido y
+            sencillo.
+          </p>
+          <div className="flex gap-3 mt-4">
+            <Button
+              onClick={() => {
+                // Guarda los datos temporales antes de cerrar
+                localStorage.setItem(
+                  "reserveData",
+                  JSON.stringify({
+                    field: reserveForm.field,
+                    day: reserveForm.day.toISOString(),
+                    hour: reserveForm.hour,
+                    // phone: form.getValues("phone") || ""
+                  })
+                );
+                handleChangeLogin();
+                oncloseReserve();
+              }}
+              variant="outline"
+              className="border-Primary text-Primary hover:bg-Primary/10"
+            >
+              Iniciar Sesión
+            </Button>
+            <Button
+              onClick={() => {
+                // Guarda los datos temporales antes de cerrar
+                localStorage.setItem(
+                  "reserveData",
+                  JSON.stringify({
+                    field: reserveForm.field,
+                    day: reserveForm.day.toISOString(),
+                    hour: reserveForm.hour,
+                    // phone: form.getValues("phone") || "",
+                  })
+                );
+                handleChangeRegister();
+                oncloseReserve();
+              }}
+              className="bg-Primary hover:bg-Primary-dark"
+            >
+              Crear Cuenta
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const handleReserve = (values: z.infer<typeof reserveTurnSchema>) => {
@@ -109,12 +175,12 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
       });
       return;
     }
-    localStorage.setItem("court", reserveForm.field.toString());
-    localStorage.setItem("date", format(reserveForm.day, "dd/MM/yyyy"));
-    localStorage.setItem("schedule", reserveForm.hour);
-    localStorage.setItem("phone", values.phone);
-    oncloseReserve();
-    onOpenRegister();
+    // localStorage.setItem("court", reserveForm.field.toString());
+    // localStorage.setItem("date", format(reserveForm.day, "dd/MM/yyyy"));
+    // localStorage.setItem("schedule", reserveForm.hour);
+    // localStorage.setItem("phone", values.phone);
+    // oncloseReserve();
+    // onOpenRegister();
   };
 
   return (
@@ -195,7 +261,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
                       <Receipt className="text-Complementary" size={30} />
                       <span className="text-lg font-semibold text-black">
                         Precio &nbsp;
-                        {priceDiscount(reserveForm.hour) ? (
+                        {/* {priceDiscount(reserveForm.hour) ? (
                           <div className="flex">
                             <span className="line-through text-Error-dark">
                               $
@@ -212,29 +278,29 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
                             </p>
                           </div>
                         ) : (
-                          <span className="">
-                            $
-                            {field.value.toLocaleString("es-AR", {
-                              currency: "ARS",
-                            })}
-                          </span>
-                        )}
+                        )} */}
+                        <span className="">
+                          $
+                          {field.value.toLocaleString("es-AR", {
+                            currency: "ARS",
+                          })}
+                        </span>
                       </span>
                     </FormItem>
                   )}
                 />
-                {beerService(reserveForm.hour) && (
+                {/* {beerService(reserveForm.hour) && (
                   <div className="flex items-center gap-4">
                     <Gift className="text-Complementary" size={25} />
                     <span className="text-lg font-semibold text-black">
                       1 gaseosa 1.5l o 1 quilmes bajo cero
                     </span>
                   </div>
-                )}
+                )} */}
               </div>
 
               {/* Campo de teléfono */}
-              {!currentUser?.user.phone && (
+              {!user?.phone && (
                 <FormField
                   control={form.control}
                   name="phone"
