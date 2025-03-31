@@ -8,7 +8,7 @@ export const MainSection = () => {
   const { onOpenReserve } = useModal();
 
   return (
-    <div className="relative h-screen w-full ">
+    <div className="relative h-screen w-full">
       {/* Fondo con video */}
       <div className="absolute inset-0 overflow-hidden">
         <video
@@ -22,68 +22,64 @@ export const MainSection = () => {
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       </div>
 
-      <div className="relative z-10 flex items-center justify-between h-full w-full px-12">
-        {/* Título a la izquierda */}
+      {/* Contenido principal */}
+      <div className="relative z-10 flex items-center sm:justify-start justify-center h-full w-full px-4 sm:px-12 lg:px-16">
         <motion.div
-          initial={{ opacity: 0, x: -50 }}
-          animate={{ opacity: 1, x: 0 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8 }}
-          className="text-left p-6 max-w-lg flex flex-col items-start"
+          className="text-center sm:text-left p-4 w-full max-w-[90vw] sm:max-w-lg md:max-w-xl flex flex-col items-center sm:items-start"
         >
-          <h1 className="relative z-30 max-w-[616px] bg-gradient-to-br from-Primary-light from-30% via-Primary-dark via-80% to-Primary bg-clip-text font-title text-6xl font-semibold leading-[0.9] tracking-tight text-transparent lg:max-w-[527px] lg:text-5xl md:max-w-[441px] md:text-4xl sm:max-w-64 sm:text-2xl flex items-center gap-3 mb-6">
+          {/* Título principal */}
+          <h1 className="relative z-30 bg-gradient-to-br from-Primary-light from-30% via-Primary-dark via-80% to-Primary bg-clip-text font-title text-5xl sm:text-5xl md:text-6xl lg:text-7xl font-bold leading-tight tracking-tight text-transparent mb-6 sm:mb-8">
             Reserva tu Cancha
           </h1>
 
-          <p className="text-xl text-white mb-8">
-            Juega con tus amigos en una cancha de primer nivel. Reserva fácil,
-            rápido y asegura tu partido.
+          {/* Descripción */}
+          <p className="text-xl sm:text-xl md:text-2xl text-white mb-8 sm:mb-10 text-center sm:text-left px-2 sm:px-0 leading-relaxed">
+            Juega con tus amigos en una cancha de primer nivel.
+            <br className="hidden sm:block" />
+            Reserva fácil, rápido y asegura tu partido.
           </p>
 
-          {/* Botón principal: Reservar ahora */}
-          <button
-            onClick={onOpenReserve}
-            className="px-6 py-4 rounded-lg border-2 border-Primary-light text-Primary-light font-semibold text-2xl relative overflow-hidden group transition-all ease-in-out duration-300 hover:text-Primary hover:border-Primary hover:bg-Primary/10 mb-4"
-          >
-            {/* Texto principal con ícono animado */}
-            <span className="flex items-center gap-3">
-              <ArrowRightCircle
-                size={35}
-                className="group-hover:text-Primary"
-              />
-              Reservar ahora
-            </span>
+          {/* Contenedor de botones */}
+          <div className="flex flex-col w-full max-w-[320px] sm:max-w-sm space-y-5 sm:space-y-4">
+            {/* Botón principal */}
+            <button
+              onClick={onOpenReserve}
+              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl border-2 border-Primary-light text-Primary-light font-bold text-2xl sm:text-2xl relative overflow-hidden group transition-all ease-in-out duration-300 hover:text-Primary hover:border-Primary hover:bg-Primary/10"
+            >
+              <span className="flex items-center justify-center gap-3">
+                <ArrowRightCircle
+                  size={32}
+                  className="group-hover:text-Primary"
+                />
+                Reservar ahora
+              </span>
+              <span className="absolute inset-0 border-2 border-Primary opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 ease-in-out"></span>
+            </button>
 
-            {/* Borde que se expande */}
-            <span className="absolute inset-0 border-2 border-Primary opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 ease-in-out"></span>
-          </button>
-
-          {/* Botón secundario: Ver horarios disponibles */}
-          <Link
-            href="#TurnosHoy"
-            className="px-6 py-4 rounded-lg text-Complementary font-semibold text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center gap-3 border-[2px] border-transparent hover:border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
-          >
-            <CalendarCheck size={30} /> Ver horarios disponibles
-          </Link>
+            {/* Botón secundario */}
+            <Link
+              href="#TurnosHoy"
+              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl text-Complementary font-bold text-2xl sm:text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center justify-center gap-3 border-[2px] border-transparent hover:border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
+            >
+              <CalendarCheck size={30} />
+              <span>Ver horarios</span>
+            </Link>
+          </div>
         </motion.div>
-
-        {/* Call to action a la derecha */}
-        <motion.div
-          initial={{ opacity: 0, x: 50 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ duration: 0.8 }}
-          className="text-right p-6 max-w-lg"
-        ></motion.div>
       </div>
 
-      {/* Botón de desplazamiento hacia abajo */}
-      <div className="absolute bottom-12 w-full flex justify-center z-20">
+      {/* Botón de desplazamiento */}
+      <div className="absolute bottom-10 sm:bottom-12 w-full flex justify-center z-20">
         <Link href="#Precios">
           <motion.div
-            animate={{ y: [0, 10, 0] }}
+            animate={{ y: [0, 12, 0] }}
             transition={{ repeat: Infinity, duration: 1.5 }}
-            className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-Primary-light to-Primary-dark rounded-full shadow-2xl hover:scale-110 transition hover:shadow-3xl"
+            className="flex items-center justify-center w-14 h-14 sm:w-12 sm:h-12 bg-gradient-to-br from-Primary-light to-Primary-dark rounded-full shadow-2xl hover:scale-110 transition hover:shadow-3xl"
           >
-            <ChevronsDown color="yellow" size={40} />
+            <ChevronsDown color="yellow" size={36} className="sm:size-[40px]" />
           </motion.div>
         </Link>
       </div>

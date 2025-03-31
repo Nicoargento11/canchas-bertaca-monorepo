@@ -3,8 +3,8 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { SkeletonModal } from "@/components/skeletonModal";
 import dayHours from "@/utils/dayHours";
-import beerService from "@/utils/beerService";
-import { CupSoda } from "lucide-react";
+// import beerService from "@/utils/beerService";
+// import { CupSoda } from "lucide-react";
 import { useReserve } from "@/contexts/reserveContext";
 import { fixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
 import { Schedule } from "@/services/schedule/schedule";
@@ -93,7 +93,7 @@ const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
                     {/* Contenedor de la hora y el icono de cerveza */}
                     <div className="flex flex-col justify-center items-center gap-2">
                       {/* Icono de cerveza */}
-                      {beerService(horario) && (
+                      {/* {beerService(horario) && (
                         <div className="w-8 h-8 bg-Accent-1 rounded-full flex items-center justify-center">
                           <CupSoda
                             color={
@@ -102,18 +102,18 @@ const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
                             size={18}
                           />
                         </div>
-                      )}
+                      )} */}
 
                       {/* Hora del turno */}
                       <span className="text-lg">{horario}</span>
                     </div>
 
                     {/* Indicador de cerveza (texto) */}
-                    {beerService(horario) && (
+                    {/* {beerService(horario) && (
                       <span className="block text-sm text-Accent-1 mt-1">
                         ¡Cerveza incluida!
                       </span>
-                    )}
+                    )} */}
                   </li>
                 ))}
             </ul>

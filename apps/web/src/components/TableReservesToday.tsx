@@ -1,9 +1,9 @@
 "use client";
 
-import beerService from "@/utils/beerService";
-import priceDiscount from "@/utils/priceDiscount";
+// import beerService from "@/utils/beerService";
+// import priceDiscount from "@/utils/priceDiscount";
 
-import { Check, X, Tag, CupSoda, Clock9 } from "lucide-react";
+import { Check, X, Clock9 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 
 import { TurnByDay } from "@/services/reserves/reserves";
@@ -69,12 +69,12 @@ const TableReservesToday: React.FC<TableReservesTodayProps> = ({
                     <td className="border-2 w-[100px] h-[80px]" key={index}>
                       <div className="bg-gradient-to-br from-Primary-light to-Primary text-blue-950 p-4 w-full h-full rounded-lg flex flex-col justify-center items-center font-bold text-lg relative shadow-md hover:shadow-lg transition-shadow duration-300">
                         <div className="flex">
-                          {priceDiscount(turn.schedule) && (
+                          {/* {priceDiscount(turn.schedule) && (
                             <Tag size={25} className="text-Primary-dark" />
-                          )}
-                          {beerService(turn.schedule) && (
+                          )} */}
+                          {/* {beerService(turn.schedule) && (
                             <CupSoda size={25} className="text-Primary-dark" />
-                          )}
+                          )} */}
                         </div>
                         <p className="hidden md:block">Disponible</p>
                         <Check className="block md:hidden" strokeWidth={3} />
