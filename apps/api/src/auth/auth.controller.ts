@@ -74,9 +74,8 @@ export class AuthController {
       req.user.email,
       req.user.phone,
     );
-    console.log(process.env.FRONT_END_URL);
     res.redirect(
-      `http://localhost:3000/api/auth/google/callback?userId=${response.id}&name=${response.name}&accessToken=${response.accessToken}&refreshToken=${response.refreshToken}&role=${response.role}&email=${response.email}&phone=${response.phone || ''}`,
+      `${process.env.FRONT_END_URL}/api/auth/google/callback?userId=${response.id}&name=${response.name}&accessToken=${response.accessToken}&refreshToken=${response.refreshToken}&role=${response.role}&email=${response.email}&phone=${response.phone || ''}`,
     );
   }
 
