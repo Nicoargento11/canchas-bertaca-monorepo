@@ -86,14 +86,13 @@ const NavBar = ({ currentUser }: NavBarProps) => {
           ) : (
             <div className="flex gap-3">
               <Button
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
+                className="bg-Primary hover:bg-Primary-darker"
                 onClick={handleChangeLogin}
               >
                 Iniciar Sesión
               </Button>
               <Button
-                className="bg-Primary hover:bg-Primary-dark"
+                className="bg-Complementary hover:bg-Accent-1"
                 onClick={handleChangeRegister}
               >
                 Registrarse
