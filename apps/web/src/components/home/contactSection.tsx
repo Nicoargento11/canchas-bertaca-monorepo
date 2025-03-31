@@ -61,7 +61,7 @@ export const ContactSection = () => {
               Contáctanos por cualquier medio.
             </p>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-16">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
               <GlassCard
                 icon={<FaWhatsapp className="text-3xl text-green-400" />}
                 title="WhatsApp"
@@ -71,14 +71,14 @@ export const ContactSection = () => {
                 borderColor="border-green-400/30"
               />
 
-              <GlassCard
+              {/* <GlassCard
                 icon={<FaPhoneAlt className="text-3xl text-blue-300" />}
                 title="Llamada"
                 description="Horario comercial"
                 info="379 5165059"
                 link="tel:+543795165059"
                 borderColor="border-blue-400/30"
-              />
+              /> */}
 
               <GlassCard
                 icon={<MdEmail className="text-3xl text-red-300" />}
