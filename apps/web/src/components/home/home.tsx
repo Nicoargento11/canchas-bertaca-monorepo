@@ -1,15 +1,14 @@
 "use client"; // Añadir esto si usas hooks o efectos de React
 
 import { MainSection } from "./mainSection";
-import { FooterHome } from "./footer";
 import PriceSection from "./priceSection";
 import TableReservesToday from "../TableReservesToday";
 import ScrollToTopButton from "../ScrollToTop";
 import { Court } from "@/services/courts/courts";
-import { WhatsappButton } from "../whatsappButton";
 import { TurnByDay } from "@/services/reserves/reserves";
 import SectionSeparator from "./sectionSeparator";
 import { CourtSection } from "./courtSection";
+import { ContactSection } from "./contactSection";
 
 export type PricingKeys =
   | "NoLights"
@@ -66,7 +65,7 @@ export const Home = ({ reservesDay, courtData }: HomeProps) => {
       <CourtSection />
 
       {/* Sección de Contacto */}
-      <section
+      {/* <section
         className="py-16 bg-gradient-to-r from-Primary-dark to-black shadow-2xl "
         id="Contacto"
       >
@@ -79,10 +78,11 @@ export const Home = ({ reservesDay, courtData }: HomeProps) => {
           </p>
           <WhatsappButton />
         </div>
-      </section>
+      </section> */}
 
       {/* Footer */}
-      <FooterHome />
+      {/* <FooterHome /> */}
+      <ContactSection />
     </main>
   );
 };
