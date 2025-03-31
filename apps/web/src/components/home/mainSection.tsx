@@ -62,7 +62,7 @@ export const MainSection = () => {
             {/* Botón secundario */}
             <Link
               href="#TurnosHoy"
-              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl text-Complementary font-bold text-2xl sm:text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center justify-center gap-3 border-[2px] border-transparent border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
+              className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl text-Complementary font-bold text-2xl sm:text-2xl hover:text-Accent-1 transition-all duration-300 flex items-center justify-center gap-3 border-2 border-transparent border-Accent-1 hover:border-opacity-60 shadow-[0_4px_18px_rgba(0,0,0,0.35)] hover:shadow-[0_6px_22px_rgba(0,0,0,0.45)]"
             >
               <CalendarCheck size={30} />
               <span>Ver horarios</span>
