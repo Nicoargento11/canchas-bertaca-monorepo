@@ -5,6 +5,8 @@ import { Star } from "lucide-react";
 import { Button } from "../ui/button";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
+import { submitReview } from "@/services/reviews/review";
+import { useToast } from "@/hooks/use-toast";
 
 export const ReviewModal = () => {
   const { onCloseReview, isOpenReview } = useModal();
@@ -12,20 +14,47 @@ export const ReviewModal = () => {
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
+    if (rating === 0) {
+      toast({
+        title: "Error",
+        description: "Por favor selecciona una calificación",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Aquí iría la lógica para enviar la reseña
-    console.log({ rating, comment });
+    try {
+      await submitReview({
+        rating,
+        comment,
+        // email: "opcional@email.com" // Si decides pedir email
+      });
 
-    // Simulamos el envío
-    setTimeout(() => {
-      setIsSubmitting(false);
+      toast({
+        title: "¡Gracias!",
+        description: "Tu reseña ha sido enviada correctamente",
+      });
+
+      // Resetear el formulario
+      setRating(0);
+      setComment("");
       onCloseReview();
-      // Aquí podrías mostrar un toast de éxito
-    }, 1000);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Hubo un problema al enviar tu reseña",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const bodyContent = (
@@ -44,6 +73,7 @@ export const ReviewModal = () => {
               onClick={() => setRating(star)}
               onMouseEnter={() => setHover(star)}
               onMouseLeave={() => setHover(0)}
+              disabled={isSubmitting}
             >
               <Star
                 size={28}
@@ -65,6 +95,7 @@ export const ReviewModal = () => {
           className="min-h-[120px]"
           value={comment}
           onChange={(e) => setComment(e.target.value)}
+          disabled={isSubmitting}
           required
         />
         <p className="text-xs text-gray-500 mt-1">
@@ -92,5 +123,3 @@ export const ReviewModal = () => {
     />
   );
 };
-
-export default ReviewModal;

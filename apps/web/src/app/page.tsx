@@ -2,7 +2,6 @@ import { Home } from "@/components/home/home";
 import LoginModal from "@/components/modals/loginModal";
 import RegisterModal from "@/components/modals/registerModal";
 import ReserveModal from "@/components/modals/reserveModal";
-import ReviewModal from "@/components/modals/reviewModal";
 import NavBar from "@/components/navbar/navBar";
 import { getSession } from "@/services/auth/session";
 import { getCourtByName } from "@/services/courts/courts";
@@ -12,6 +11,7 @@ import { getSchedules } from "@/services/schedule/schedule";
 import { getScheduleDays } from "@/services/scheduleDay/scheduleDay";
 import { getUnavailableDays } from "@/services/unavailableDay/unavailableDay";
 import { format } from "date-fns";
+import { ReviewModal } from "@/components/modals/reviewModal";
 
 export default async function HomePage() {
   const sessionUser = await getSession();
