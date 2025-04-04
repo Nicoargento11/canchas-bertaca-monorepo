@@ -51,7 +51,6 @@ const PageDashboardReserves = () => {
   const [hasMore, setHasMore] = useState(true);
   const [totalReserves, setTotalReserves] = useState(0);
   const observerTarget = useRef(null);
-  console.log(reserves);
   // Carga inicial de datos
   useEffect(() => {
     const loadInitialData = async () => {

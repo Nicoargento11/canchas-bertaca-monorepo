@@ -14,16 +14,13 @@ const priceCalculator = (
   // Dividir el horario en horas de inicio y fin
   const [horaInicio] = horario.split(" - ");
   const horaInicioInt = parseInt(horaInicio.split(":")[0]);
-  console.log(horaInicio);
 
   // Obtener el día de la semana (0 para domingo, 1 para lunes,..., 6 para sábado)
   const diaDeLaSemana = day.getDay();
 
   // Función auxiliar para encontrar el precio según el tipo
   const findPrice = (type: PricingType): number => {
-    console.log(type);
     const priceObj = prices.pricing.find((p) => p.type === type);
-    console.log(priceObj);
     return priceObj?.amount ?? 0; // Devuelve 0 si no se encuentra el precio
   };
 

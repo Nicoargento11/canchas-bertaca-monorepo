@@ -39,14 +39,15 @@ export const ContactSection = () => {
       "El mejor complejo de fútbol 5 en la región, con canchas de primer nivel y atención personalizada.",
     social: [
       {
-        icon: <FaFacebook size={20} />,
+        icon: <FaFacebook size={20} className="text-white" />,
         link: "https://www.facebook.com/ComplejoSarmientoF5",
-        color: "hover:bg-[#1877F2]",
+        color: "bg-[#1877F2] hover:bg-[#1877F2]/90 transition-colors",
       },
       {
-        icon: <FaInstagram size={20} />,
+        icon: <FaInstagram size={20} className="text-white" />,
         link: "https://www.instagram.com/sarmientof5",
-        color: "hover:bg-[#E4405F]",
+        color:
+          "bg-gradient-to-r from-[#FEDA75] via-[#FA7E1E] to-[#D62976] hover:opacity-90 transition-opacity",
       },
     ],
     schedule: [
@@ -78,8 +79,8 @@ export const ContactSection = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-Primary-light to-Primary-dark bg-clip-text text-transparent mb-4">
-              ¿Necesitas <span className="text-green-400">ayuda</span>?
+            <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-Accent-1 to-Complementary bg-clip-text text-transparent mb-4">
+              ¿Necesitas ayuda?
             </h2>
             <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Estamos aquí para resolver tus dudas y ayudarte con tus reservas.
@@ -98,7 +99,7 @@ export const ContactSection = () => {
               className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-green-400 transition-all duration-300"
             >
               <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-green-400/20 rounded-lg">
+                <div className="p-3 Prbg-Complementarygreen-400/20 rounded-lg">
                   {contactData.whatsapp.icon}
                 </div>
                 <h3 className="text-xl font-bold text-white">
@@ -113,7 +114,7 @@ export const ContactSection = () => {
               <Link
                 href={contactData.whatsapp.link}
                 target="_blank"
-                className="w-full inline-flex justify-center items-center py-2 px-4 rounded-lg bg-green-400/10 border border-green-400/30 text-green-400 hover:bg-green-400/20 transition-colors"
+                className="w-full inline-flex justify-center items-center py-2 px-4 rounded-lg Prbg-Complementarygreen-400/10 border border-green-400/30 text-green-400 hover:bg-green-400/20 transition-colors"
               >
                 {contactData.whatsapp.info}
               </Link>
@@ -193,7 +194,7 @@ export const ContactSection = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
-                className="text-2xl font-bold text-green-400 mb-4"
+                className="text-2xl font-bold text-Primary-light mb-4"
               >
                 Canchas Bertaca
               </motion.h3>
@@ -219,7 +220,7 @@ export const ContactSection = () => {
                     key={index}
                     href={social.link}
                     target="_blank"
-                    className={`w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ${social.color} transition-all hover:text-white`}
+                    className={`w-10 h-10 rounded-full  flex items-center justify-center ${social.color} transition-all hover:text-white`}
                   >
                     {social.icon}
                   </Link>
@@ -234,7 +235,7 @@ export const ContactSection = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
-                className="text-2xl font-bold text-green-400 mb-4"
+                className="text-2xl font-bold text-Primary-light mb-4"
               >
                 Horarios
               </motion.h3>
@@ -261,7 +262,7 @@ export const ContactSection = () => {
                 whileInView={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
                 viewport={{ once: true }}
-                className="text-2xl font-bold text-green-400 mb-4"
+                className="text-2xl font-bold text-Primary-light mb-4"
               >
                 Enlaces Rápidos
               </motion.h3>
@@ -276,9 +277,9 @@ export const ContactSection = () => {
                   <li key={index}>
                     <Link
                       href={link.href}
-                      className="hover:text-green-400 transition-colors flex items-center gap-2"
+                      className="hover:text-Primary-light transition-colors flex items-center gap-2"
                     >
-                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      <span className="w-2 h-2 bg-Primary-lighter rounded-full"></span>
                       {link.text}
                     </Link>
                   </li>

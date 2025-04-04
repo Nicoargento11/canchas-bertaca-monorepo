@@ -53,7 +53,6 @@ export const updateFixedSchedule = async (
   data: Partial<sendDataFixedSchedule>
 ): Promise<fixedSchedule> => {
   const response = await api.put(`/fixed-schedules/${id}`, data);
-  console.log(response);
   return response.data;
 };
 

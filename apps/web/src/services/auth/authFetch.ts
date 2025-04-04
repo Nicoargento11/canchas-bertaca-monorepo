@@ -20,13 +20,11 @@ export const authFetch = async (
       if (!session?.refreshToken) throw new Error("refresh token not found!");
 
       const newAccessToken = await refreshToken(session.refreshToken);
-      console.log(newAccessToken);
       if (newAccessToken) {
         options.headers.Authorization = `Bearer ${newAccessToken}`;
         response = await fetch(url, options);
       }
     } catch (error) {
-      console.log("holaaa");
       await deleteSession();
       throw error;
     }

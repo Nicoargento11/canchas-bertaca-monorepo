@@ -1,6 +1,6 @@
 "use client";
 import { motion } from "framer-motion";
-import { Trophy, Cake, Clock, CheckCircle } from "lucide-react";
+import { Trophy, Cake, CheckCircle } from "lucide-react";
 
 export const EventSection = () => {
   const pricingData = {
@@ -59,7 +59,7 @@ export const EventSection = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-Primary-light to-Primary-dark bg-clip-text text-transparent mb-4">
+          <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-Accent-1 to-Complementary bg-clip-text text-transparent mb-4">
             Nuestros Precios y Ofertas
           </h2>
           <p className="text-lg text-gray-300 max-w-2xl mx-auto">
@@ -69,9 +69,9 @@ export const EventSection = () => {
         </motion.div>
 
         {/* Contenedor principal */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           {/* Tarjeta de Horarios Regulares */}
-          <motion.div
+          {/* <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.2 }}
@@ -102,7 +102,7 @@ export const EventSection = () => {
             <div className="mt-6 text-sm text-gray-400">
               * Precios por hora para equipos de hasta 10 personas
             </div>
-          </motion.div>
+          </motion.div> */}
 
           {/* Tarjeta de Escuelita de Fútbol */}
           <motion.div

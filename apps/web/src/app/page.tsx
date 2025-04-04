@@ -16,9 +16,7 @@ import { format } from "date-fns";
 export default async function HomePage() {
   const sessionUser = await getSession();
   const unavailableDays = await getUnavailableDays();
-  console.log(unavailableDays);
   const scheduleDays = await getScheduleDays();
-  console.log(scheduleDays);
   const fixedSchedules = await getfixedSchedules();
   const schedules = await getSchedules();
 

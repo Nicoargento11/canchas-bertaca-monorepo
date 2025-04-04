@@ -79,10 +79,8 @@ export const getAvailableTurnsByHour = async (
   const response = await fetch(
     `${BACKEND_URL}/reserves/available-turns-schedule?date=${date}&schedule=${schedule}`
   );
-  console.log(response);
   if (response.ok) {
     const availableSchedules = await response.json();
-    console.log(availableSchedules);
 
     return availableSchedules;
   } else {
@@ -93,11 +91,9 @@ export const getAvailableTurnsByHour = async (
 export const getReservesByDayFetch = async (
   date: string
 ): Promise<ReservesByDay | null> => {
-  console.log(date);
   const response = await fetch(
     `${BACKEND_URL}/reserves/reserves-turns-day?date=${date}`
   );
-  console.log(response);
   if (response.ok) {
     const reserves = await response.json();
     return reserves;

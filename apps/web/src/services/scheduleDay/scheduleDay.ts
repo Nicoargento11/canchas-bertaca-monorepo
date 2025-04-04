@@ -11,7 +11,6 @@ export interface ScheduleDay {
 
 export const getScheduleDays = async (): Promise<ScheduleDay[]> => {
   const response = await api.get("/schedule-days");
-  console.log(response);
   return response.data;
 };
 

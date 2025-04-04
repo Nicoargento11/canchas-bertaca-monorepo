@@ -51,7 +51,6 @@ const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
     (availableReservesByDay &&
       availableReservesByDay.filter((turno) => turno.court.length <= 0)) ??
     [];
-  console.log(fullSchedules);
 
   return (
     <div className="pt-2">
