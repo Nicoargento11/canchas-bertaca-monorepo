@@ -8,7 +8,8 @@ interface ReviewData {
 
 export const submitReview = async (data: ReviewData) => {
   try {
-    const response = await api.post("/api/reviews", data);
+    const response = await api.post("/reviews", data);
+    console.log(response);
     return response.data;
   } catch {
     throw new Error("Error al enviar la reseña");

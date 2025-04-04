@@ -15,6 +15,7 @@ import { BenefitsModule } from './benefits/benefits.module';
 import { RatesModule } from './rates/rates.module';
 import { UnavailableDaysModule } from './unavailable-days/unavailable-days.module';
 import { FixedSchedulesModule } from './fixed-schedules/fixed-schedules.module';
+import { ReviewsModule } from './reviews/reviews.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { FixedSchedulesModule } from './fixed-schedules/fixed-schedules.module';
     RatesModule,
     UnavailableDaysModule,
     FixedSchedulesModule,
+    ReviewsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

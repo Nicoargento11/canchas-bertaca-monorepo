@@ -3,52 +3,67 @@ import { cookies } from "next/headers";
 import { jwtVerify } from "jose";
 import { Session } from "@/services/auth/session";
 
-import { apiAuthPrefix } from "./route";
-// 1. Specify protected and public routes
+const apiAuthPrefix = "/api/auth";
 const protectedRoutes = ["/dashboard", "/profile"];
 const publicRoutes = ["/"];
 
-const secretKey = process.env.SESSION_SECRET_KEY;
-const encodedKey = new TextEncoder().encode(secretKey);
-
 export default async function middleware(req: NextRequest) {
-  // 2. Check if the current route is protected or public
   const path = req.nextUrl.pathname;
+  const secretKey = process.env.SESSION_SECRET_KEY;
 
-  const isApiAuthRoute = req.nextUrl.pathname.startsWith(apiAuthPrefix);
-  const isProtectedRoute = protectedRoutes.includes(path);
-  const isPublicRoute = publicRoutes.includes(path);
-
-  if (isApiAuthRoute) {
-    return;
-  }
-  if (path == "/payment/succes" || path == "/payment/failure") {
-    const payment = req.nextUrl.searchParams.get("external_reference");
-    if (!payment) {
-      return Response.redirect(new URL("/", req.nextUrl));
-    }
-  }
-  // 3. Decrypt the session from the cookie
-  const cookie = (await cookies()).get("session")?.value;
-
-  if (!cookie && isProtectedRoute) {
-    return Response.redirect(new URL("/", req.nextUrl));
-  }
-  if (!cookie && isPublicRoute) {
+  // 1. Verificar si es una ruta de API de autenticación
+  if (path.startsWith(apiAuthPrefix)) {
     return NextResponse.next();
   }
 
-  const { payload: session } = await jwtVerify<Session>(cookie!, encodedKey, {
-    algorithms: ["HS256"],
-  });
-  if (!session.user.id && isProtectedRoute) {
-    return Response.redirect(new URL("/", req.nextUrl));
+  // 2. Manejar rutas de pago
+  if (path === "/payment/success" || path === "/payment/failure") {
+    const payment = req.nextUrl.searchParams.get("external_reference");
+    if (!payment) {
+      return NextResponse.redirect(new URL("/", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // 3. Obtener la cookie de sesión
+  const cookie = (await cookies()).get("session")?.value;
+
+  // 4. Manejar rutas públicas
+  if (publicRoutes.includes(path)) {
+    return NextResponse.next();
+  }
+
+  // 5. Verificar sesión para rutas protegidas
+  if (protectedRoutes.some((route) => path.startsWith(route))) {
+    if (!cookie) {
+      return NextResponse.redirect(new URL("/login", req.url));
+    }
+
+    try {
+      const encodedKey = new TextEncoder().encode(secretKey);
+      const { payload: session } = await jwtVerify(cookie, encodedKey, {
+        algorithms: ["HS256"],
+      });
+
+      if (!(session as Session).user?.id) {
+        return NextResponse.redirect(new URL("/login", req.url));
+      }
+
+      // Puedes agregar información de sesión a los headers si es necesario
+      const response = NextResponse.next();
+      response.headers.set("x-user-id", (session as Session).user.id);
+      return response;
+    } catch (error) {
+      console.error("JWT verification failed:", error);
+      const response = NextResponse.redirect(new URL("/login", req.url));
+      response.cookies.delete("session");
+      return response;
+    }
   }
 
   return NextResponse.next();
 }
 
-// Routes Middleware should not run on
 export const config = {
   matcher: ["/((?!.+\\.[\\w]+$|_next).*)", "/", "/(api|trpc)(.*)"],
 };
