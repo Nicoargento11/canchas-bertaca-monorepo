@@ -51,10 +51,11 @@ export class AuthController {
     };
   }
 
-  @Public()
+  // @Public()
   @UseGuards(RefreshAuthGuard)
   @Post('refresh')
   refreshToken(@Request() req) {
+    console.log(req.user);
     return this.authService.refreshToken(req.user.id, req.user.name);
   }
 
@@ -82,6 +83,7 @@ export class AuthController {
   @UseGuards(JwtAuthGuard)
   @Post('signout')
   signOut(@Req() req) {
+    console.log(req);
     console.log({ AuthControllerUserReq: req.user });
     return this.authService.signOut(req.user.id);
   }

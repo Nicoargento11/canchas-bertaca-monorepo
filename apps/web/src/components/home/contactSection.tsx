@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import { motion } from "framer-motion";
 import {
   FaFacebook,
   FaInstagram,
@@ -8,228 +8,299 @@ import {
 } from "react-icons/fa";
 import { MdEmail } from "react-icons/md";
 import Link from "next/link";
-import { motion } from "framer-motion";
-
-interface GlassCardProps {
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-  info: string;
-  link: string;
-  borderColor: string;
-}
-
-interface SocialIconProps {
-  icon: React.ReactNode;
-  link: string;
-  color: string;
-}
-
-interface FooterLinkProps {
-  href: string;
-  text: string;
-}
 
 export const ContactSection = () => {
+  const contactData = {
+    whatsapp: {
+      icon: <FaWhatsapp className="text-green-400" size={24} />,
+      title: "WhatsApp",
+      description: "Respuesta inmediata",
+      info: "+54 379 5165059",
+      link: "https://wa.me/+543795165059",
+    },
+    email: {
+      icon: <MdEmail className="text-red-300" size={24} />,
+      title: "Email",
+      description: "Respuesta en 24h",
+      info: "contacto@bertaca.com",
+      link: "mailto:contacto@bertaca.com",
+    },
+    location: {
+      icon: <FaMapMarkerAlt className="text-yellow-300" size={24} />,
+      title: "Ubicación",
+      description: "Visítanos",
+      info: "Ver en mapa",
+      link: "https://maps.app.goo.gl/csSJmhT7QrKzkErz6",
+    },
+  };
+
+  const footerData = {
+    about:
+      "El mejor complejo de fútbol 5 en la región, con canchas de primer nivel y atención personalizada.",
+    social: [
+      {
+        icon: <FaFacebook size={20} />,
+        link: "https://www.facebook.com/ComplejoSarmientoF5",
+        color: "hover:bg-[#1877F2]",
+      },
+      {
+        icon: <FaInstagram size={20} />,
+        link: "https://www.instagram.com/sarmientof5",
+        color: "hover:bg-[#E4405F]",
+      },
+    ],
+    schedule: [
+      { day: "Lunes a Viernes:", time: "8:00 - 23:00" },
+      { day: "Sábados:", time: "9:00 - 00:00" },
+      { day: "Domingos:", time: "10:00 - 22:00" },
+    ],
+    links: [
+      { href: "#Inicio", text: "Inicio" },
+      { href: "#Servicios", text: "Servicios" },
+      { href: "#Precios", text: "Precios" },
+      { href: "#Contacto", text: "Contacto" },
+    ],
+  };
+
   return (
     <>
-      {/* Sección de Contacto - Diseño Moderno */}
+      {/* Sección de Contacto */}
       <section
-        className="relative py-20 bg-gradient-to-br from-Primary-dark to-Primary-darker overflow-hidden"
         id="Contacto"
+        className="py-16 bg-gradient-to-b from-gray-900 to-gray-950"
       >
-        {/* Elementos decorativos */}
-        <div className="absolute top-0 left-0 w-full h-full opacity-10">
-          <div className="absolute top-20 left-10 w-40 h-40 rounded-full bg-Accent-1 blur-3xl"></div>
-          <div className="absolute bottom-10 right-20 w-60 h-60 rounded-full bg-Complementary blur-3xl"></div>
-        </div>
-
-        <div className="container mx-auto px-6 relative z-10">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Título de la sección */}
           <motion.div
-            initial={{ opacity: 0, y: 30 }}
+            initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
             viewport={{ once: true }}
-            className="max-w-4xl mx-auto text-center"
+            className="text-center mb-16"
           >
-            <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-              ¿Necesitas <span className="text-Accent-1">ayuda</span>?
+            <h2 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-Primary-light to-Primary-dark bg-clip-text text-transparent mb-4">
+              ¿Necesitas <span className="text-green-400">ayuda</span>?
             </h2>
-            <p className="text-xl text-Neutral-light mb-10 max-w-2xl mx-auto">
+            <p className="text-lg text-gray-300 max-w-2xl mx-auto">
               Estamos aquí para resolver tus dudas y ayudarte con tus reservas.
               Contáctanos por cualquier medio.
             </p>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-              <GlassCard
-                icon={<FaWhatsapp className="text-3xl text-green-400" />}
-                title="WhatsApp"
-                description="Respuesta inmediata"
-                info="+54 379 5165059"
-                link={`https://wa.me/+543795165059`}
-                borderColor="border-green-400/30"
-              />
-
-              {/* <GlassCard
-                icon={<FaPhoneAlt className="text-3xl text-blue-300" />}
-                title="Llamada"
-                description="Horario comercial"
-                info="379 5165059"
-                link="tel:+543795165059"
-                borderColor="border-blue-400/30"
-              /> */}
-
-              <GlassCard
-                icon={<MdEmail className="text-3xl text-red-300" />}
-                title="Email"
-                description="Respuesta en 24h"
-                info="contacto@bertaca.com"
-                link="mailto:contacto@bertaca.com"
-                borderColor="border-red-400/30"
-              />
-
-              <GlassCard
-                icon={<FaMapMarkerAlt className="text-3xl text-yellow-300" />}
-                title="Ubicación"
-                description="Visítanos"
-                info="Ver en mapa"
-                link="https://maps.app.goo.gl/csSJmhT7QrKzkErz6"
-                borderColor="border-yellow-400/30"
-              />
-            </div>
           </motion.div>
+
+          {/* Tarjetas de contacto */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* WhatsApp */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+              viewport={{ once: true }}
+              className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-green-400 transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-green-400/20 rounded-lg">
+                  {contactData.whatsapp.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {contactData.whatsapp.title}
+                </h3>
+              </div>
+
+              <p className="text-gray-300 mb-6">
+                {contactData.whatsapp.description}
+              </p>
+
+              <Link
+                href={contactData.whatsapp.link}
+                target="_blank"
+                className="w-full inline-flex justify-center items-center py-2 px-4 rounded-lg bg-green-400/10 border border-green-400/30 text-green-400 hover:bg-green-400/20 transition-colors"
+              >
+                {contactData.whatsapp.info}
+              </Link>
+            </motion.div>
+
+            {/* Email */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.4 }}
+              viewport={{ once: true }}
+              className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-red-300 transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-red-300/20 rounded-lg">
+                  {contactData.email.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {contactData.email.title}
+                </h3>
+              </div>
+
+              <p className="text-gray-300 mb-6">
+                {contactData.email.description}
+              </p>
+
+              <Link
+                href={contactData.email.link}
+                target="_blank"
+                className="w-full inline-flex justify-center items-center py-2 px-4 rounded-lg bg-red-300/10 border border-red-300/30 text-red-300 hover:bg-red-300/20 transition-colors"
+              >
+                {contactData.email.info}
+              </Link>
+            </motion.div>
+
+            {/* Ubicación */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              whileInView={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.6 }}
+              viewport={{ once: true }}
+              className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-6 border border-gray-700 hover:border-yellow-300 transition-all duration-300"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-yellow-300/20 rounded-lg">
+                  {contactData.location.icon}
+                </div>
+                <h3 className="text-xl font-bold text-white">
+                  {contactData.location.title}
+                </h3>
+              </div>
+
+              <p className="text-gray-300 mb-6">
+                {contactData.location.description}
+              </p>
+
+              <Link
+                href={contactData.location.link}
+                target="_blank"
+                className="w-full inline-flex justify-center items-center py-2 px-4 rounded-lg bg-yellow-300/10 border border-yellow-300/30 text-yellow-300 hover:bg-yellow-300/20 transition-colors"
+              >
+                {contactData.location.info}
+              </Link>
+            </motion.div>
+          </div>
         </div>
       </section>
 
-      {/* Footer - Diseño Moderno */}
-      <footer className="w-full bg-Primary-darker py-12 px-6 text-Neutral-light">
+      {/* Footer */}
+      <footer className="w-full bg-gray-950 py-12 px-6">
         <div className="container mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-10 mb-12">
+            {/* Información */}
             <div>
-              <h3 className="text-2xl font-bold text-Accent-1 mb-4">
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="text-2xl font-bold text-green-400 mb-4"
+              >
                 Canchas Bertaca
-              </h3>
-              <p className="mb-4">
-                El mejor complejo de fútbol 5 en la región, con canchas de
-                primer nivel y atención personalizada.
-              </p>
+              </motion.h3>
+              <motion.p
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="mb-4 text-gray-300"
+              >
+                {footerData.about}
+              </motion.p>
 
-              <div className="flex gap-4 mt-6">
-                <SocialIcon
-                  icon={<FaFacebook className="text-2xl" />}
-                  link="https://www.facebook.com/ComplejoSarmientoF5"
-                  color="hover:bg-[#1877F2]"
-                />
-                <SocialIcon
-                  icon={<FaInstagram className="text-2xl" />}
-                  link="https://www.instagram.com/sarmientof5"
-                  color="hover:bg-[#E4405F]"
-                />
-              </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.4 }}
+                viewport={{ once: true }}
+                className="flex gap-4 mt-6"
+              >
+                {footerData.social.map((social, index) => (
+                  <Link
+                    key={index}
+                    href={social.link}
+                    target="_blank"
+                    className={`w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center ${social.color} transition-all hover:text-white`}
+                  >
+                    {social.icon}
+                  </Link>
+                ))}
+              </motion.div>
             </div>
 
+            {/* Horarios */}
             <div>
-              <h3 className="text-2xl font-bold text-Accent-1 mb-4">
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="text-2xl font-bold text-green-400 mb-4"
+              >
                 Horarios
-              </h3>
-              <ul className="space-y-3">
-                <li className="flex justify-between">
-                  <span>Lunes a Viernes:</span>
-                  <span className="font-medium">8:00 - 23:00</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Sábados:</span>
-                  <span className="font-medium">9:00 - 00:00</span>
-                </li>
-                <li className="flex justify-between">
-                  <span>Domingos:</span>
-                  <span className="font-medium">10:00 - 22:00</span>
-                </li>
-              </ul>
+              </motion.h3>
+              <motion.ul
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="space-y-3 text-gray-300"
+              >
+                {footerData.schedule.map((item, index) => (
+                  <li key={index} className="flex justify-between">
+                    <span>{item.day}</span>
+                    <span className="font-medium">{item.time}</span>
+                  </li>
+                ))}
+              </motion.ul>
             </div>
 
+            {/* Enlaces */}
             <div>
-              <h3 className="text-2xl font-bold text-Accent-1 mb-4">
+              <motion.h3
+                initial={{ opacity: 0, x: -20 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.5 }}
+                viewport={{ once: true }}
+                className="text-2xl font-bold text-green-400 mb-4"
+              >
                 Enlaces Rápidos
-              </h3>
-              <ul className="space-y-3">
-                <FooterLink href="#Inicio" text="Inicio" />
-                <FooterLink href="#Servicios" text="Servicios" />
-                <FooterLink href="#Precios" text="Precios" />
-                <FooterLink href="#Contacto" text="Contacto" />
-              </ul>
+              </motion.h3>
+              <motion.ul
+                initial={{ opacity: 0 }}
+                whileInView={{ opacity: 1 }}
+                transition={{ duration: 0.5, delay: 0.2 }}
+                viewport={{ once: true }}
+                className="space-y-3 text-gray-300"
+              >
+                {footerData.links.map((link, index) => (
+                  <li key={index}>
+                    <Link
+                      href={link.href}
+                      className="hover:text-green-400 transition-colors flex items-center gap-2"
+                    >
+                      <span className="w-2 h-2 bg-green-400 rounded-full"></span>
+                      {link.text}
+                    </Link>
+                  </li>
+                ))}
+              </motion.ul>
             </div>
           </div>
 
-          <div className="pt-8 border-t border-Complementary/30">
-            <p className="text-center text-Neutral-light">
+          <motion.div
+            initial={{ opacity: 0 }}
+            whileInView={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
+            viewport={{ once: true }}
+            className="pt-8 border-t border-gray-700"
+          >
+            <p className="text-center text-gray-400">
               &copy; {new Date().getFullYear()} Canchas Bertaca. Todos los
               derechos reservados.
             </p>
-          </div>
+          </motion.div>
         </div>
       </footer>
     </>
   );
 };
-
-const GlassCard: React.FC<GlassCardProps> = ({
-  icon,
-  title,
-  description,
-  info,
-  link,
-  borderColor,
-}) => (
-  <div
-    className={`bg-white/10 backdrop-blur-lg rounded-2xl p-6 border ${borderColor} transition-all duration-300 hover:bg-white/20 hover:shadow-xl relative overflow-hidden flex flex-col items-center text-center w-full`}
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
-    {/* Icon Container */}
-    <div className="w-16 h-16 rounded-xl bg-white/10 flex items-center justify-center text-white text-3xl mb-4">
-      {icon}
-    </div>
-
-    {/* Content */}
-    <div className="relative z-10 flex flex-col h-full w-full">
-      <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-      <p className="text-neutral-300 text-sm leading-relaxed mb-4">
-        {description}
-      </p>
-
-      {/* Link Button */}
-      <div className="mt-auto w-full">
-        <Link
-          href={link}
-          target="_blank"
-          className="inline-flex items-center justify-center w-full text-sm font-medium text-white bg-accent-500 py-2 px-4 rounded-lg hover:bg-accent-600 transition-colors"
-        >
-          {info}
-        </Link>
-      </div>
-    </div>
-  </div>
-);
-
-const SocialIcon: React.FC<SocialIconProps> = ({ icon, link, color }) => (
-  <Link
-    href={link}
-    target="_blank"
-    className={`w-12 h-12 rounded-full bg-Primary-dark flex items-center justify-center ${color} transition-all hover:text-white`}
-  >
-    {icon}
-  </Link>
-);
-
-const FooterLink: React.FC<FooterLinkProps> = ({ href, text }) => (
-  <li>
-    <Link
-      href={href}
-      className="hover:text-Accent-1 transition-colors flex items-center gap-2"
-    >
-      <span className="w-2 h-2 bg-Accent-1 rounded-full"></span>
-      {text}
-    </Link>
-  </li>
-);

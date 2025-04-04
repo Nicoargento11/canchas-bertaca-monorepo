@@ -63,7 +63,7 @@ export async function updateTokens({
   refreshToken,
 }: {
   accessToken: string;
-  refreshToken: string;
+  refreshToken?: string;
 }) {
   const cookie = (await cookies()).get("session")?.value;
   if (!cookie) return null;
@@ -77,7 +77,7 @@ export async function updateTokens({
       ...payload.user,
     },
     accessToken,
-    refreshToken,
+    refreshToken: refreshToken || payload.refreshToken,
   };
 
   await createSession(newPayload);

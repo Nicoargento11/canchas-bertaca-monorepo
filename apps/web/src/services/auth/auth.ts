@@ -3,7 +3,12 @@
 import { loginSchema, registerSchema } from "@/schemas";
 import { z } from "zod";
 import { BACKEND_URL } from "../../config/constants";
-import { createSession, deleteSession, updateTokens } from "./session";
+import {
+  createSession,
+  deleteSession,
+  getSession,
+  updateTokens,
+} from "./session";
 import { authFetch } from "./authFetch";
 
 export const signUp = async (values: z.infer<typeof registerSchema>) => {
@@ -84,8 +89,8 @@ export const signOut = async () => {
 
     await deleteSession();
     return { success: true };
-  } catch (error) {
-    console.error("Error during sign out:", error);
+  } catch {
+    // console.error("Error during sign out:", error);
     return { error: "Error al cerrar sesión" };
   }
 };
@@ -101,22 +106,30 @@ export const refreshToken = async (oldRefreshToken: string) => {
         refresh: oldRefreshToken,
       }),
     });
-
     if (!response.ok) {
-      throw new Error("Failed to refresh token" + response.statusText);
+      throw new Error("Failed to refresh token " + response.statusText);
     }
 
     const { accessToken, refreshToken } = await response.json();
 
     if (!accessToken || !refreshToken) throw new Error("Provide Tokens");
 
+    const session = await getSession();
+    if (session) {
+      await updateTokens({
+        accessToken,
+        refreshToken: session.refreshToken, // Mantenemos el mismo refresh token
+      });
+    }
+
     await updateTokens({ accessToken, refreshToken });
 
     // if (!updateRes) throw new Error("Failed to update the tokens");
 
     return accessToken;
-  } catch (err) {
-    console.error("Refresh Token failed:", err);
+  } catch {
+    // console.error("Refresh Token failed:", err);
+    await deleteSession();
     return null;
   }
 };

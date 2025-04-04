@@ -1,5 +1,5 @@
 import { refreshToken } from "./auth";
-import { getSession } from "./session";
+import { deleteSession, getSession } from "./session";
 
 export interface FetchOptions extends RequestInit {
   headers?: Record<string, string>;
@@ -16,13 +16,19 @@ export const authFetch = async (
   };
   let response = await fetch(url, options);
   if (response.status === 401) {
-    if (!session?.refreshToken) throw new Error("refresh token not found!");
+    try {
+      if (!session?.refreshToken) throw new Error("refresh token not found!");
 
-    const newAccessToken = await refreshToken(session.refreshToken);
-
-    if (newAccessToken) {
-      options.headers.Authorization = `Bearer ${newAccessToken}`;
-      response = await fetch(url, options);
+      const newAccessToken = await refreshToken(session.refreshToken);
+      console.log(newAccessToken);
+      if (newAccessToken) {
+        options.headers.Authorization = `Bearer ${newAccessToken}`;
+        response = await fetch(url, options);
+      }
+    } catch (error) {
+      console.log("holaaa");
+      await deleteSession();
+      throw error;
     }
   }
   return response;

@@ -21,12 +21,12 @@ export const ProfileMenu = ({ currentUser }: ProfileMenuProps) => {
       const result = await signOut();
       if (result.success) {
         router.refresh();
-        router.push('/');
+        router.push("/");
       } else if (result.error) {
-        console.error('Error during logout:', result.error);
+        // console.error('Error during logout:', result.error);
       }
-    } catch (error) {
-      console.error('Error during logout:', error);
+    } catch {
+      // console.error('Error during logout:', error);
     }
   };
   return (

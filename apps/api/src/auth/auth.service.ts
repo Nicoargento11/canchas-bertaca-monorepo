@@ -84,18 +84,21 @@ export class AuthService {
   }
 
   async validateJwtUser(userId) {
+    console.log(userId);
     const user = await this.userService.findById(userId);
-
+    console.log('golaaaaaaaaa');
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
     const currentUser = { id: user.id, role: user.role };
+    console.log(currentUser);
     return currentUser;
   }
 
   async validateRefreshToken(userId: string, refreshToken: string) {
+    console.log(userId);
     const user = await this.userService.findById(userId);
-
+    console.log(user);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
-
+    console.log(refreshToken);
     const refreshTokenMatched = await verify(
       user.hashedRefreshToken,
       refreshToken,
@@ -108,6 +111,7 @@ export class AuthService {
   }
 
   async refreshToken(userId: string, name: string) {
+    console.log(userId);
     const { accessToken, refreshToken } = await this.generateTokens(userId);
     const hashedRT = await hash(refreshToken);
     await this.userService.updatedHashedRefreshToken(userId, hashedRT);
@@ -115,7 +119,7 @@ export class AuthService {
       id: userId,
       name: name,
       accessToken,
-      refreshToken,
+      refreshToken: undefined,
     };
   }
 
@@ -129,8 +133,8 @@ export class AuthService {
     try {
       await this.userService.updatedHashedRefreshToken(userId, null);
       return { success: true };
-    } catch (error) {
-      console.error('Error during signOut:', error);
+    } catch {
+      // console.error('Error during signOut:', error);
       return { error: 'Error al cerrar sesión' };
     }
   }

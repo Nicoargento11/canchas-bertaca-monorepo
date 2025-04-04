@@ -2,6 +2,7 @@ import { Home } from "@/components/home/home";
 import LoginModal from "@/components/modals/loginModal";
 import RegisterModal from "@/components/modals/registerModal";
 import ReserveModal from "@/components/modals/reserveModal";
+import ReviewModal from "@/components/modals/reviewModal";
 import NavBar from "@/components/navbar/navBar";
 import { getSession } from "@/services/auth/session";
 import { getCourtByName } from "@/services/courts/courts";
@@ -15,7 +16,9 @@ import { format } from "date-fns";
 export default async function HomePage() {
   const sessionUser = await getSession();
   const unavailableDays = await getUnavailableDays();
+  console.log(unavailableDays);
   const scheduleDays = await getScheduleDays();
+  console.log(scheduleDays);
   const fixedSchedules = await getfixedSchedules();
   const schedules = await getSchedules();
 
@@ -37,6 +40,7 @@ export default async function HomePage() {
         fixedSchedules={fixedSchedules}
         schedules={schedules}
       />
+      <ReviewModal />
     </div>
   );
 }

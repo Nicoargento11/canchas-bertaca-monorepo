@@ -9,6 +9,7 @@ import { TurnByDay } from "@/services/reserves/reserves";
 import SectionSeparator from "./sectionSeparator";
 import { CourtSection } from "./courtSection";
 import { ContactSection } from "./contactSection";
+import { EventSection } from "./eventSection";
 
 export type PricingKeys =
   | "NoLights"
@@ -63,6 +64,7 @@ export const Home = ({ reservesDay, courtData }: HomeProps) => {
       </section>
       {/* Galería de fotos */}
       <CourtSection />
+      <EventSection />
 
       {/* Sección de Contacto */}
       {/* <section

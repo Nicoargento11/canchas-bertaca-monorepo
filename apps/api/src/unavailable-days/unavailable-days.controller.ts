@@ -21,7 +21,7 @@ export class UnavailableDayController {
   create(@Body() createUnavailableDayDto: CreateUnavailableDayDto) {
     return this.unavailableDayService.create(createUnavailableDayDto);
   }
-  @Public()
+  // @Public()
   @Get()
   findAll() {
     return this.unavailableDayService.findAll();

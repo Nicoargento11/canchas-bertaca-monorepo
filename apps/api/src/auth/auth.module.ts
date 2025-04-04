@@ -32,7 +32,6 @@ import { RolesGuard } from './guards/roles/roles.guard';
     JwtStrategy,
     RefreshStrategy,
     GoogleStrategy,
-    // TODO: descomentar el jwtAuthguard
     // {
     //   provide: APP_GUARD,
     //   useClass: JwtAuthGuard, // @useGuard(JwtAuthGuard)

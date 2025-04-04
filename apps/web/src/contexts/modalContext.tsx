@@ -20,6 +20,10 @@ type ThemeContext = {
   onCloseRegister: () => void;
   isOpenRegister: boolean;
   handleChangeRegister: () => void;
+  //review
+  isOpenReview: boolean;
+  onOpenReview: () => void;
+  onCloseReview: () => void;
 };
 
 const ModalContext = createContext<ThemeContext | null>(null);
@@ -35,6 +39,7 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
   const [isOpenReserve, setIsOpenReserve] = useState(false);
   const [isOpenLogin, setIsOpenLogin] = useState(false);
   const [isOpenRegister, setIsOpenRegister] = useState(false);
+  const [isOpenReview, setIsOpenReview] = useState(false);
 
   const handleChangeLogin = () => {
     setIsOpenLogin((value) => !value);
@@ -63,18 +68,28 @@ export const ModalProvider = ({ children }: ModalProviderProps) => {
   const onCloseRegister = () => {
     setIsOpenRegister(false);
   };
+  //Review
+  const onOpenReview = () => {
+    setIsOpenReview(true);
+  };
+  const onCloseReview = () => {
+    setIsOpenReview(false);
+  };
   return (
     <ModalContext.Provider
       value={{
         isOpenLogin,
         isOpenRegister,
         isOpenReserve,
+        isOpenReview,
         onOpenLogin,
         oncloseLogin,
         onOpenRegister,
         onCloseRegister,
         onOpenReserve,
         oncloseReserve,
+        onOpenReview,
+        onCloseReview,
         handleChangeLogin,
         handleChangeRegister,
       }}
