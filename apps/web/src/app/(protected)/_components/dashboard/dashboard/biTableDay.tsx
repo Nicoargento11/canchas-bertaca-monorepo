@@ -232,7 +232,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                             <div className="flex gap-0.5 items-center">
                               <UserRound className="hidden sm:block text-Primary" />
                               <p className="truncate">
-                                {isReserved.clientName || isReserved.userId}
+                                {isReserved.clientName || isReserved.User?.name}
                               </p>
                             </div>
                             {isReserved.reserveType !== "FIJO" && (

@@ -9,7 +9,6 @@ import { getSchedules } from "@/services/schedule/schedule";
 
 const PageDashboard = async () => {
   const courtData = await getCourtByName("dimasf5");
-  console.log(courtData);
   const sessionUser = await getSession();
   const schedules = await getSchedules();
 
