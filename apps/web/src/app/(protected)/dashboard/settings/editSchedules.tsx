@@ -66,7 +66,7 @@ const EditSchedules = ({ schedules, rates }: EditSchedulesProps) => {
       endTime: schedule.endTime,
       scheduleDay: schedule.scheduleDay.dayOfWeek,
       rates: schedule.rates[0]?.id, // Tomar la primera tarifa (opcional)
-      benefits: schedule.benefits[0]?.id, // Tomar el primer beneficio (opcional)
+      // agregar benefits si es necesario
     });
   };
 
