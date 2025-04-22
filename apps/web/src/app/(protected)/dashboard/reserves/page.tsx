@@ -176,7 +176,7 @@ const PageDashboardReserves = () => {
                 <TableCell className="px-6 py-4 whitespace-nowrap">
                   <div className="flex text-sm text-gray-900 gap-2 items-center">
                     <CalendarDays />
-                    {formatDateUTC(date.toUTCString())}
+                    {formatDateUTC(new Date(date).toUTCString())}
                   </div>
                   <div className="flex items-center text-sm gap-2 text-gray-500">
                     <Clock9 />
