@@ -29,13 +29,15 @@ const Profile = ({ userData }: ProfileProps) => {
 
   const today = dateLocal();
   today.setUTCHours(0, 0, 0, 0);
-  const todayFormat = today.toISOString();
+  const todayFormat = today;
   const activeReserves = reserves?.filter(
-    (reserve) => reserve.date >= todayFormat && reserve.status !== "RECHAZADO"
+    (reserve) =>
+      new Date(reserve.date) >= todayFormat && reserve.status !== "RECHAZADO"
   );
 
   const historyReserves = reserves?.filter(
-    (reserve) => reserve.date < todayFormat || reserve.status === "RECHAZADO"
+    (reserve) =>
+      new Date(reserve.date) < todayFormat || reserve.status === "RECHAZADO"
   );
 
   useEffect(() => {
@@ -102,7 +104,7 @@ const Profile = ({ userData }: ProfileProps) => {
 
             <span
               className={`inline-block mt-3 px-3 py-1 text-sm font-semibold text-white rounded-full ${
-                userData?.role === "ADMIN"
+                userData?.role === "ADMINISTRADOR"
                   ? "bg-red-500"
                   : userData?.role === "MODERADOR"
                     ? "bg-yellow-500"
