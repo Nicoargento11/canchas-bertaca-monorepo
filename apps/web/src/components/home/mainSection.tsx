@@ -23,7 +23,7 @@ export const MainSection = () => {
           loop
           muted
           playsInline
-          src="/videos/cancha-futbol1.mp4"
+          src="https://res.cloudinary.com/dhignxely/video/upload/q_auto,f_auto,w_1280/v1745288680/cancha-futbol1_ub6mf9.mp4"
         />
         <div className="absolute inset-0 bg-black bg-opacity-50"></div>
       </div>

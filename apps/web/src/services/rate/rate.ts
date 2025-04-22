@@ -1,13 +1,14 @@
 // frontend/services/rateService.ts
 import api from "../api";
+import { FixedSchedule } from "../fixed-schedules/fixedSchedules";
 import { Schedule } from "../schedule/schedule";
-
 export interface Rate {
   id: string;
   name: string;
   price: number;
   reservationAmount: number;
-  schedules: Schedule[]; // Relación muchos a muchos con Schedule
+  schedules?: Schedule[];
+  FixedSchedule?: FixedSchedule[];
 }
 
 export const getRates = async (): Promise<Rate[]> => {

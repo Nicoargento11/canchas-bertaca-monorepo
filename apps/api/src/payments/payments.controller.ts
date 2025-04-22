@@ -1,21 +1,31 @@
 import {
   Body,
   Controller,
+  Delete,
+  Get,
   HttpException,
   HttpStatus,
+  Param,
+  Patch,
   Post,
   Req,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
-import { CreatePaymentDto } from './dto/create-payment.dto';
+import {
+  CreatePaymentDto,
+  CreatePaymentOnlineDto,
+} from './dto/create-payment.dto';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { UsersService } from 'src/user/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
-import { Status } from '@prisma/client';
+import { PaymentMethod, Status } from '@prisma/client';
+import { ApiTags } from '@nestjs/swagger';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 
+@ApiTags('Payments')
 @Controller('payments')
 export class PaymentsController {
   constructor(
@@ -27,9 +37,8 @@ export class PaymentsController {
   // TODO quitar public
   @Public()
   @Post('create')
-  async createPayment(@Body() createPaymentDto: CreatePaymentDto) {
+  async createPayment(@Body() createPaymentDto: CreatePaymentOnlineDto) {
     // TODO simplificar al objeto y usar spread operator para pasar los datos y verificar que funcione
-    console.log(createPaymentDto.date);
     const utcDate = new Date(
       Date.UTC(
         createPaymentDto.date.getFullYear(),
@@ -37,7 +46,6 @@ export class PaymentsController {
         createPaymentDto.date.getDate(),
       ),
     );
-    console.log(utcDate);
     const reserve = await this.reserveService.create({
       date: utcDate,
       schedule: createPaymentDto.schedule,
@@ -76,7 +84,6 @@ export class PaymentsController {
   @Post('mercadopago')
   async handlePaymentNotification(@Req() req) {
     const body = req.body;
-    console.log(body);
 
     // Validación inicial de tipo de notificación
     if (!body || !body.type || !body.data || !body.data.id) {
@@ -123,7 +130,6 @@ export class PaymentsController {
 
       // Actualizar la reserva
       const statusUpdate = statusMapping[searchedPayment.status];
-      console.log(statusUpdate);
 
       // if (searchedPayment.status === 'rejected') {
       //   const prueba = await this.paymentsService.cancelPayment(paymentId);
@@ -139,6 +145,16 @@ export class PaymentsController {
 
       await this.reserveService.update(searchedReserve.id, statusUpdate);
 
+      // Crear el registro de pago
+      const paymentDto: CreatePaymentDto = {
+        amount: searchedPayment.transaction_amount,
+        method: PaymentMethod.MERCADOPAGO, // Asumiendo que MERCADOPAGO está en tu enum
+        isPartial: true, // O puedes determinar esto basado en algún criterio
+        reserveId: searchedReserve.id,
+      };
+
+      await this.paymentsService.create(paymentDto);
+
       return {
         message: 'Payment notification processed successfully',
         status: searchedPayment.status,
@@ -150,5 +166,40 @@ export class PaymentsController {
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
+  }
+
+  @Post()
+  create(@Body() createDto: CreatePaymentDto) {
+    return this.paymentsService.create(createDto);
+  }
+
+  @Get()
+  findAll() {
+    return this.paymentsService.findAll();
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.paymentsService.findOne(id);
+  }
+
+  @Get('by-reserve/:reserveId')
+  findByReserve(@Param('reserveId') reserveId: string) {
+    return this.paymentsService.findByReserve(reserveId);
+  }
+
+  @Get('total-paid/:reserveId')
+  getTotalPaid(@Param('reserveId') reserveId: string) {
+    return this.paymentsService.getTotalPaid(reserveId);
+  }
+
+  @Patch(':id')
+  update(@Param('id') id: string, @Body() updateDto: UpdatePaymentDto) {
+    return this.paymentsService.update(id, updateDto);
+  }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.paymentsService.remove(id);
   }
 }

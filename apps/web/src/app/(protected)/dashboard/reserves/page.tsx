@@ -95,15 +95,18 @@ const PageDashboardReserves = () => {
       { threshold: 0.1 }
     );
 
-    if (observerTarget.current) {
-      observer.observe(observerTarget.current);
+    const target = observerTarget.current;
+
+    if (target) {
+      observer.observe(target);
     }
 
     return () => {
-      if (observerTarget.current) {
-        observer.unobserve(observerTarget.current);
+      if (target) {
+        observer.unobserve(target);
       }
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasMore, isLoading]);
 
   return (
@@ -173,7 +176,7 @@ const PageDashboardReserves = () => {
                 <TableCell className="px-6 py-4 whitespace-nowrap">
                   <div className="flex text-sm text-gray-900 gap-2 items-center">
                     <CalendarDays />
-                    {formatDateUTC(date)}
+                    {formatDateUTC(date.toUTCString())}
                   </div>
                   <div className="flex items-center text-sm gap-2 text-gray-500">
                     <Clock9 />

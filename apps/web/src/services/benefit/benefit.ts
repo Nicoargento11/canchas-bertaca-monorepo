@@ -1,13 +1,15 @@
 // frontend/services/benefitService.ts
 import api from "../api";
+import { Schedule } from "../schedule/schedule";
 
 export interface Benefit {
   id: string;
-  clientType: string; // Tipo de cliente (Ej: "Regular", "Premium")
+  clientType: string; // "Normal", "Fijo", "+10 reservas", etc.
   name: string;
-  description?: string;
-  condition?: string;
-  discount: number;
+  description?: string | null;
+  condition?: string | null;
+  discount: number; // Percentage or fixed amount
+  schedules?: Schedule[];
 }
 export const getBenefits = async (): Promise<Benefit[]> => {
   const response = await api.get("/benefits");

@@ -30,14 +30,40 @@ enum ReserveType {
   FIJO
 }
 
-enum PricingType {
-  NoLights
-  WithLights
-  HolidayLights
-  HolidayNoLights
-  MidNight
+enum TransactionType {
+  RESERVA
+  VENTA_PRODUCTO
+  SERVICIO
+  GASTO
+  ESCUELA_FUTBOL
+  EVENTO
 }
 
+enum PaymentMethod {
+  EFECTIVO
+  TARJETA_CREDITO
+  TRANSFERENCIA
+  MERCADOPAGO
+  OTRO
+}
+
+enum ProductCategory {
+  BEBIDA
+  COMIDA
+  SNACK
+  EQUIPAMIENTO
+  OTRO
+}
+
+enum MovementType {
+  COMPRA
+  VENTA
+  AJUSTE
+  PERDIDA
+  DEVOLUCION
+}
+
+// ---- MODELOS PRINCIPALES ----
 model User {
   id                 String          @id @default(cuid())
   name               String
@@ -54,6 +80,13 @@ model User {
   FixedSchedule      FixedSchedule[]
 }
 
+model Court {
+  id           String @id @default(cuid())
+  name         String @unique
+  numberCourts Int
+}
+
+// ---- RESERVAS Y PAGOS ----
 model Reserves {
   id                String         @id @default(cuid())
   date              DateTime
@@ -69,30 +102,68 @@ model Reserves {
   reserveType       ReserveType?
   User              User           @relation(fields: [userId], references: [id])
   userId            String
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
   paymentToken      String?        @unique
   FixedSchedule     FixedSchedule? @relation(fields: [fixedScheduleId], references: [id])
   fixedScheduleId   String?
+  Payment           Payment[]
+  consumitions      ProductSale[]
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
 }
 
-model Court {
-  id                String    @id @default(cuid())
-  name              String    @unique
-  numberCourts      Int?
-  reservationAmount Int
-  pricing           Pricing[]
+model Payment {
+  id        String        @id @default(cuid())
+  amount    Float
+  method    PaymentMethod
+  isPartial Boolean       @default(false)
+  reserve   Reserves?     @relation(fields: [reserveId], references: [id])
+  reserveId String?
+  createdAt DateTime      @default(now())
 }
 
-// TODO: eliminar tabla despues de la migracion (cuando se integre Schedule)
-model Pricing {
-  id      String      @id @default(cuid())
-  type    PricingType // Ejemplo: "NoLights", "WithLights", "HolidayNoLights"
-  amount  Int
-  courtId String
-  court   Court       @relation(fields: [courtId], references: [id])
+// ---- INVENTARIO Y VENTAS ----
+
+model Product {
+  id          String              @id @default(cuid())
+  name        String
+  description String?
+  barcode     String?             @unique
+  category    ProductCategory
+  stock       Int                 @default(0)
+  costPrice   Float
+  salePrice   Float
+  minStock    Int                 @default(5)
+  supplier    String?
+  isActive    Boolean             @default(true)
+  sales       ProductSale[]
+  movements   InventoryMovement[]
 }
 
+model ProductSale {
+  id        String    @id @default(cuid())
+  product   Product   @relation(fields: [productId], references: [id])
+  productId String
+  Reserve   Reserves? @relation(fields: [reserveId], references: [id])
+  reserveId String?
+  quantity  Int
+  price     Float // Precio unitario en venta
+  discount  Float?    @default(0)
+  isGift    Boolean   @default(false)
+  createdAt DateTime  @default(now())
+}
+
+model InventoryMovement {
+  id             String       @id @default(cuid())
+  product        Product      @relation(fields: [productId], references: [id])
+  productId      String
+  quantity       Int
+  type           MovementType
+  reason         String?
+  documentNumber String?
+  createdAt      DateTime     @default(now())
+}
+
+// ---- HORARIOS Y TURNOS ----
 model Schedule {
   id            String      @id @default(cuid())
   startTime     String
@@ -101,6 +172,23 @@ model Schedule {
   scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
   scheduleDayId String
   benefits      Benefit[]
+}
+
+model FixedSchedule {
+  id            String      @id @default(cuid())
+  startTime     String // Hora de inicio del turno fijo
+  endTime       String // Hora de fin del turno fijo
+  court         Int // Número de cancha
+  isActive      Boolean     @default(true)
+  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
+  scheduleDayId String // Relación con el día de la semana
+  rate          Rate        @relation(fields: [rateId], references: [id])
+  rateId        String // Relación con la tarifa
+  reserves      Reserves[] // Relación con las reservas
+  user          User        @relation(fields: [userId], references: [id])
+  userId        String
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 }
 
 model ScheduleDay {
@@ -134,21 +222,4 @@ model UnavailableDay {
   id     String   @id @default(cuid())
   date   DateTime @unique // Día específico en el que no se podrá reservar
   reason String? // Opcional: motivo (Ej: "Mantenimiento", "Feriado")
-}
-
-model FixedSchedule {
-  id            String      @id @default(cuid())
-  startTime     String // Hora de inicio del turno fijo
-  endTime       String // Hora de fin del turno fijo
-  court         Int // Número de cancha
-  isActive      Boolean     @default(true)
-  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
-  scheduleDayId String // Relación con el día de la semana
-  rate          Rate        @relation(fields: [rateId], references: [id])
-  rateId        String // Relación con la tarifa
-  reserves      Reserves[] // Relación con las reservas
-  user          User        @relation(fields: [userId], references: [id])
-  userId        String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
 }

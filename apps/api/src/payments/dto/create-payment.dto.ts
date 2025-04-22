@@ -1,3 +1,4 @@
+import { PaymentMethod } from '@prisma/client';
 import { Type } from 'class-transformer';
 import {
   IsString,
@@ -5,9 +6,13 @@ import {
   IsInt,
   IsPhoneNumber,
   IsNotEmpty,
+  IsNumber,
+  IsPositive,
+  IsEnum,
+  IsBoolean,
 } from 'class-validator';
 
-export class CreatePaymentDto {
+export class CreatePaymentOnlineDto {
   @IsNotEmpty()
   @IsDate()
   @Type(() => Date)
@@ -33,4 +38,20 @@ export class CreatePaymentDto {
   @IsString()
   @IsNotEmpty()
   userId: string;
+}
+
+export class CreatePaymentDto {
+  @IsNumber()
+  @IsPositive()
+  amount: number;
+
+  @IsEnum(PaymentMethod)
+  method: PaymentMethod;
+
+  @IsBoolean()
+  @IsNotEmpty()
+  isPartial: boolean;
+
+  @IsNotEmpty()
+  reserveId: string;
 }

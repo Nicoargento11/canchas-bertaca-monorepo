@@ -1,60 +1,82 @@
-import { PricingType } from "@/services/courts/courts";
+import { Rate } from "@/services/rate/rate";
+import { Schedule } from "@/services/schedule/schedule";
 
-interface Price {
-  id: string;
-  name: string;
+interface PricingResult {
+  price: number;
   reservationAmount: number;
-  pricing: { id: string; type: PricingType; amount: number; courtId: string }[];
+  rateName: string;
+  schedule: string;
+  dayOfWeek: number;
 }
+
+const timeToMinutes = (time: string): number => {
+  const [hours, minutes] = time.split(":").map(Number);
+  return hours * 60 + minutes;
+};
+
 const priceCalculator = (
   day: Date,
-  horario: string,
-  prices: Price
-): { price: number; reservationAmount: number } => {
-  // Dividir el horario en horas de inicio y fin
-  const [horaInicio] = horario.split(" - ");
-  const horaInicioInt = parseInt(horaInicio.split(":")[0]);
+  timeRange: string, // Formato "HH:MM - HH:MM"
+  schedules: Schedule[]
+): PricingResult | null => {
+  try {
+    // 1. Validar formato del rango horario
+    if (!timeRange.includes(" - ") || timeRange.split(" - ").length !== 2) {
+      throw new Error("Formato de horario inválido. Use 'HH:MM - HH:MM'");
+    }
 
-  // Obtener el día de la semana (0 para domingo, 1 para lunes,..., 6 para sábado)
-  const diaDeLaSemana = day.getDay();
+    // 2. Obtener día de la semana (0-6)
+    const dayOfWeek = day.getDay();
+    const [startTime, endTime] = timeRange.split(" - ");
 
-  // Función auxiliar para encontrar el precio según el tipo
-  const findPrice = (type: PricingType): number => {
-    const priceObj = prices.pricing.find((p) => p.type === type);
-    return priceObj?.amount ?? 0; // Devuelve 0 si no se encuentra el precio
-  };
+    const selectedStartMinutes = timeToMinutes(startTime);
+    const selectedEndMinutes = timeToMinutes(endTime);
 
-  if (horaInicio === "00:00" || horaInicio === "01:00") {
+    // 3. Buscar el schedule que coincida con día y horario
+    const matchingSchedule = schedules.find((s) => {
+      const scheduleStartMinutes = timeToMinutes(s.startTime);
+      const scheduleEndMinutes = timeToMinutes(s.endTime);
+
+      return (
+        s.scheduleDay.dayOfWeek === dayOfWeek &&
+        selectedStartMinutes >= scheduleStartMinutes &&
+        selectedEndMinutes <= scheduleEndMinutes &&
+        s.scheduleDay.isActive
+      );
+    });
+    if (!matchingSchedule) {
+      console.warn(
+        `No se encontró horario activo para ${timeRange} en día ${dayOfWeek}`
+      );
+      return null;
+    }
+
+    // 4. Verificar tarifas disponibles
+    if (!matchingSchedule.rates || matchingSchedule.rates.length === 0) {
+      console.warn(`El horario ${timeRange} no tiene tarifas configuradas`);
+      return null;
+    }
+
+    // 5. Seleccionar tarifa principal (aquí puedes implementar lógica más compleja si hay múltiples tarifas)
+    const rate = selectRate(matchingSchedule.rates);
+
     return {
-      price: findPrice(PricingType.MidNight),
-      reservationAmount: prices.reservationAmount,
+      price: rate.price,
+      reservationAmount: rate.reservationAmount,
+      rateName: rate.name,
+      schedule: `${matchingSchedule.startTime} - ${matchingSchedule.endTime}`,
+      dayOfWeek: matchingSchedule.scheduleDay.dayOfWeek,
     };
+  } catch (error) {
+    console.error("Error en priceCalculator:", error);
+    return null;
   }
-  if (diaDeLaSemana >= 1 && diaDeLaSemana <= 5) {
-    if (horaInicioInt >= 21) {
-      return {
-        price: findPrice(PricingType.WithLights),
-        reservationAmount: prices.reservationAmount,
-      }; // Precio para horarios a partir de las 21:00
-    } else {
-      return {
-        price: findPrice(PricingType.NoLights),
-        reservationAmount: prices.reservationAmount,
-      }; // Precio para horarios antes de las 21:00
-    }
-  } else {
-    if (horaInicioInt >= 21) {
-      return {
-        price: findPrice(PricingType.HolidayLights),
-        reservationAmount: prices.reservationAmount,
-      }; // Precio para horarios a partir de las 21:00
-    } else {
-      return {
-        price: findPrice(PricingType.HolidayNoLights),
-        reservationAmount: prices.reservationAmount,
-      }; // Precio para horarios antes de las 21:00
-    }
-  }
+};
+
+const selectRate = (rates: Rate[]) => {
+  // Aquí puedes implementar lógica para seleccionar entre múltiples tarifas
+  // Ejemplo: buscar tarifa especial, promocional, etc.
+  return rates[0]; // Por defecto toma la primera
 };
 
 export default priceCalculator;

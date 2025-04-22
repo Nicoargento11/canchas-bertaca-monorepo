@@ -14,7 +14,9 @@ export class ScheduleDayService {
   }
 
   async findAll() {
-    return this.prisma.scheduleDay.findMany({ include: { schedules: true } });
+    return this.prisma.scheduleDay.findMany({
+      include: { schedules: { include: { rates: true } } },
+    });
   }
 
   async findOne(id: string) {
@@ -27,7 +29,10 @@ export class ScheduleDayService {
   async findByDay(dayOfWeek: number) {
     return this.prisma.scheduleDay.findFirst({
       where: { dayOfWeek },
-      include: { FixedSchedule: { include: { user: true } }, schedules: true },
+      include: {
+        FixedSchedule: { include: { user: true } },
+        schedules: { include: { rates: true } },
+      },
     });
   }
 

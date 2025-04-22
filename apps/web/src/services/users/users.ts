@@ -1,21 +1,28 @@
 // frontend/services/userService.ts
 import api from "../api";
-import { fixedSchedule } from "../fixed-schedules/fixedSchedules";
+import { FixedSchedule } from "../fixed-schedules/fixedSchedules";
 import { Reserve } from "../reserves/reserves";
+
+export enum Role {
+  USUARIO = "USUARIO",
+  MODERADOR = "MODERADOR",
+  ADMINISTRADOR = "ADMINISTRADOR",
+}
 
 export interface User {
   id: string;
   name: string;
-  email: string;
-  emailVerified?: string | null;
+  email?: string | null;
+  emailVerified?: Date | null;
   hashedRefreshToken?: string | null;
   image?: string | null;
+  password: string;
   phone?: string | null;
-  role: "ADMIN" | "USUARIO" | "MODERADOR";
-  Reserve?: Reserve[];
-  FixedSchedule?: fixedSchedule[];
+  role: Role;
   createdAt: Date;
   updatedAt: Date;
+  Reserve?: Reserve[];
+  FixedSchedule?: FixedSchedule[];
 }
 
 export interface SendDataUser {

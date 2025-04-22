@@ -11,7 +11,7 @@ const EditReserveModal = () => {
 
   return (
     <Modal
-      title="Reservar"
+      title="Editar reserva"
       isOpen={isOpen}
       onClose={handleChangeEditReserve}
       body={<EditReserveForm />}

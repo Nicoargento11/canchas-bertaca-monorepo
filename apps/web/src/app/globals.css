@@ -75,25 +75,41 @@ html {
   scroll-behavior: smooth;
 }
 
-
-
 .custom-shape-divider-bottom-1741012740 {
-position: absolute;
-bottom: 0;
-left: 0;
-width: 100%;
-overflow: hidden;
-line-height: 0;
-transform: rotate(180deg);
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  transform: rotate(180deg);
 }
 
 .custom-shape-divider-bottom-1741012740 svg {
-position: relative;
-display: block;
-width: calc(141% + 1.3px);
-height: 129px;
+  position: relative;
+  display: block;
+  width: calc(141% + 1.3px);
+  height: 129px;
 }
 
 .custom-shape-divider-bottom-1741012740 .shape-fill {
-fill: #054A7A;
+  fill: #054a7a;
+}
+
+@layer base {
+  :root {
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+  }
+
+  .dark {
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
+  }
 }

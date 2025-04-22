@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { ProductsModule } from './product/products.module';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
@@ -29,15 +30,17 @@ async function bootstrap() {
     }),
   );
 
-  const options = new DocumentBuilder()
-    .setTitle('Dimas F5')
-    .setDescription('API F5 Reserves')
+  const config = new DocumentBuilder()
+    .setTitle('API de Gestión de Canchas')
+    .setDescription('API para manejar reservas, productos y pagos')
     .setVersion('1.0')
-    .setBasePath('api')
-    .addBearerAuth()
+    .addTag('products')
     .build();
-  const document = SwaggerModule.createDocument(app, options);
-  SwaggerModule.setup('/docs', app, document);
+
+  const document = SwaggerModule.createDocument(app, config, {
+    include: [ProductsModule],
+  });
+  SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 8000);
 }

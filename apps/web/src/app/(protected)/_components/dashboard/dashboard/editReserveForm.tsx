@@ -1,10 +1,8 @@
 "use client";
-import { Clock9, CalendarDays, CircleUserRound } from "lucide-react";
-import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
-
-import { Button } from "../../../../../components/ui/button";
-
-import { Input } from "../../../../../components/ui/input";
+import { Clock9, CalendarDays, CircleUserRound, Icon } from "lucide-react";
+import { soccerPitch } from "@lucide/lab";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import "react-phone-number-input/style.css";
 import { useEffect, useState, useTransition } from "react";
 import {
@@ -12,6 +10,7 @@ import {
   FormControl,
   FormField,
   FormItem,
+  FormLabel,
   FormMessage,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
@@ -31,7 +30,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
 import dayHours from "@/utils/dayHours";
 import { useDashboardDetailsModalStore } from "@/store/reserveDashboardDetailsModalStore";
 import { useDashboardEditReserveModalStore } from "@/store/editReserveDashboardModalStore";
@@ -40,195 +38,229 @@ import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { getSchedules, Schedule } from "@/services/schedule/schedule";
+import { Card, CardContent } from "@/components/ui/card";
+import { useReserve } from "@/contexts/reserveContext";
 
 export const EditReserveForm = () => {
   const [isPending, startTransition] = useTransition();
-  const [schedules, setSchedules] = useState<Schedule[] | null>();
+  const [schedules, setSchedules] = useState<Schedule[] | null>(null);
 
   const { handleChangeDetails } = useDashboardDetailsModalStore(
     (state) => state
   );
-
+  const { getReservesByDay } = useReserve();
   const { reserve, date } = useDashboardDataStore((state) => state);
 
   const { handleChangeEditReserve } = useDashboardEditReserveModalStore(
     (state) => state
   );
+  const selectedDate = date && format(date, "yyyy-MM-dd");
 
   const { toast } = useToast();
-  const router = useRouter();
 
   const form = useForm<z.infer<typeof editReserveAdminSchema>>({
-    defaultValues: reserve! &&
-      reserve.User && {
-        court: reserve.court,
-        date: date,
-        schedule: reserve.schedule,
-        clientName: reserve.clientName || reserve.User.name,
-      },
+    defaultValues:
+      reserve && reserve.User
+        ? {
+            court: reserve.court,
+            date: new Date(date),
+            schedule: reserve.schedule,
+            clientName: reserve.clientName || reserve.User.name,
+          }
+        : undefined,
   });
 
   const onSubmit = (values: z.infer<typeof editReserveAdminSchema>) => {
-    if (reserve) {
-      startTransition(() => {
-        editReserve({
-          ...values,
-          court: parseInt(values.court.toString()),
-          id: reserve.id,
-        }).then((data) => {
-          if (data?.succes) {
-            toast({
-              duration: 3000,
-              variant: "default",
-              title: "¡Excelente!",
-              description: data?.succes,
-            });
-          }
-          if (data?.error) {
-            toast({
-              duration: 3000,
-              variant: "destructive",
-              title: "¡Ha ocurrido un error!",
-              description: data?.error,
-            });
-          }
-          handleChangeEditReserve();
-          handleChangeDetails();
-        });
-        router.refresh();
+    if (!reserve) return;
+
+    startTransition(() => {
+      editReserve({
+        ...values,
+        court: parseInt(values.court.toString()),
+        id: reserve.id,
+      }).then((data) => {
+        if (data?.succes) {
+          toast({
+            duration: 3000,
+            variant: "default",
+            title: "¡Excelente!",
+            description: data.succes,
+          });
+        }
+        if (data?.error) {
+          toast({
+            duration: 3000,
+            variant: "destructive",
+            title: "¡Error!",
+            description: data.error,
+          });
+        }
+        getReservesByDay(selectedDate);
+        handleChangeEditReserve();
+        handleChangeDetails();
       });
-    }
+    });
   };
 
   useEffect(() => {
     if (reserve) {
       const fetchData = async () => {
-        const data = await getSchedules(); // Ej: fetch API
-        setSchedules(data);
+        try {
+          const data = await getSchedules();
+          setSchedules(data);
+        } catch (error) {
+          console.error("Error fetching schedules:", error);
+        }
       };
       fetchData();
     }
-  }, [reserve]); // Se ejecuta cuando 'reserve' cambia
+  }, [reserve]);
+
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <div className="">
-          <FormField
-            control={form.control}
-            name="court"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-center gap-2 ">
-                <GiSoccerField className="mt-2 text-Primary" size={20} />
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        <Card className="border border-Neutral">
+          <CardContent className="space-y-4 pt-4">
+            {/* Campo Fecha */}
+            <FormField
+              control={form.control}
+              name="date"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                    <CalendarDays className="text-Primary" size={20} />
+                    Fecha
+                  </FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            "w-full border-Neutral justify-start pl-3 font-normal text-lg",
+                            !field.value && "text-muted-foreground"
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, "PPP")
+                          ) : (
+                            <span>Selecciona una fecha</span>
+                          )}
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    type="number"
-                    min="1"
-                    max="4"
-                    className="border-gray-300 text-lg"
-                  />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="date"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-center gap-2">
-                <CalendarDays className="mt-2 text-Primary" size={20} />
-
-                <Popover>
-                  <PopoverTrigger asChild>
+            {/* Campo Horario */}
+            <FormField
+              control={form.control}
+              name="schedule"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                    <Clock9 className="text-Primary" size={20} />
+                    Horario
+                  </FormLabel>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={!schedules || isPending}
+                  >
                     <FormControl>
-                      <Button
-                        variant={"outline"}
-                        className={cn(
-                          "w-full border-gray-300 justify-start pl-3 font-normal",
-                          !field.value && "text-muted-foreground"
-                        )}
-                      >
-                        {field.value ? (
-                          format(field.value, "yyyy-MM-dd")
-                        ) : (
-                          <span>Selecciona una fecha</span>
-                        )}
-                      </Button>
+                      <SelectTrigger className="border-Neutral text-lg">
+                        <SelectValue placeholder="Selecciona un horario" />
+                      </SelectTrigger>
                     </FormControl>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
-                      mode="single"
-                      selected={field.value}
-                      onSelect={(date) => field.onChange(date)}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="schedule"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-center gap-2">
-                <Clock9 className="mt-2 text-Primary" size={20} />
-                <Select
-                  onValueChange={field.onChange}
-                  defaultValue={field.value}
-                >
-                  <FormControl>
-                    <SelectTrigger className="border-gray-300 text-lg">
-                      <SelectValue placeholder="Select a verified email to display" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {reserve &&
-                      schedules &&
-                      dayHours(new Date(reserve.date).getDay(), schedules).map(
-                        (hour, index) => (
+                    <SelectContent>
+                      {reserve &&
+                        schedules &&
+                        dayHours(
+                          new Date(reserve.date).getDay(),
+                          schedules
+                        ).map((hour, index) => (
                           <SelectItem key={index} value={hour}>
                             {hour}
                           </SelectItem>
-                        )
-                      )}
-                  </SelectContent>
-                </Select>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="clientName"
-            render={({ field }) => (
-              <FormItem className="flex items-center justify-center gap-2">
-                <CircleUserRound className="mt-2 text-Primary" size={20} />
+                        ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormControl>
-                  <Input
-                    {...field}
-                    disabled={isPending}
-                    placeholder=""
-                    type=""
-                    className="border-gray-300 text-lg"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
-        {/* <FormError message={error} />
-    <FormSucces message={succes} /> */}
+            {/* Campo Cancha */}
+            <FormField
+              control={form.control}
+              name="court"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                    <Icon
+                      iconNode={soccerPitch}
+                      className="text-Primary"
+                      size={20}
+                    />
+                    Cancha
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      disabled={isPending}
+                      type="number"
+                      min="1"
+                      max="4"
+                      className="border-Neutral text-lg"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Campo Nombre del Cliente */}
+            <FormField
+              control={form.control}
+              name="clientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                    <CircleUserRound className="text-Primary" size={20} />
+                    Nombre del Cliente
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      {...field}
+                      disabled={isPending}
+                      placeholder="Nombre completo"
+                      className="border-Neutral text-lg"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
         <Button
           type="submit"
           disabled={isPending}
-          className=" bg-Primary text-base w-full"
+          className="w-full bg-Primary hover:bg-Primary-dark text-white py-4 text-base font-medium"
         >
-          Confirmar
+          {isPending ? "Guardando..." : "Confirmar Cambios"}
         </Button>
       </form>
     </Form>

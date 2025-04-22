@@ -97,7 +97,11 @@ export class ReservesService {
   findByDay(date: string) {
     return this.prisma.reserves.findMany({
       where: { date: new Date(date), NOT: { status: 'RECHAZADO' } },
-      include: { User: true },
+      include: {
+        User: true,
+        Payment: true,
+        consumitions: { include: { product: true } },
+      },
     });
   }
 
@@ -123,7 +127,37 @@ export class ReservesService {
     });
   }
 
-  update(id: string, data: UpdateReserveDto) {
+  async update(id: string, data: UpdateReserveDto) {
+    const user = await this.usersService.findById(data.userId);
+
+    if (!user) {
+      throw new BadRequestException('No existe el usuario');
+    }
+
+    const userReserves = await this.findByUser(data.userId);
+    const pendingReserve = userReserves?.find(
+      (reserve) => reserve.status === 'PENDIENTE',
+    );
+    if (pendingReserve) {
+      throw new BadRequestException(
+        'No puede realizar reservas teniendo otras pendientes',
+      );
+    }
+
+    const existingReservation = await this.prisma.reserves.findFirst({
+      where: {
+        date: new Date(data.date),
+        schedule: data.schedule,
+        court: data.court,
+        NOT: { status: 'RECHAZADO' },
+      },
+    });
+
+    if (existingReservation)
+      throw new BadRequestException(
+        'Una reserva con la misma fecha, horario y cancha ya existe',
+      );
+
     return this.prisma.reserves.update({ where: { id }, data });
   }
 

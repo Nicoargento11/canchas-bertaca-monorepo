@@ -11,6 +11,7 @@ import jwtConfig from './config/jwt.config';
   imports: [JwtModule.registerAsync(jwtConfig.asProvider())],
   controllers: [PaymentsController],
   providers: [PaymentsService, ReservesService, UsersService, PrismaService],
+  exports: [PaymentsService],
 })
 export class PaymentsModule {
   constructor() {}

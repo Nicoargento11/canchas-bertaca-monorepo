@@ -17,7 +17,6 @@ export class CourtsService {
   findByName(name: string) {
     return this.prismaService.court.findUnique({
       where: { name },
-      include: { pricing: true },
     });
   }
 

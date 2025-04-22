@@ -16,6 +16,9 @@ import { RatesModule } from './rates/rates.module';
 import { UnavailableDaysModule } from './unavailable-days/unavailable-days.module';
 import { FixedSchedulesModule } from './fixed-schedules/fixed-schedules.module';
 import { ReviewsModule } from './reviews/reviews.module';
+import { ProductsModule } from './product/products.module';
+import { ProductSalesModule } from './product-sales/product-sales.module';
+import { InventoryMovementsModule } from './inventory-movements/inventory-movements.module';
 
 @Module({
   imports: [
@@ -33,6 +36,9 @@ import { ReviewsModule } from './reviews/reviews.module';
     UnavailableDaysModule,
     FixedSchedulesModule,
     ReviewsModule,
+    ProductsModule,
+    ProductSalesModule,
+    InventoryMovementsModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

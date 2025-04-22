@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Preference } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
@@ -6,12 +6,16 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
+import { PrismaService } from 'src/prisma/prisma.service';
+import { CreatePaymentDto } from './dto/create-payment.dto';
+import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 @Injectable()
 export class PaymentsService {
   constructor(
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
+    private prisma: PrismaService,
   ) {}
 
   @Cron(CronExpression.EVERY_MINUTE)
@@ -73,7 +77,6 @@ export class PaymentsService {
         external_reference: reserveId,
       },
     });
-    console.log(payment);
     return payment;
   }
 
@@ -83,5 +86,76 @@ export class PaymentsService {
       .cancel({ id: paymentId })
       .then((response) => response)
       .catch((error) => error);
+  }
+
+  async create(createDto: CreatePaymentDto) {
+    // Verificar que la reserva existe
+    const reserve = await this.prisma.reserves.findUnique({
+      where: { id: createDto.reserveId },
+    });
+    if (!reserve) {
+      throw new NotFoundException('Reserve not found');
+    }
+
+    return this.prisma.payment.create({
+      data: {
+        amount: createDto.amount,
+        method: createDto.method,
+        isPartial: createDto.isPartial,
+        reserveId: createDto.reserveId, // Usando el campo directo
+      },
+      include: { reserve: true },
+    });
+  }
+
+  async findAll() {
+    return this.prisma.payment.findMany({
+      include: { reserve: true },
+    });
+  }
+
+  async findOne(id: string) {
+    const payment = await this.prisma.payment.findUnique({
+      where: { id },
+      include: { reserve: true },
+    });
+
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    return payment;
+  }
+
+  async findByReserve(reserveId: string) {
+    return this.prisma.payment.findMany({
+      where: { reserveId },
+      include: { reserve: true },
+    });
+  }
+
+  async getTotalPaid(reserveId: string) {
+    const payments = await this.findByReserve(reserveId);
+    return payments.reduce((sum, payment) => sum + payment.amount, 0);
+  }
+
+  async update(id: string, updateDto: UpdatePaymentDto) {
+    // Verificar que existe
+    await this.findOne(id);
+
+    return this.prisma.payment.update({
+      where: { id },
+      data: updateDto,
+      include: { reserve: true },
+    });
+  }
+
+  async remove(id: string) {
+    // Verificar que existe
+    await this.findOne(id);
+
+    return this.prisma.payment.delete({
+      where: { id },
+    });
   }
 }

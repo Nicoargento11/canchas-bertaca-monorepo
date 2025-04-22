@@ -37,7 +37,7 @@ const NavBar = ({ currentUser }: NavBarProps) => {
   return (
     <div className="w-full fixed top-0 z-50">
       <nav
-        className={`w-full py-3 px-4 lg:px-6 transition-all duration-300 flex justify-between items-center max-w-7xl mx-auto 
+        className={`w-full py-3 px-4 lg:px-6 transition-all duration-300 flex justify-between items-center  mx-auto 
         ${scrolled ? " backdrop-blur-md" : "bg-transparent"}`}
       >
         {/* Botón de menú móvil e icono de usuario */}

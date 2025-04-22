@@ -32,12 +32,11 @@ import { reserveTurnSchema } from "@/schemas";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Session } from "@/services/auth/session";
-import { getCourtByName } from "@/services/courts/courts";
-import { createPayment } from "@/services/payments/payments";
+import { createPaymentOnline } from "@/services/payments/payments";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "../ui/input-otp";
-// import priceDiscount from "@/utils/priceDiscount";
-import priceCalculator from "@/utils/priceCalculator";
 import { getUserById, User } from "@/services/users/users";
+import { Schedule } from "@/services/schedule/schedule";
+import priceCalculator from "@/utils/priceCalculator";
 
 initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY as string, {
   locale: "es-AR",
@@ -45,16 +44,16 @@ initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY as string, {
 
 interface ReserveTurnProps {
   currentUser?: Session | null;
+  schedules: Schedule[];
 }
 
-const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
+const ReserveTurn: React.FC<ReserveTurnProps> = ({
+  currentUser,
+  schedules,
+}) => {
   const { reserveForm } = useReserve();
-  const {
-    oncloseReserve,
-    // onOpenRegister,
-    handleChangeLogin,
-    handleChangeRegister,
-  } = useModal();
+  const { oncloseReserve, handleChangeLogin, handleChangeRegister } =
+    useModal();
   const [error, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
   const [isLoading, setLoading] = useState(true);
@@ -78,35 +77,55 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
   useEffect(() => {
     setLoading(true);
     if (reserveForm.hour && reserveForm.field && reserveForm.day) {
-      startTransition(() => {
-        if (currentUser) {
-          getUserById(currentUser?.user.id).then((user) => {
-            setUser(user);
-          });
-        }
+      startTransition(async () => {
+        try {
+          if (currentUser) {
+            const userData = await getUserById(currentUser.user.id);
+            setUser(userData);
+          }
 
-        getCourtByName("dimasf5").then((value) => {
-          const calculatedPrice = priceCalculator(
+          // Calcular precios dinámicamente
+          const pricing = priceCalculator(
             reserveForm.day,
             reserveForm.hour,
-            value
+            schedules
           );
+          console.log(pricing);
+
+          if (!pricing) {
+            throw new Error("No se pudo calcular el precio para este horario");
+          }
+
           form.reset({
             court: reserveForm.field,
             date: reserveForm.day,
             schedule: reserveForm.hour,
             userId: currentUser?.user.id || "",
-            reservationAmount: calculatedPrice.reservationAmount,
-            price: calculatedPrice.price,
+            reservationAmount: pricing.reservationAmount,
+            price: pricing.price,
             phone:
               currentUser?.user.phone || localStorage.getItem("phone") || "",
           });
-        });
-        setLoading(false);
+        } catch (error) {
+          console.error("Error al calcular precios:", error);
+          setError("No se pudo determinar el precio para este horario");
+          form.reset({
+            court: reserveForm.field,
+            date: reserveForm.day,
+            schedule: reserveForm.hour,
+            userId: currentUser?.user.id || "",
+            reservationAmount: 0,
+            price: 0,
+            phone:
+              currentUser?.user.phone || localStorage.getItem("phone") || "",
+          });
+        } finally {
+          setLoading(false);
+        }
       });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reserveForm, currentUser]);
+  }, [reserveForm, currentUser, schedules]);
 
   if (!currentUser) {
     return (
@@ -168,11 +187,12 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
 
   const handleReserve = (values: z.infer<typeof reserveTurnSchema>) => {
     if (currentUser) {
-      createPayment(values).then((data) => {
+      createPaymentOnline(values).then((data) => {
         setError(data?.error);
         setSucces(data?.succes);
         setPreferenceId(data?.id);
       });
+
       return;
     }
     // localStorage.setItem("court", reserveForm.field.toString());
@@ -261,24 +281,6 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser }) => {
                       <Receipt className="text-Complementary" size={30} />
                       <span className="text-lg font-semibold text-black">
                         Precio &nbsp;
-                        {/* {priceDiscount(reserveForm.hour) ? (
-                          <div className="flex">
-                            <span className="line-through text-Error-dark">
-                              $
-                              {(20000).toLocaleString("es-AR", {
-                                currency: "ARS",
-                              })}
-                            </span>
-                            &nbsp;
-                            <p className="text-Primary no-underline">
-                              $
-                              {field.value.toLocaleString("es-AR", {
-                                currency: "ARS",
-                              })}
-                            </p>
-                          </div>
-                        ) : (
-                        )} */}
                         <span className="">
                           $
                           {field.value.toLocaleString("es-AR", {

@@ -2,14 +2,17 @@
 import React from "react";
 import { Card, CardContent, CardFooter, CardHeader } from "../ui/card";
 import { Sun, Moon } from "lucide-react";
-import { PricingKeys } from "./home";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import canchaImagen from "../../../public/canchasF5.jpg"; // Cambia esto por la ruta de tu imagen
-type prices = { [key in PricingKeys]: number };
 
 interface PriceSectionProps {
-  prices: prices;
+  prices?: {
+    Nolights: number;
+    WithLights: number;
+    HolidayNoLights: number;
+    HolidayLights: number;
+  };
 }
 
 interface PriceCardProps {
@@ -31,18 +34,20 @@ const PriceSection: React.FC<PriceSectionProps> = ({ prices }) => {
           Nuestros Precios
         </h2>
         <div className="flex flex-col md:flex-row justify-center items-center gap-8">
-          <PriceCard
-            title="Dias de semana"
-            description="Reserva una cancha de lunes a viernes y disfruta de nuestro precio."
-            priceDay={prices.NoLights}
-            priceNight={prices.WithLights}
-          />
-          <PriceCard
-            title="Fin de Semana"
-            description="Reserva una cancha los sábados y domingos y obtén un descuento."
-            priceDay={prices.HolidayNoLights}
-            priceNight={prices.HolidayLights}
-          />
+          <>
+            <PriceCard
+              title="Dias de semana"
+              description="Reserva una cancha de lunes a viernes y disfruta de nuestro precio."
+              priceDay={prices?.Nolights || 0}
+              priceNight={prices?.WithLights || 0}
+            />
+            <PriceCard
+              title="Fin de Semana"
+              description="Reserva una cancha los sábados y domingos y obtén un descuento."
+              priceDay={prices?.HolidayNoLights || 0}
+              priceNight={prices?.HolidayLights || 0}
+            />
+          </>
         </div>
       </div>
     </div>

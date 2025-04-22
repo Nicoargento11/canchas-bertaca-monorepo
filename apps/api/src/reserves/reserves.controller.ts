@@ -42,7 +42,6 @@ export class ReservesController {
   @Public()
   @Get('available-turns-day')
   async getAvailableSchedulesByDay(@Query('date') date: string) {
-    console.log(date);
     if (!date) {
       throw new BadRequestException('The "date" query parameter is required.');
     }
@@ -154,7 +153,6 @@ export class ReservesController {
         court: availableCourts,
       };
     });
-    console.log(reservationsForSchedule);
 
     return reservationsForSchedule;
   }
@@ -246,21 +244,9 @@ export class ReservesController {
     });
 
     const reservedDays = await this.reservesService.findByDay(date);
-    console.log(reservedDays);
-    console.log(fixedSchedules);
 
     const allReservations = [
-      ...reservedDays.map((reservation) => {
-        return {
-          id: reservation.id,
-          court: reservation.court,
-          schedule: reservation.schedule,
-          clientName: reservation.clientName || reservation.User.name,
-          reserveType: 'RESERVA',
-          reservationAmount: reservation.reservationAmount,
-          status: reservation.status,
-        };
-      }),
+      ...reservedDays,
       ...fixedSchedules.map((fixed) => ({
         id: fixed.id,
         court: fixed.court,
@@ -269,8 +255,6 @@ export class ReservesController {
         reserveType: 'FIJO',
       })),
     ];
-
-    console.log(allSchedules);
 
     const reservationsForSchedule = allSchedules.map((schedule) => {
       const reservations = allReservations.filter(
@@ -282,7 +266,6 @@ export class ReservesController {
         court: reservations,
       };
     });
-    console.log(reservationsForSchedule);
     return reservationsForSchedule;
   }
 

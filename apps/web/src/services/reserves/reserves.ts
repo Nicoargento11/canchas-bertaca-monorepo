@@ -1,9 +1,26 @@
 import { BACKEND_URL } from "@/config/constants";
 import { createReserveAdminSchema, editReserveAdminSchema } from "@/schemas";
 import { z } from "zod";
+import { Payment } from "../payments/payments";
+import { Schedule } from "../schedule/schedule";
+import { FixedSchedule } from "../fixed-schedules/fixedSchedules";
+import { User } from "../users/users";
+import api from "../api";
+import { ProductSale } from "../product-sale/product-sale";
 
-type Status = "APROBADO" | "PENDIENTE" | "RECHAZADO";
-type ReserveType = "NORMAL" | "FIJO";
+// type Status = "APROBADO" | "PENDIENTE" | "RECHAZADO";
+// type ReserveType = "NORMAL" | "FIJO";
+
+export enum Status {
+  PENDIENTE = "PENDIENTE",
+  APROBADO = "APROBADO",
+  RECHAZADO = "RECHAZADO",
+}
+
+export enum ReserveType {
+  NORMAL = "NORMAL",
+  FIJO = "FIJO",
+}
 
 export type TurnByDay = {
   schedule: string;
@@ -14,49 +31,47 @@ export type TurnByHour = {
   schedule: string;
   court: number[];
 };
-
-export type Reserve = {
+export interface Reserve {
   id: string;
-  date: string;
+  date: Date;
   schedule: string;
   court: number;
-  price: number;
-  reservationAmount: number;
+  price?: number;
+  reservationAmount?: number | null;
   status: Status;
-  paymentUrl: string | null;
-  paymentId: string | null;
-  phone: string | null;
-  clientName: string | null;
-  reserveType: string | null;
+  paymentUrl?: string | null;
+  paymentId?: string | null;
+  phone?: string | null;
+  clientName?: string | null;
+  reserveType?: ReserveType | null;
+  User?: User;
   userId: string;
+  paymentToken?: string | null;
+  FixedSchedule?: FixedSchedule | null;
+  fixedScheduleId?: string | null;
+  Payment?: Payment[];
+  consumitions?: ProductSale[];
   createdAt: Date;
   updatedAt: Date;
-  paymentToken: string | null;
-  User?: {
-    id: string;
-    name: string;
-    email: string;
-    phone: string;
-    role: string;
-  };
-};
+}
 
 export type ReservesByDay = {
   schedule: string;
-  court: {
-    id: string;
-    court: number;
-    status: Status;
-    price: number;
-    reservationAmount: number;
-    clientName: string;
-    phone: string;
-    reserveType: ReserveType;
-    userId: string;
-    createdAt: Date;
-    updatedAt: Date;
-  }[];
+  court: Reserve[];
 }[];
+
+// Complete the FixedSchedule interface
+
+// Complete your existing interfaces with the new model details
+export interface ScheduleDay {
+  id: string;
+  dayOfWeek: number; // 0 = Sunday, ..., 6 = Saturday
+  isActive: boolean;
+  schedules?: Schedule[];
+  FixedSchedule?: FixedSchedule[];
+}
+
+// Update your existing Schedule interface to include complete relations
 
 export const getAvailableTurnsByDay = async (
   date: string
@@ -94,6 +109,18 @@ export const getReservesByDayFetch = async (
   const response = await fetch(
     `${BACKEND_URL}/reserves/reserves-turns-day?date=${date}`
   );
+  if (response.ok) {
+    const reserves = await response.json();
+    return reserves;
+  } else {
+    return null;
+  }
+};
+
+export const getReservesByDayNoTransform = async (
+  date: string
+): Promise<Reserve[] | null> => {
+  const response = await fetch(`${BACKEND_URL}/reserves/by-day?date=${date}`);
   if (response.ok) {
     const reserves = await response.json();
     return reserves;
@@ -146,14 +173,16 @@ export const createReserve = async (
     body: JSON.stringify(validationFields.data),
   });
 
-  const result = await response.json();
+  const result: Reserve = await response.json();
+  console.log(result);
   if (response.ok) {
     return {
       succes: "¡Reserva creada con exito!",
+      reserve: result,
     };
   } else {
     return {
-      error: result.message,
+      error: "Ha ocurrido un error inesperado",
     };
   }
 };
@@ -183,6 +212,14 @@ export const editReserve = async (
       error: result.message,
     };
   }
+};
+
+export const updateReserve = async (
+  id: string,
+  data: Partial<Reserve>
+): Promise<Reserve> => {
+  const response = await api.patch(`/reserves/${id}`, data);
+  return response.data;
 };
 
 export const deleteReserve = async (id: string) => {

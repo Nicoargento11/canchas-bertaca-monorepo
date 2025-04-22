@@ -8,10 +8,10 @@ export interface Schedule {
   id: string;
   startTime: string;
   endTime: string;
-  rates: Rate[];
+  rates?: Rate[];
   scheduleDay: ScheduleDay;
   scheduleDayId: string;
-  benefits: Benefit[];
+  benefits?: Benefit[];
 }
 
 export interface sendDataSchedule {

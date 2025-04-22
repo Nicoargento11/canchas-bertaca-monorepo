@@ -73,7 +73,7 @@ const SideBar = ({ currentUser }: SideBarProps) => {
         icon={<ClipboardPen size={25} />}
         active={active == 3}
         text="Stock"
-        isDisabled={true}
+        // isDisabled={true}
         onClick={() => handleClick(3, "/dashboard/stock")}
       />
       <SideBarItem

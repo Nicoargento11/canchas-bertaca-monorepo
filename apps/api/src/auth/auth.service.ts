@@ -30,7 +30,6 @@ export class AuthService {
 
   async validateLocalUser(email: string, password: string) {
     const user = await this.userService.findByEmail(email);
-    console.log(user);
 
     if (!user) {
       throw new UnauthorizedException('EL usuario no ha sido encontrado');
@@ -71,7 +70,6 @@ export class AuthService {
 
   async generateTokens(userId: string) {
     const payload: AuthJwtPayload = { sub: userId };
-    console.log(payload);
     const [accessToken, refreshToken] = await Promise.all([
       this.jwtService.signAsync(payload),
       this.jwtService.signAsync(payload, this.refreshTokenConfig),
@@ -86,19 +84,14 @@ export class AuthService {
   async validateJwtUser(userId) {
     console.log(userId);
     const user = await this.userService.findById(userId);
-    console.log('golaaaaaaaaa');
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
     const currentUser = { id: user.id, role: user.role };
-    console.log(currentUser);
     return currentUser;
   }
 
   async validateRefreshToken(userId: string, refreshToken: string) {
-    console.log(userId);
     const user = await this.userService.findById(userId);
-    console.log(user);
     if (!user) throw new UnauthorizedException('Usuario no encontrado');
-    console.log(refreshToken);
     const refreshTokenMatched = await verify(
       user.hashedRefreshToken,
       refreshToken,
@@ -111,7 +104,6 @@ export class AuthService {
   }
 
   async refreshToken(userId: string, name: string) {
-    console.log(userId);
     const { accessToken, refreshToken } = await this.generateTokens(userId);
     const hashedRT = await hash(refreshToken);
     await this.userService.updatedHashedRefreshToken(userId, hashedRT);

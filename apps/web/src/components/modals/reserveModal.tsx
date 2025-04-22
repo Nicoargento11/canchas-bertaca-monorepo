@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Session } from "@/services/auth/session";
 import { UnavailableDay } from "@/services/unavailableDay/unavailableDay";
 import { ScheduleDay } from "@/services/scheduleDay/scheduleDay";
-import { fixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
+import { FixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
 import { Schedule } from "@/services/schedule/schedule";
 
 enum STEPS {
@@ -33,7 +33,7 @@ interface ReserveModalProps {
   currentUser?: Session | null;
   unavailableDays: UnavailableDay[];
   scheduleDays: ScheduleDay[];
-  fixedSchedules: fixedSchedule[];
+  fixedSchedules: FixedSchedule[];
   schedules: Schedule[];
 }
 
@@ -104,7 +104,9 @@ const ReserveModal = ({
   if (currentStep === STEPS.reserve) {
     title = "Confirma tu reserva";
 
-    bodyContent = <ReserveTurn currentUser={currentUser} />;
+    bodyContent = (
+      <ReserveTurn currentUser={currentUser} schedules={schedules} />
+    );
   }
 
   const headerContent = (

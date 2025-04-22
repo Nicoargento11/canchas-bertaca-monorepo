@@ -1,4 +1,6 @@
 import { PartialType } from '@nestjs/swagger';
 import { CreateUnavailableDayDto } from './create-unavailable-day.dto';
 
-export class UpdateUnavailableDayDto extends PartialType(CreateUnavailableDayDto) {}
+export class UpdateUnavailableDayDto extends PartialType(
+  CreateUnavailableDayDto,
+) {}

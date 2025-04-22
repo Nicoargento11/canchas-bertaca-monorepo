@@ -5,10 +5,13 @@ import { getCourtByName } from "@/services/courts/courts";
 import ReserveModal from "../_components/dashboard/dashboard/reserveModal";
 import ReserveDetailsModal from "../_components/dashboard/dashboard/reserveDetailsModal";
 import EditReserveModal from "../_components/dashboard/dashboard/editReserveModal";
+import { getSchedules } from "@/services/schedule/schedule";
 
 const PageDashboard = async () => {
   const courtData = await getCourtByName("dimasf5");
+  console.log(courtData);
   const sessionUser = await getSession();
+  const schedules = await getSchedules();
 
   return (
     <>
@@ -16,6 +19,7 @@ const PageDashboard = async () => {
         userEmail={sessionUser?.user.email}
         userId={sessionUser?.user.id}
         courtData={courtData}
+        schedules={schedules}
       />
       <ReserveModal />
       <ReserveDetailsModal />

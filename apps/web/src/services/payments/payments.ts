@@ -1,8 +1,37 @@
 import { BACKEND_URL } from "@/config/constants";
 import { reserveTurnSchema } from "@/schemas";
 import { z } from "zod";
+import { Reserve } from "../reserves/reserves";
+import api from "../api";
 
-export const createPayment = async (
+export enum PaymentMethod {
+  EFECTIVO = "EFECTIVO",
+  TARJETA_CREDITO = "TARJETA_CREDITO",
+  TRANSFERENCIA = "TRANSFERENCIA",
+  MERCADOPAGO = "MERCADOPAGO",
+  OTRO = "OTRO",
+}
+
+export enum TipoTransaccion {
+  RESERVA = "RESERVA",
+  VENTA_PRODUCTO = "VENTA_PRODUCTO",
+  SERVICIO = "SERVICIO",
+  GASTO = "GASTO",
+  ESCUELA_FUTBOL = "ESCUELA_FUTBOL",
+  EVENTO = "EVENTO",
+}
+
+export interface Payment {
+  id: string;
+  amount: number;
+  method: PaymentMethod;
+  isPartial: boolean;
+  reserve?: Reserve;
+  reserveId?: string;
+  createdAt: Date;
+}
+
+export const createPaymentOnline = async (
   values: z.infer<typeof reserveTurnSchema>
 ) => {
   const validationFields = reserveTurnSchema.safeParse(values);
@@ -30,4 +59,15 @@ export const createPayment = async (
       error: result.message,
     };
   }
+};
+
+export const createPayment = async (
+  data: Omit<Payment, "id" | "createdAt">
+): Promise<Payment> => {
+  const response = await api.post("/payments", data);
+  return response.data;
+};
+
+export const deletePayment = async (id: string): Promise<void> => {
+  await api.delete(`/payments/${id}`);
 };

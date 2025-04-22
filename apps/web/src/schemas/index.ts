@@ -1,3 +1,4 @@
+import { ProductCategory } from "@/services/product/product";
 import { z } from "zod";
 
 export const loginSchema = z.object({
@@ -117,4 +118,25 @@ export const fixedScheduleSchema = z.object({
     .number()
     .min(0, "Selecciona una cancha")
     .transform((val) => Number(val)),
+});
+
+export const inventorySchema = z.object({
+  name: z.string().min(2),
+  stock: z.number().min(0),
+  price: z.number().min(0),
+});
+
+export const productSchema = z.object({
+  name: z.string().min(1, "El nombre es requerido"),
+  description: z.string().optional(),
+  barcode: z.string().optional(),
+  category: z.nativeEnum(ProductCategory, {
+    required_error: "La categoría es requerida",
+  }),
+  stock: z.number().int().min(0, "El stock no puede ser negativo"),
+  costPrice: z.number().min(0, "El precio de costo no puede ser negativo"),
+  salePrice: z.number().min(0, "El precio de venta no puede ser negativo"),
+  minStock: z.number().int().min(0, "El stock mínimo no puede ser negativo"),
+  supplier: z.string().optional(),
+  isActive: z.string().transform((val) => val === "true"),
 });
