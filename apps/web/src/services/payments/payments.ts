@@ -35,7 +35,6 @@ export const createPaymentOnline = async (
   values: z.infer<typeof reserveTurnSchema>
 ) => {
   const validationFields = reserveTurnSchema.safeParse(values);
-
   if (!validationFields.success) {
     return { error: "Campos invalidos" };
   }
@@ -54,6 +53,7 @@ export const createPaymentOnline = async (
         "¡Exelente! tendra 20 minutos para completar su reserva mediante Mercado Pago, caso contrario se cancelara automaticamente",
     };
   } else {
+    console.log(result);
     return {
       error: result.message,
     };

@@ -61,7 +61,6 @@ export class PaymentsController {
       ...createPaymentDto,
       reserveId: reserve.id,
     });
-
     const paymentToken = this.jwtService.sign({
       court: createPaymentDto.court,
       date: createPaymentDto.date,
@@ -75,6 +74,10 @@ export class PaymentsController {
     await this.reserveService.update(preference.items[0].id, {
       paymentUrl: preference.init_point,
       paymentToken,
+      userId: createPaymentDto.userId,
+      court: createPaymentDto.court,
+      date: utcDate,
+      schedule: createPaymentDto.schedule,
     });
 
     // TODO logica del token expire
@@ -142,8 +145,21 @@ export class PaymentsController {
           HttpStatus.BAD_REQUEST,
         );
       }
+      const utcDate = new Date(
+        Date.UTC(
+          searchedReserve.date.getFullYear(),
+          searchedReserve.date.getMonth(),
+          searchedReserve.date.getDate(),
+        ),
+      );
 
-      await this.reserveService.update(searchedReserve.id, statusUpdate);
+      await this.reserveService.update(searchedReserve.id, {
+        status: statusUpdate,
+        userId: searchedReserve.userId,
+        date: utcDate,
+        schedule: searchedReserve.schedule,
+        court: searchedReserve.court,
+      });
 
       // Crear el registro de pago
       const paymentDto: CreatePaymentDto = {

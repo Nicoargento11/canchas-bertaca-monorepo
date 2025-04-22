@@ -13,7 +13,6 @@ export class ReservesService {
 
   async create(createReserveDto: CreateReserveDto) {
     const user = await this.usersService.findById(createReserveDto.userId);
-
     if (!user) {
       throw new BadRequestException('No existe el usuario');
     }
@@ -136,7 +135,7 @@ export class ReservesService {
 
     const userReserves = await this.findByUser(data.userId);
     const pendingReserve = userReserves?.find(
-      (reserve) => reserve.status === 'PENDIENTE',
+      (reserve) => reserve.status === 'PENDIENTE' && reserve.id !== id,
     );
     if (pendingReserve) {
       throw new BadRequestException(
@@ -149,7 +148,10 @@ export class ReservesService {
         date: new Date(data.date),
         schedule: data.schedule,
         court: data.court,
-        NOT: { status: 'RECHAZADO' },
+        NOT: [
+          { status: 'RECHAZADO' },
+          { id }, // Excluye la reserva actual de la verificación
+        ],
       },
     });
 

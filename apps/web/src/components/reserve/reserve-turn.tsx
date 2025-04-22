@@ -74,6 +74,8 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
     },
   });
 
+  console.log(form.watch());
+
   useEffect(() => {
     setLoading(true);
     if (reserveForm.hour && reserveForm.field && reserveForm.day) {
@@ -82,29 +84,30 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
           if (currentUser) {
             const userData = await getUserById(currentUser.user.id);
             setUser(userData);
+
+            // Calcular precios dinámicamente
+            const pricing = priceCalculator(
+              reserveForm.day,
+              reserveForm.hour,
+              schedules
+            );
+
+            if (!pricing) {
+              throw new Error(
+                "No se pudo calcular el precio para este horario"
+              );
+            }
+
+            form.reset({
+              court: reserveForm.field,
+              date: reserveForm.day,
+              schedule: reserveForm.hour,
+              userId: currentUser?.user.id || "",
+              reservationAmount: pricing.reservationAmount,
+              price: pricing.price,
+              phone: userData.phone || localStorage.getItem("phone") || "",
+            });
           }
-
-          // Calcular precios dinámicamente
-          const pricing = priceCalculator(
-            reserveForm.day,
-            reserveForm.hour,
-            schedules
-          );
-
-          if (!pricing) {
-            throw new Error("No se pudo calcular el precio para este horario");
-          }
-
-          form.reset({
-            court: reserveForm.field,
-            date: reserveForm.day,
-            schedule: reserveForm.hour,
-            userId: currentUser?.user.id || "",
-            reservationAmount: pricing.reservationAmount,
-            price: pricing.price,
-            phone:
-              currentUser?.user.phone || localStorage.getItem("phone") || "",
-          });
         } catch (error) {
           console.error("Error al calcular precios:", error);
           setError("No se pudo determinar el precio para este horario");
