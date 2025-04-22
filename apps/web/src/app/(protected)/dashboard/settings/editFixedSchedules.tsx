@@ -9,7 +9,7 @@ import {
   deleteFixedSchedule,
   updateFixedSchedule,
   toggleFixedSchedule,
-  fixedSchedule,
+  FixedSchedule,
 } from "@/services/fixed-schedules/fixedSchedules";
 import { useRouter } from "next/navigation";
 import {
@@ -35,7 +35,7 @@ import { Label } from "@/components/ui/label";
 import { daysOfWeek } from "@/constants";
 
 interface EditFixedSchedulesProps {
-  fixedSchedules: fixedSchedule[];
+  fixedSchedules: FixedSchedule[];
   rates: Rate[];
 }
 
@@ -84,7 +84,7 @@ const EditFixedSchedules = ({
   };
 
   // Función para manejar la edición de un turno fijo
-  const handleEdit = (schedule: fixedSchedule) => {
+  const handleEdit = (schedule: FixedSchedule) => {
     setEditingId(schedule.id);
     setEditedData({
       id: schedule.id,
