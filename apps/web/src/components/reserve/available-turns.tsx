@@ -6,11 +6,11 @@ import dayHours from "@/utils/dayHours";
 // import beerService from "@/utils/beerService";
 // import { CupSoda } from "lucide-react";
 import { useReserve } from "@/contexts/reserveContext";
-import { fixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
+import { FixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
 import { Schedule } from "@/services/schedule/schedule";
 
 interface AvailableTurnsProps {
-  fixedSchedules: fixedSchedule[];
+  fixedSchedules: FixedSchedule[];
   schedules: Schedule[];
 }
 const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
