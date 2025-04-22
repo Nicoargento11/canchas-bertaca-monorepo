@@ -39,7 +39,6 @@ export const createPaymentOnline = async (
   if (!validationFields.success) {
     return { error: "Campos invalidos" };
   }
-
   const response = await fetch(`${BACKEND_URL}/payments/create`, {
     method: "POST",
     headers: {

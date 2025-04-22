@@ -90,7 +90,6 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
             reserveForm.hour,
             schedules
           );
-          console.log(pricing);
 
           if (!pricing) {
             throw new Error("No se pudo calcular el precio para este horario");

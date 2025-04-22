@@ -80,7 +80,6 @@ const SideBar = ({ currentUser }: SideBarProps) => {
         icon={<BarChart4 size={25} />}
         active={active == 5}
         text="Estadisticas"
-        isDisabled={true}
         onClick={() => handleClick(5, "/dashboard/statistics")}
       />
     </SidebarMenu>
