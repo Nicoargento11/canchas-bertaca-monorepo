@@ -51,7 +51,7 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
         <ReserveDetail
           Icon={CalendarDays}
           label="Fecha"
-          value={formatDateUTC(reserve.date)}
+          value={formatDateUTC(new Date(reserve.date).toUTCString())}
         />
         <ReserveDetail Icon={Clock9} label="Horario" value={reserve.schedule} />
         <ReserveDetail

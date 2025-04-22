@@ -50,7 +50,7 @@ export default function PaymentSucces() {
                 <div className="flex justify-between mb-2">
                   <span className="text-gray-600">Fecha:</span>
                   <span className="text-gray-900">
-                    {formatDateUTC(reserve.date)}
+                    {formatDateUTC(new Date(reserve.date).toUTCString())}
                   </span>
                 </div>
                 <div className="flex justify-between mb-2">
