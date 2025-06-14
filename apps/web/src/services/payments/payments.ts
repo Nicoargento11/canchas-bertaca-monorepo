@@ -33,6 +33,7 @@ export type Payment = {
   createdAt: string;
 };
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type PaymentResult<T = any> = {
   success: boolean;
   data?: T;
