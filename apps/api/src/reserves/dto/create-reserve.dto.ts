@@ -5,6 +5,7 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -14,8 +15,8 @@ export class CreateReserveDto {
   @Type(() => Date)
   date: Date;
 
-  @IsNotEmpty()
   @IsString()
+  @Matches(/^\d{2}:\d{2} - \d{2}:\d{2}$/)
   schedule: string;
 
   @IsNotEmpty()

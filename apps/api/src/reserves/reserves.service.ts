@@ -120,13 +120,27 @@ export class ReservesService {
     });
   }
 
-  findHasPaymentToken() {
+  findPendingWithToken() {
     return this.prisma.reserves.findMany({
-      where: { NOT: { paymentToken: null } },
+      where: {
+        paymentToken: { not: null },
+        status: 'PENDIENTE',
+      },
+      select: {
+        id: true,
+        paymentToken: true,
+        userId: true,
+        date: true,
+        court: true,
+        schedule: true,
+      }, // Solo campos necesarios
+      take: 100, // Límite máximo por ejecución
+      orderBy: { createdAt: 'asc' }, // Las más antiguas primero
     });
   }
 
   async update(id: string, data: UpdateReserveDto) {
+    console.log('data', data);
     const user = await this.usersService.findById(data.userId);
 
     if (!user) {
@@ -154,7 +168,7 @@ export class ReservesService {
         ],
       },
     });
-
+    console.log(existingReservation);
     if (existingReservation)
       throw new BadRequestException(
         'Una reserva con la misma fecha, horario y cancha ya existe',

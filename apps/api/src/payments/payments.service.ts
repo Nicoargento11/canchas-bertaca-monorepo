@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Preference } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
@@ -12,30 +12,31 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 @Injectable()
 export class PaymentsService {
+  private readonly logger = new Logger(ReservesService.name);
   constructor(
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
     private prisma: PrismaService,
   ) {}
 
-  @Cron(CronExpression.EVERY_MINUTE)
+  @Cron(CronExpression.EVERY_5_MINUTES)
   async checkExpiredReservations() {
-    const reserves = await this.reserveService.findHasPaymentToken();
-    await Promise.all(
-      reserves.map(async (reserve) => {
-        try {
-          await this.jwtService.verify(reserve.paymentToken);
-        } catch (error) {
-          if (error.name === 'TokenExpiredError') {
-            await this.reserveService.update(reserve.id, {
-              paymentToken: null,
-              paymentUrl: null,
-              status: 'RECHAZADO',
-            });
-          }
-        }
-      }),
-    );
+    this.logger.log('Iniciando verificación de reservas expiradas...');
+    try {
+      const expiredReservations =
+        await this.reserveService.findPendingWithToken();
+      let processedCount = 0;
+      const batchSize = 50; // Procesa en bloques de 50 reservas
+      for (let i = 0; i < expiredReservations.length; i += batchSize) {
+        const batch = expiredReservations.slice(i, i + batchSize);
+
+        await this.processBatch(batch);
+        processedCount += batch.length;
+      }
+      this.logger.log(`Procesadas ${processedCount} reservas expiradas.`);
+    } catch (error) {
+      this.logger.error('Error en checkExpiredReservations:', error.stack);
+    }
   }
   createPreference({
     court,
@@ -157,5 +158,42 @@ export class PaymentsService {
     return this.prisma.payment.delete({
       where: { id },
     });
+  }
+
+  private async processBatch(
+    reservations: Array<{
+      id: string;
+      date: Date;
+      schedule: string;
+      court: number;
+      userId: string;
+      paymentToken: string;
+    }>,
+  ) {
+    const updates = [];
+
+    for (const reserve of reservations) {
+      try {
+        await this.jwtService.verify(reserve.paymentToken);
+      } catch (error) {
+        if (error.name === 'TokenExpiredError') {
+          updates.push(
+            await this.reserveService.update(reserve.id, {
+              paymentToken: null,
+              paymentUrl: null,
+              status: 'RECHAZADO',
+              userId: reserve.userId,
+              date: reserve.date,
+              court: reserve.court,
+              schedule: reserve.schedule,
+            }),
+          );
+        }
+      }
+    }
+
+    if (updates.length > 0) {
+      await this.prisma.$transaction(updates); // Ejecuta todas las actualizaciones en una sola transacción
+    }
   }
 }

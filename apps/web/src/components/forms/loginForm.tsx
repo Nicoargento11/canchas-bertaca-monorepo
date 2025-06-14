@@ -113,7 +113,7 @@ export const LoginForm = () => {
           <Button
             type="submit"
             disabled={isPending}
-            className="w-full bg-Primary text-base "
+            className="w-full bg-Primary text-base"
           >
             Ingresar
           </Button>
