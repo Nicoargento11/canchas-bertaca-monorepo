@@ -1,15 +1,73 @@
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { CreateReserveDto } from './dto/create-reserve.dto';
 import { UpdateReserveDto } from './dto/update-reserve.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { UsersService } from 'src/user/users.service';
 
 @Injectable()
-export class ReservesService {
+export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
   ) {}
+  private timeouts = new Map<string, NodeJS.Timeout>();
+
+  setReservationTimeout(reserveId: string, delay: number) {
+    const timeout = setTimeout(async () => {
+      await this.checkAndExpireReservation(reserveId);
+      this.timeouts.delete(reserveId);
+    }, delay);
+
+    this.timeouts.set(reserveId, timeout);
+  }
+
+  async checkAndExpireReservation(reserveId: string) {
+    const reserve = await this.prisma.reserves.findUnique({
+      where: { id: reserveId },
+    });
+
+    if (reserve?.status === 'PENDIENTE') {
+      await this.prisma.reserves.update({
+        where: { id: reserveId },
+        data: {
+          status: 'RECHAZADO',
+          paymentToken: null,
+          paymentUrl: null,
+        },
+      });
+      // Opcional: Notificar al usuario
+    }
+  }
+
+  clearReservationTimeout(reserveId: string) {
+    const timeout = this.timeouts.get(reserveId);
+    if (timeout) {
+      clearTimeout(timeout);
+      this.timeouts.delete(reserveId);
+    }
+  }
+
+  async onModuleInit() {
+    await this.reprogramPendingTimeouts();
+  }
+
+  private async reprogramPendingTimeouts() {
+    const pendingReservations = await this.prisma.reserves.findMany({
+      where: {
+        status: 'PENDIENTE',
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    pendingReservations.forEach((reserve) => {
+      const remainingTime = reserve.expiresAt.getTime() - Date.now();
+      if (remainingTime > 0) {
+        this.setReservationTimeout(reserve.id, remainingTime);
+      } else {
+        this.checkAndExpireReservation(reserve.id);
+      }
+    });
+  }
 
   async create(createReserveDto: CreateReserveDto) {
     const user = await this.usersService.findById(createReserveDto.userId);
@@ -23,7 +81,7 @@ export class ReservesService {
     );
     if (pendingReserve) {
       throw new BadRequestException(
-        'No puede realizar reservas teniendo otras pendientes',
+        'No puedes realizar reservas teniendo otras pendientes',
       );
     }
 
@@ -42,7 +100,7 @@ export class ReservesService {
       );
 
     return this.prisma.reserves.create({
-      data: createReserveDto,
+      data: { ...createReserveDto },
     });
   }
 

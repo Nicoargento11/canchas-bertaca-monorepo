@@ -109,6 +109,7 @@ model Reserves {
   consumitions      ProductSale[]
   createdAt         DateTime       @default(now())
   updatedAt         DateTime       @updatedAt
+  expiresAt         DateTime?
 }
 
 model Payment {

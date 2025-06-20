@@ -2,7 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Preference } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
-import { Cron, CronExpression } from '@nestjs/schedule';
+// import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
@@ -19,25 +19,47 @@ export class PaymentsService {
     private prisma: PrismaService,
   ) {}
 
-  @Cron(CronExpression.EVERY_5_MINUTES)
-  async checkExpiredReservations() {
-    this.logger.log('Iniciando verificación de reservas expiradas...');
-    try {
-      const expiredReservations =
-        await this.reserveService.findPendingWithToken();
-      let processedCount = 0;
-      const batchSize = 50; // Procesa en bloques de 50 reservas
-      for (let i = 0; i < expiredReservations.length; i += batchSize) {
-        const batch = expiredReservations.slice(i, i + batchSize);
+  // @Cron(CronExpression.EVERY_5_MINUTES)
+  // async checkExpiredReservations() {
+  //   function logMemoryUsage(context: string) {
+  //     const used = process.memoryUsage();
+  //     const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
 
-        await this.processBatch(batch);
-        processedCount += batch.length;
-      }
-      this.logger.log(`Procesadas ${processedCount} reservas expiradas.`);
-    } catch (error) {
-      this.logger.error('Error en checkExpiredReservations:', error.stack);
-    }
-  }
+  //     console.log(`🧠 Memoria usada (${context}):`);
+  //     console.log(
+  //       `  - RSS: ${toMB(used.rss)} (total incluyendo buffers y código nativo)`,
+  //     );
+  //     console.log(`  - Heap Total: ${toMB(used.heapTotal)} (reservado por V8)`);
+  //     console.log(
+  //       `  - Heap Used: ${toMB(used.heapUsed)} (efectivamente usado)`,
+  //     );
+  //     console.log(
+  //       `  - External: ${toMB(used.external)} (buffers externos, como crypto, streams)`,
+  //     );
+  //   }
+  //   logMemoryUsage('Antes de procesar reservas');
+
+  //   this.logger.log('Iniciando verificación de reservas expiradas...');
+  //   try {
+  //     const expiredReservations =
+  //       await this.reserveService.findPendingWithToken();
+  //     let processedCount = 0;
+  //     const batchSize = 50;
+
+  //     for (let i = 0; i < expiredReservations.length; i += batchSize) {
+  //       const batch = expiredReservations.slice(i, i + batchSize);
+  //       await this.processBatch(batch);
+  //       processedCount += batch.length;
+  //     }
+
+  //     this.logger.log(`Procesadas ${processedCount} reservas expiradas.`);
+  //   } catch (error) {
+  //     this.logger.error('Error en checkExpiredReservations:', error.stack);
+  //   }
+
+  //   logMemoryUsage('Despues de procesar reservas');
+  // }
+
   createPreference({
     court,
     date,

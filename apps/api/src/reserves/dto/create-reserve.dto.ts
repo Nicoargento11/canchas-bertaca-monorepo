@@ -60,4 +60,9 @@ export class CreateReserveDto {
   @IsNotEmpty()
   @IsString()
   userId: string;
+
+  @IsDate()
+  @Type(() => Date)
+  @IsNotEmpty()
+  expiresAt: Date;
 }

@@ -46,6 +46,7 @@ export class PaymentsController {
         createPaymentDto.date.getDate(),
       ),
     );
+    const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 minutos
     const reserve = await this.reserveService.create({
       date: utcDate,
       schedule: createPaymentDto.schedule,
@@ -55,7 +56,9 @@ export class PaymentsController {
       userId: createPaymentDto.userId,
       status: 'PENDIENTE',
       phone: createPaymentDto.phone,
+      expiresAt: expiresAt,
     });
+    this.reserveService.setReservationTimeout(reserve.id, 20 * 60 * 1000);
 
     const preference = await this.paymentsService.createPreference({
       ...createPaymentDto,
@@ -160,7 +163,10 @@ export class PaymentsController {
         schedule: searchedReserve.schedule,
         court: searchedReserve.court,
       });
-
+      // Si el pago fue aprobado, cancelar el timeout
+      if (searchedPayment.status === 'approved') {
+        this.reserveService.clearReservationTimeout(searchedReserve.id);
+      }
       // Crear el registro de pago
       const paymentDto: CreatePaymentDto = {
         amount: searchedPayment.transaction_amount,
