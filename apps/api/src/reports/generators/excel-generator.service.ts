@@ -24,7 +24,23 @@ export class ExcelGeneratorService {
     currentRow = this.createProductsSection(worksheet, summary, currentRow);
     this.createPaymentMethodsSection(worksheet, summary, currentRow);
 
-    return (await workbook.xlsx.writeBuffer()) as Buffer;
+    // ExcelJS puede devolver Buffer (Node) o ArrayBuffer (browser/ambiente híbrido).
+    // Normalizamos siempre a Node Buffer para evitar errores de tipos.
+    const raw = await workbook.xlsx.writeBuffer();
+    let nodeBuffer: Buffer;
+    if (Buffer.isBuffer(raw)) {
+      nodeBuffer = raw;
+    } else if (raw instanceof ArrayBuffer) {
+      nodeBuffer = Buffer.from(raw);
+    } else if (ArrayBuffer.isView(raw as any)) {
+      // Para casos como Uint8Array / DataView
+      const view = raw as ArrayBufferView;
+      nodeBuffer = Buffer.from(view.buffer);
+    } else {
+      // Fallback por si los tipos de ExcelJS cambian
+      nodeBuffer = Buffer.from(raw as any);
+    }
+    return nodeBuffer;
   }
 
   private setupColumnWidths(worksheet: ExcelJS.Worksheet) {

@@ -161,7 +161,20 @@ export class ExcelReportGenerator {
       );
     }
 
-    return (await workbook.xlsx.writeBuffer()) as Buffer;
+    // Normalizar el resultado de writeBuffer() a Node Buffer
+    const raw = await workbook.xlsx.writeBuffer();
+    let nodeBuffer: Buffer;
+    if (Buffer.isBuffer(raw)) {
+      nodeBuffer = raw;
+    } else if (raw instanceof ArrayBuffer) {
+      nodeBuffer = Buffer.from(raw);
+    } else if (ArrayBuffer.isView(raw as any)) {
+      const view = raw as ArrayBufferView;
+      nodeBuffer = Buffer.from(view.buffer);
+    } else {
+      nodeBuffer = Buffer.from(raw as any);
+    }
+    return nodeBuffer;
   }
 
   private static applyHeaderStyle(cell: ExcelJS.Cell) {
