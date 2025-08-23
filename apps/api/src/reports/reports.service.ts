@@ -1,0 +1,1179 @@
+import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { PaymentMethod, SportName } from '@prisma/client';
+import { ExcelGeneratorService } from './generators/excel-generator.service';
+import { PdfGeneratorService } from './generators/pdf-generator.service';
+import {
+  DailySummaryByCourt,
+  DailyProductSales,
+  DailySummaryResponse,
+} from './interfaces/reports.interface';
+import {
+  DashboardData,
+  DailyData,
+  WeeklyData,
+  MonthlyData,
+  ProductData,
+  PaymentMethodData,
+  CanchaData,
+  HorarioData,
+} from './interfaces/dashboard.interface';
+import { ScheduleHelper } from 'src/reserves/helpers/schedule.helper';
+import { SchedulesService } from 'src/schedules/schedules.service';
+
+@Injectable()
+export class ReportsService {
+  constructor(
+    private prisma: PrismaService,
+    private excelGenerator: ExcelGeneratorService,
+    private pdfGenerator: PdfGeneratorService,
+    private scheduleHelper: ScheduleHelper,
+    private schedules: SchedulesService,
+  ) {}
+
+  /**
+   * Obtiene el resumen diario completo de un complejo
+   */ async getDailySummary(
+    date: string,
+    complexId: string,
+    cashSessionId?: string,
+  ): Promise<DailySummaryResponse> {
+    // Crear fechas considerando la zona horaria de Argentina (UTC-3)
+    // Cuando es 00:00 en Argentina, en UTC son las 03:00
+    const startOfDay = new Date(date + 'T03:00:00.000Z'); // 00:00 Argentina = 03:00 UTC
+    const endOfDay = new Date(date + 'T02:59:59.999Z'); // 23:59 Argentina = 02:59 UTC (día siguiente)
+    endOfDay.setDate(endOfDay.getDate() + 1); // Mover al día siguiente en UTC
+
+    // console.log('=== DEBUG FECHAS ARGENTINA (UTC-3) ===');
+    // console.log('Fecha string recibida:', date);
+    // console.log('startOfDay UTC (00:00 ARG):', startOfDay.toISOString());
+    // console.log('endOfDay UTC (23:59 ARG):', endOfDay.toISOString());
+
+    // Obtener información del complejo
+    const complex = await this.prisma.complex.findUnique({
+      where: { id: complexId },
+      select: { id: true, name: true },
+    });
+
+    if (!complex) {
+      throw new Error('Complejo no encontrado');
+    }
+
+    // Obtener resumen por canchas
+    const courtsSummary = await this.getCourtsSummary(
+      startOfDay,
+      endOfDay,
+      complexId,
+    );
+    // Obtener resumen de productos
+    const productsSummary = await this.getProductsSummary(
+      complexId,
+      cashSessionId,
+    );
+
+    // Calcular totales
+    const totals = this.calculateTotals(courtsSummary, productsSummary);
+
+    return {
+      date,
+      complexId: complex.id,
+      complexName: complex.name,
+      courts: courtsSummary,
+      products: productsSummary,
+      totals,
+    };
+  }
+
+  /**
+   * Obtiene el resumen de reservas por cancha y tipo de deporte
+   * LÓGICA: Reservas que se JUEGAN hoy + solo pagos REALIZADOS hoy
+   */
+  async getCourtsSummary(
+    startOfDay: Date,
+    endOfDay: Date,
+    complexId: string,
+  ): Promise<DailySummaryByCourt[]> {
+    // Calcular la fecha exacta (sin hora) para buscar reservas
+    const reserveDate = new Date(startOfDay);
+    reserveDate.setUTCHours(0, 0, 0, 0);
+
+    // Traer reservas que se juegan hoy O que fueron creadas hoy
+    const reserves = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        NOT: { status: 'RECHAZADO' },
+        OR: [
+          { date: reserveDate },
+          {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        ],
+      },
+      include: {
+        court: {
+          include: {
+            sportType: true,
+          },
+        },
+        payment: {
+          where: {
+            createdAt: {
+              gte: startOfDay,
+              lte: endOfDay,
+            },
+          },
+        },
+      },
+      orderBy: [{ court: { courtNumber: 'asc' } }, { schedule: 'asc' }],
+    });
+
+    // Agrupar por cancha
+    const courtMap = new Map<string, DailySummaryByCourt>();
+
+    for (const reserve of reserves) {
+      const courtId = reserve.court.id;
+      if (!courtMap.has(courtId)) {
+        courtMap.set(courtId, {
+          courtId,
+          courtName:
+            reserve.court.name || `Cancha ${reserve.court.courtNumber}`,
+          courtNumber: reserve.court.courtNumber,
+          sportType: reserve.court.sportType?.name || 'FUTBOL_5',
+          sportTypeName: this.getSportTypeName(
+            reserve.court.sportType?.name || 'FUTBOL_5',
+          ),
+          totalRevenue: 0,
+          totalReservations: 0,
+          totalReservationAmount: 0,
+          totalPaid: 0,
+          paymentsByMethod: [],
+          reservations: [],
+        });
+      }
+      const courtData = courtMap.get(courtId)!;
+      // Sumar datos de la reserva
+      courtData.totalReservations += 1;
+      courtData.totalRevenue += reserve.price;
+      courtData.totalReservationAmount += reserve.reservationAmount;
+      // Los pagos ya vienen filtrados por createdAt en la query
+      const paymentsToday = reserve.payment;
+      const totalPaidToday = paymentsToday.reduce(
+        (sum, payment) => sum + payment.amount,
+        0,
+      );
+      courtData.totalPaid += totalPaidToday;
+      // Agrupar pagos por método
+      paymentsToday.forEach((payment) => {
+        const existingMethod = courtData.paymentsByMethod.find(
+          (p) => p.method === payment.method,
+        );
+        if (existingMethod) {
+          existingMethod.amount += payment.amount;
+          existingMethod.count += 1;
+        } else {
+          courtData.paymentsByMethod.push({
+            method: payment.method,
+            amount: payment.amount,
+            count: 1,
+          });
+        }
+      });
+      // Agregar detalle de la reserva
+      courtData.reservations.push({
+        id: reserve.id,
+        schedule: reserve.schedule,
+        clientName: reserve.clientName,
+        phone: reserve.phone,
+        status: reserve.status,
+        price: reserve.price,
+        reservationAmount: reserve.reservationAmount,
+        totalPaid: totalPaidToday, // Solo pagos realizados HOY
+      });
+    }
+    return Array.from(courtMap.values());
+  }
+
+  /**
+   * Obtiene el resumen de ventas de productos
+   */
+  async getProductsSummary(
+    complexId: string,
+    cashSessionId?: string,
+  ): Promise<DailyProductSales[]> {
+    let cashSession = null;
+    if (cashSessionId) {
+      cashSession = await this.prisma.cashSession.findUnique({
+        where: { id: cashSessionId },
+      });
+    } else {
+      // Buscar la caja del complejo
+      const cashRegister = await this.prisma.cashRegister.findFirst({
+        where: { complexId },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!cashRegister) return [];
+      // Buscar la cash session activa de esa caja
+      cashSession = await this.prisma.cashSession.findFirst({
+        where: {
+          cashRegisterId: cashRegister.id,
+          status: 'ACTIVE',
+          endAt: null,
+        },
+        orderBy: { startAt: 'desc' },
+      });
+    }
+    if (!cashSession) return [];
+    const startAt = cashSession.startAt;
+    const endAt = cashSession.endAt || new Date();
+
+    // Buscar ProductSales del rango de la cash session
+    const productSales = await this.prisma.productSale.findMany({
+      where: {
+        complexId,
+        createdAt: {
+          gte: startAt,
+          lte: endAt,
+        },
+      },
+      include: {
+        product: true,
+        payment: true,
+      },
+      orderBy: [{ product: { name: 'asc' } }, { createdAt: 'asc' }],
+    });
+
+    // Agrupar por producto
+    const productMap = new Map<string, DailyProductSales>();
+    for (const sale of productSales) {
+      const productId = sale.product.id;
+      if (!productMap.has(productId)) {
+        productMap.set(productId, {
+          productId,
+          productName: sale.product.name,
+          category: sale.product.category,
+          totalQuantity: 0,
+          totalRevenue: 0,
+          sales: [],
+        });
+      }
+      const productData = productMap.get(productId)!;
+      // Sumar datos de la venta
+      productData.totalQuantity += sale.quantity;
+      const saleRevenue = sale.price * sale.quantity - (sale.discount || 0);
+      productData.totalRevenue += saleRevenue;
+      // Agregar detalle de la venta
+      productData.sales.push({
+        id: sale.id,
+        quantity: sale.quantity,
+        price: sale.price,
+        discount: sale.discount,
+        isGift: sale.isGift,
+        soldAt: sale.createdAt,
+        paymentMethod: sale.payment.method,
+      });
+    }
+    return Array.from(productMap.values());
+  }
+  /**
+   * Calcula los totales generales
+   */
+  calculateTotals(
+    courts: DailySummaryByCourt[],
+    products: DailyProductSales[],
+  ) {
+    const totalRevenueReserves = courts.reduce(
+      (sum, court) => sum + court.totalPaid,
+      0,
+    );
+
+    const totalRevenueProducts = products.reduce(
+      (sum, product) => sum + product.totalRevenue,
+      0,
+    );
+
+    const totalReservations = courts.reduce(
+      (sum, court) => sum + court.totalReservations,
+      0,
+    );
+
+    const totalProductsSold = products.reduce(
+      (sum, product) => sum + product.totalQuantity,
+      0,
+    );
+
+    // Consolidar métodos de pago
+    const paymentMethodMap = new Map<
+      PaymentMethod,
+      { amount: number; count: number }
+    >();
+
+    // Agregar pagos de reservas
+    courts.forEach((court) => {
+      court.paymentsByMethod.forEach((payment) => {
+        const existing = paymentMethodMap.get(payment.method);
+        if (existing) {
+          existing.amount += payment.amount;
+          existing.count += payment.count;
+        } else {
+          paymentMethodMap.set(payment.method, {
+            amount: payment.amount,
+            count: payment.count,
+          });
+        }
+      });
+    });
+
+    // Agregar pagos de productos
+    products.forEach((product) => {
+      product.sales.forEach((sale) => {
+        const saleAmount = sale.price * sale.quantity - (sale.discount || 0);
+        const existing = paymentMethodMap.get(sale.paymentMethod);
+        if (existing) {
+          existing.amount += saleAmount;
+          existing.count += 1;
+        } else {
+          paymentMethodMap.set(sale.paymentMethod, {
+            amount: saleAmount,
+            count: 1,
+          });
+        }
+      });
+    });
+
+    const paymentMethodSummary = Array.from(paymentMethodMap.entries()).map(
+      ([method, data]) => ({
+        method,
+        amount: data.amount,
+        count: data.count,
+      }),
+    );
+
+    return {
+      totalRevenueReserves,
+      totalRevenueProducts,
+      totalRevenue: totalRevenueReserves + totalRevenueProducts,
+      totalReservations,
+      totalProductsSold,
+      paymentMethodSummary,
+    };
+  }
+
+  /**
+   * Convierte el enum SportName a nombre legible
+   */
+  private getSportTypeName(sportName: SportName): string {
+    const names = {
+      FUTBOL_5: 'Fútbol 5',
+      FUTBOL_7: 'Fútbol 7',
+      FUTBOL_11: 'Fútbol 11',
+      PADEL: 'Pádel',
+      TENIS: 'Tenis',
+      BASKET: 'Básquet',
+      VOLEY: 'Vóley',
+      HOCKEY: 'Hockey',
+    };
+    return names[sportName] || sportName;
+  }
+
+  /**
+   * Obtiene el resumen de un rango de fechas (para reportes semanales/mensuales)
+   */ async getDateRangeSummary(
+    startDate: string,
+    endDate: string,
+    complexId: string,
+  ) {
+    // Ajustar fechas para zona horaria de Argentina (UTC-3)
+    const start = new Date(startDate + 'T03:00:00.000Z'); // 00:00 ARG = 03:00 UTC
+    const end = new Date(endDate + 'T02:59:59.999Z'); // 23:59 ARG = 02:59 UTC (día siguiente)
+    end.setDate(end.getDate() + 1); // Mover al día siguiente en UTC
+
+    // Obtener resumen de reservas
+    const reservesSummary = await this.prisma.reserve.groupBy({
+      by: ['date'],
+      where: {
+        date: {
+          gte: start,
+          lte: end,
+        },
+        complexId,
+        NOT: { status: 'RECHAZADO' },
+      },
+      _sum: {
+        price: true,
+        reservationAmount: true,
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        date: 'asc',
+      },
+    });
+
+    // Obtener resumen de productos
+    const productsSummary = await this.prisma.productSale.groupBy({
+      by: ['createdAt'],
+      where: {
+        createdAt: {
+          gte: start,
+          lte: end,
+        },
+        complexId,
+      },
+      _sum: {
+        quantity: true,
+        price: true,
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        createdAt: 'asc',
+      },
+    });
+
+    return {
+      reserves: reservesSummary,
+      products: productsSummary,
+    };
+  }
+  /**
+   * Genera un archivo Excel con el resumen diario
+   */
+  async generateDailySummaryExcel(
+    date: string,
+    complexId: string,
+    cashSessionId?: string,
+  ): Promise<Buffer> {
+    const startOfDay = new Date(date + 'T03:00:00.000Z');
+    const endOfDay = new Date(date + 'T02:59:59.999Z');
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    const courtsSummary = await this.getCourtsSummary(
+      startOfDay,
+      endOfDay,
+      complexId,
+    );
+    const productsSummary = await this.getProductsSummary(
+      complexId,
+      cashSessionId,
+    );
+    const totals = this.calculateTotals(courtsSummary, productsSummary);
+    const summary = {
+      date,
+      complexId,
+      complexName: '', // Puedes completar si lo necesitas
+      courts: courtsSummary,
+      products: productsSummary,
+      totals,
+    };
+    return this.excelGenerator.generateDailySummaryExcel(summary, date);
+  }
+
+  /**
+   * Genera un archivo PDF con el resumen diario
+   */
+  async generateDailySummaryPDF(
+    date: string,
+    complexId: string,
+    cashSessionId?: string,
+  ): Promise<Buffer> {
+    const startOfDay = new Date(date + 'T03:00:00.000Z');
+    const endOfDay = new Date(date + 'T02:59:59.999Z');
+    endOfDay.setDate(endOfDay.getDate() + 1);
+    const courtsSummary = await this.getCourtsSummary(
+      startOfDay,
+      endOfDay,
+      complexId,
+    );
+    const productsSummary = await this.getProductsSummary(
+      complexId,
+      cashSessionId,
+    );
+    const totals = this.calculateTotals(courtsSummary, productsSummary);
+    const summary = {
+      date,
+      complexId,
+      complexName: '', // Puedes completar si lo necesitas
+      courts: courtsSummary,
+      products: productsSummary,
+      totals,
+    };
+
+    return this.pdfGenerator.generateDailySummaryPDF(summary, date);
+  }
+
+  // ===================================
+  // MÉTODOS DEL DASHBOARD
+  // ===================================
+
+  /**
+   * Obtiene todos los datos del dashboard
+   */
+  async getDashboardData(
+    complexId: string,
+    startDate?: string,
+    endDate?: string,
+    cashSessionId?: string,
+  ): Promise<DashboardData> {
+    // Calcular fechas por defecto (último mes)
+    const endDateStr = endDate || new Date().toISOString().split('T')[0];
+    const startDateStr =
+      startDate ||
+      new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+        .toISOString()
+        .split('T')[0];
+
+    const [
+      dailyData,
+      weeklyData,
+      monthlyData,
+      products,
+      paymentMethods,
+      canchas,
+      horarios,
+    ] = await Promise.all([
+      this.getDailyData(complexId, startDateStr, endDateStr, cashSessionId),
+      this.getWeeklyData(complexId, startDateStr, endDateStr, cashSessionId),
+      this.getMonthlyData(complexId, startDateStr, endDateStr, cashSessionId),
+      this.getProductsData(complexId, startDateStr, endDateStr, cashSessionId),
+      this.getPaymentMethodsData(
+        complexId,
+        startDateStr,
+        endDateStr,
+        cashSessionId,
+      ),
+      this.getCanchasData(complexId, startDateStr, endDateStr),
+      this.getHorariosData(complexId, startDateStr, endDateStr),
+    ]);
+
+    return {
+      daily: dailyData,
+      weekly: weeklyData,
+      monthly: monthlyData,
+      products,
+      paymentMethods,
+      canchas,
+      horarios,
+    };
+  }
+
+  /**
+   * Obtiene datos diarios (últimos 7 días)
+   */
+  private async getDailyData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+    cashSessionId?: string,
+  ): Promise<DailyData[]> {
+    const dailyData: DailyData[] = [];
+    const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+    // Calcular los últimos 7 días
+
+    const today = new Date();
+    console.log(today);
+    today.setHours(today.getHours() - 3);
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(today);
+      date.setDate(today.getDate() - i);
+      date.setHours(0, 0, 0, 0);
+
+      const nextDay = new Date(date);
+      nextDay.setDate(date.getDate() + 1);
+
+      const dayOfWeek = days[date.getDay() === 0 ? 6 : date.getDay() - 1]; // Ajustar domingo
+
+      // Obtener datos del día actual
+      const [reservasHoy, ingresos, cancelaciones, clientesNuevos] =
+        await Promise.all([
+          this.getReservasPorDia(complexId, date, nextDay),
+          this.getIngresosPorDia(complexId, date, nextDay, cashSessionId),
+          this.getCancelacionesPorDia(complexId, date, nextDay),
+          this.getClientesNuevosPorDia(complexId, date, nextDay),
+        ]);
+
+      // Obtener datos del día anterior
+      const dayBefore = new Date(date);
+      dayBefore.setDate(date.getDate() - 1);
+      const nextDayBefore = new Date(dayBefore);
+      nextDayBefore.setDate(dayBefore.getDate() + 1);
+
+      const diaAnterior = await this.getReservasPorDia(
+        complexId,
+        dayBefore,
+        nextDayBefore,
+      );
+
+      // Calcular ocupación
+      const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
+        date,
+        complexId,
+      );
+      const totalSlots = scheduleInfo.schedules.reduce((sum, schedule) => {
+        return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
+      }, 0);
+
+      const ocupacion =
+        totalSlots > 0
+          ? Math.min(Math.round((reservasHoy / totalSlots) * 100), 100)
+          : 0; // Evitar división por cero
+
+      dailyData.push({
+        day: dayOfWeek,
+        reservas: reservasHoy,
+        ingresos,
+        diaAnterior,
+        cancelaciones,
+        ocupacion,
+        clientesNuevos,
+      });
+    }
+
+    return dailyData;
+  }
+
+  /**
+   * Obtiene datos semanales (últimas 4 semanas)
+   */
+  private async getWeeklyData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+    cashSessionId?: string,
+  ): Promise<WeeklyData[]> {
+    const weeklyData: WeeklyData[] = [];
+    const today = new Date();
+
+    const allSchedules = await this.schedules.findByComplex(complexId);
+    for (let i = 3; i >= 0; i--) {
+      // Calcular el final de la semana (domingo actual - i semanas)
+      const weekEnd = new Date(today);
+      weekEnd.setDate(today.getDate() - i * 7);
+      weekEnd.setHours(23, 59, 59, 999);
+
+      // Calcular el inicio de la semana (lunes = 6 días antes del domingo)
+      const weekStart = new Date(weekEnd);
+      weekStart.setDate(weekEnd.getDate() - 6);
+      weekStart.setHours(0, 0, 0, 0);
+
+      // Datos de la semana actual
+      const [reservas, ingresos, clientesNuevos] = await Promise.all([
+        this.getReservasPorDia(complexId, weekStart, weekEnd),
+        this.getIngresosPorDia(complexId, weekStart, weekEnd, cashSessionId),
+        this.getClientesNuevosPorDia(complexId, weekStart, weekEnd),
+      ]);
+
+      // Datos de la semana anterior (7 días antes)
+      const prevWeekStart = new Date(weekStart);
+      prevWeekStart.setDate(weekStart.getDate() - 7);
+      prevWeekStart.setHours(0, 0, 0, 0);
+
+      const prevWeekEnd = new Date(weekEnd);
+      prevWeekEnd.setDate(weekEnd.getDate() - 7);
+      prevWeekEnd.setHours(23, 59, 59, 999);
+
+      const semanaAnterior = await this.getReservasPorDia(
+        complexId,
+        prevWeekStart,
+        prevWeekEnd,
+      );
+
+      const totalSlots = allSchedules.reduce((sum, schedule) => {
+        return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
+      }, 0);
+
+      const ocupacion =
+        totalSlots > 0
+          ? Math.min(Math.round((reservas / totalSlots) * 100), 100)
+          : 0; // Evitar división por cero
+
+      weeklyData.push({
+        week: `Sem ${4 - i}`,
+        reservas,
+        ingresos,
+        semanaAnterior,
+        ocupacion,
+        clientesNuevos,
+      });
+    }
+
+    return weeklyData;
+  }
+
+  /**
+   * Obtiene datos mensuales (últimos 6 meses)
+   */
+  private async getMonthlyData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+    cashSessionId?: string,
+  ): Promise<MonthlyData[]> {
+    const monthlyData: MonthlyData[] = [];
+    const months = [
+      'Ene',
+      'Feb',
+      'Mar',
+      'Abr',
+      'May',
+      'Jun',
+      'Jul',
+      'Ago',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dic',
+    ];
+    const today = new Date();
+
+    // Obtener todos los horarios del complejo (una sola consulta)
+    const allSchedules = await this.schedules.findByComplex(complexId);
+    const slotsPorDia = allSchedules.reduce((sum, schedule) => {
+      return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
+    }, 0);
+
+    for (let i = 5; i >= 0; i--) {
+      const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
+      const monthEnd = new Date(
+        today.getFullYear(),
+        today.getMonth() - i + 1,
+        0,
+      );
+      monthEnd.setHours(23, 59, 59, 999);
+
+      // Calcular días en el mes
+      const daysInMonth = monthEnd.getDate();
+
+      // Obtener datos del mes
+      const [reservas, ingresos, clientesNuevos] = await Promise.all([
+        this.getReservasPorDia(complexId, monthStart, monthEnd),
+        this.getIngresosPorDia(complexId, monthStart, monthEnd, cashSessionId),
+        this.getClientesNuevosPorDia(complexId, monthStart, monthEnd),
+      ]);
+
+      // Datos del mes anterior
+      const prevMonthStart = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth() - 1,
+        1,
+      );
+      const prevMonthEnd = new Date(
+        monthStart.getFullYear(),
+        monthStart.getMonth(),
+        0,
+      );
+      prevMonthEnd.setHours(23, 59, 59, 999);
+      const mesAnterior = await this.getReservasPorDia(
+        complexId,
+        prevMonthStart,
+        prevMonthEnd,
+      );
+
+      // Calcular slots totales del mes (slots por día * días del mes)
+      const totalSlotsMonth = slotsPorDia * daysInMonth;
+
+      // Calcular ocupación
+      const ocupacion =
+        totalSlotsMonth > 0
+          ? Math.min(Math.round((reservas / totalSlotsMonth) * 100), 100)
+          : 0;
+
+      monthlyData.push({
+        month: months[monthStart.getMonth()],
+        reservas,
+        ingresos,
+        mesAnterior,
+        ocupacion,
+        clientesNuevos,
+      });
+    }
+
+    return monthlyData;
+  }
+
+  private calculateSlots(startTime: string, endTime: string) {
+    const [startHour, startMinute] = startTime.split(':').map(Number);
+    const [endHour, endMinute] = endTime.split(':').map(Number);
+
+    // Convertir todo a minutos desde medianoche
+    const startTotalMinutes = startHour * 60 + startMinute;
+    let endTotalMinutes = endHour * 60 + endMinute;
+
+    // Si endTime es anterior a startTime, asumimos que cruza medianoche (día siguiente)
+    if (endTotalMinutes <= startTotalMinutes) {
+      endTotalMinutes += 24 * 60; // Sumar 24 horas en minutos
+    }
+
+    const durationMinutes = endTotalMinutes - startTotalMinutes;
+    return Math.floor(durationMinutes / 60); // Slots de 1 hora
+  }
+
+  /**
+   * Obtiene datos de productos
+   */
+  private async getProductsData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+    cashSessionId?: string,
+  ): Promise<ProductData[]> {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    const whereCondition: any = {
+      complexId,
+      createdAt: {
+        gte: startOfPeriod,
+        lte: endOfPeriod,
+      },
+    };
+
+    // Si hay cashSessionId, filtrar por sesión de caja
+    if (cashSessionId) {
+      const cashSession = await this.prisma.cashSession.findUnique({
+        where: { id: cashSessionId },
+      });
+      if (cashSession) {
+        whereCondition.createdAt = {
+          gte: cashSession.startAt,
+          lte: cashSession.endAt || new Date(),
+        };
+      }
+    }
+
+    const productSales = await this.prisma.productSale.groupBy({
+      by: ['productId'],
+      where: whereCondition,
+      _sum: {
+        quantity: true,
+      },
+      orderBy: {
+        _sum: {
+          quantity: 'desc',
+        },
+      },
+      take: 6, // Top 6 productos
+    });
+
+    // Obtener información de productos
+    const productIds = productSales.map((sale) => sale.productId);
+    const products = await this.prisma.product.findMany({
+      where: {
+        id: { in: productIds },
+      },
+    });
+
+    return productSales.map((sale) => {
+      const product = products.find((p) => p.id === sale.productId);
+      return {
+        name: product?.name || 'Producto desconocido',
+        sales: sale._sum.quantity || 0,
+        category: product?.category || 'Sin categoría',
+      };
+    });
+  }
+
+  /**
+   * Obtiene datos de métodos de pago
+   */
+  private async getPaymentMethodsData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+    cashSessionId?: string,
+  ): Promise<PaymentMethodData[]> {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    // Obtener pagos de reservas
+    const reservePayments = await this.prisma.payment.groupBy({
+      by: ['method'],
+      where: {
+        reserve: {
+          complexId,
+        },
+        createdAt: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    const totalAmount = reservePayments.reduce(
+      (sum, payment) => sum + (payment._sum.amount || 0),
+      0,
+    );
+
+    const methodNames = {
+      EFECTIVO: 'Efectivo',
+      TARJETA_CREDITO: 'Tarjeta',
+      TRANSFERENCIA: 'Transferencia',
+      MERCADOPAGO: 'MercadoPago',
+      OTRO: 'Otro',
+    };
+
+    return reservePayments.map((payment) => ({
+      name: methodNames[payment.method] || payment.method,
+      value:
+        totalAmount > 0
+          ? Math.round(((payment._sum.amount || 0) / totalAmount) * 100)
+          : 0,
+    }));
+  }
+
+  /**
+   * Obtiene datos de canchas
+   */
+  private async getCanchasData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<CanchaData[]> {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    const courtsData = await this.prisma.reserve.groupBy({
+      by: ['courtId'],
+      where: {
+        complexId,
+        createdAt: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+        NOT: { status: 'RECHAZADO' },
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+    });
+
+    // Obtener información de las canchas
+    const courtIds = courtsData.map((data) => data.courtId);
+    const courts = await this.prisma.court.findMany({
+      where: {
+        id: { in: courtIds },
+      },
+    });
+
+    return courtsData.map((courtData) => {
+      const court = courts.find((c) => c.id === courtData.courtId);
+      return {
+        name: court?.name || `Cancha ${court?.courtNumber || '?'}`,
+        reservas: courtData._count.id || 0,
+      };
+    });
+  }
+
+  /**
+   * Obtiene datos de horarios
+   */
+  private async getHorariosData(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ): Promise<HorarioData[]> {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    const schedulesData = await this.prisma.reserve.groupBy({
+      by: ['schedule'],
+      where: {
+        complexId,
+        createdAt: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+        NOT: { status: 'RECHAZADO' },
+      },
+      _count: {
+        id: true,
+      },
+      orderBy: {
+        _count: {
+          id: 'desc',
+        },
+      },
+      take: 10, // Top 10 horarios
+    });
+
+    return schedulesData.map((scheduleData) => ({
+      hora: scheduleData.schedule.replace(' - ', '-'),
+      reservas: scheduleData._count.id || 0,
+    }));
+  }
+
+  // ===================================
+  // MÉTODOS AUXILIARES
+  // ===================================
+
+  private async getReservasPorDia(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const count = await this.prisma.reserve.count({
+      where: {
+        complexId,
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+        NOT: { status: 'RECHAZADO' },
+      },
+    });
+    return count;
+  }
+
+  private async getIngresosPorDia(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+    cashSessionId?: string,
+  ): Promise<number> {
+    // Ingresos de reservas
+    const reserveIncome = await this.prisma.payment.aggregate({
+      where: {
+        reserve: {
+          complexId,
+        },
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    // Ingresos de productos
+    let productIncome = { _sum: { price: 0 } };
+    if (cashSessionId) {
+      const cashSession = await this.prisma.cashSession.findUnique({
+        where: { id: cashSessionId },
+      });
+      if (cashSession) {
+        productIncome = await this.prisma.productSale.aggregate({
+          where: {
+            complexId,
+            createdAt: {
+              gte: Math.max(startDate.getTime(), cashSession.startAt.getTime())
+                ? new Date(
+                    Math.max(
+                      startDate.getTime(),
+                      cashSession.startAt.getTime(),
+                    ),
+                  )
+                : startDate,
+              lt: Math.min(
+                endDate.getTime(),
+                (cashSession.endAt || new Date()).getTime(),
+              )
+                ? new Date(
+                    Math.min(
+                      endDate.getTime(),
+                      (cashSession.endAt || new Date()).getTime(),
+                    ),
+                  )
+                : endDate,
+            },
+          },
+          _sum: {
+            price: true,
+          },
+        });
+      }
+    } else {
+      productIncome = await this.prisma.productSale.aggregate({
+        where: {
+          complexId,
+          createdAt: {
+            gte: startDate,
+            lt: endDate,
+          },
+        },
+        _sum: {
+          price: true,
+        },
+      });
+    }
+
+    return (reserveIncome._sum.amount || 0) + (productIncome._sum.price || 0);
+  }
+
+  private async getCancelacionesPorDia(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const count = await this.prisma.reserve.count({
+      where: {
+        complexId,
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+        status: 'RECHAZADO',
+      },
+    });
+    return count;
+  }
+
+  private async getClientesNuevosPorDia(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    // Obtener clientes únicos que hicieron su primera reserva en este período
+    const newClients = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        createdAt: {
+          gte: startDate,
+          lt: endDate,
+        },
+        NOT: { status: 'RECHAZADO' },
+      },
+      select: {
+        phone: true,
+        createdAt: true,
+      },
+      distinct: ['phone'],
+    });
+
+    // Verificar cuáles son realmente nuevos
+    let reallyNewClients = 0;
+    for (const client of newClients) {
+      const previousReserve = await this.prisma.reserve.findFirst({
+        where: {
+          complexId,
+          phone: client.phone,
+          createdAt: {
+            lt: startDate,
+          },
+        },
+      });
+      if (!previousReserve) {
+        reallyNewClients++;
+      }
+    }
+
+    return reallyNewClients;
+  }
+}

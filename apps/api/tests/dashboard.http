@@ -1,0 +1,48 @@
+### Dashboard API Tests
+### Archivo para probar los endpoints del dashboard
+
+### Variables
+@baseUrl = http://localhost:8000
+@complexId = cmadamrdg0000l0g8fv4grm98
+
+### Test Dashboard - Obtener todos los datos del dashboard
+GET {{baseUrl}}/reports/test/dashboard?complexId={{complexId}}
+
+### Test Dashboard con fechas específicas
+GET {{baseUrl}}/reports/test/dashboard?complexId={{complexId}}&startDate=2024-01-01&endDate=2024-01-31
+
+### Test Dashboard con sesión de caja
+GET {{baseUrl}}/reports/test/dashboard?complexId={{complexId}}&cashSessionId=clw6t77o80000f8hz4z4x7z4z
+
+### Test Dashboard - Endpoint principal (requiere autenticación)
+GET {{baseUrl}}/reports/dashboard?complexId={{complexId}}
+Authorization: Bearer YOUR_JWT_TOKEN_HERE
+
+### Test con datos de ejemplo (útil para desarrollo)
+### Puedes cambiar el complexId por uno que exista en tu base de datos
+GET {{baseUrl}}/reports/test/dashboard?complexId=cmadamrdg0000l0g8fv4grm98
+
+### Expected Response Format:
+### {
+###   "success": true,
+###   "data": {
+###     "daily": [
+###       {
+###         "day": "Lun",
+###         "reservas": 20,
+###         "ingresos": 50000,
+###         "diaAnterior": 18,
+###         "cancelaciones": 2,
+###         "ocupacion": 75,
+###         "clientesNuevos": 5
+###       }
+###     ],
+###     "weekly": [...],
+###     "monthly": [...],
+###     "products": [...],
+###     "paymentMethods": [...],
+###     "canchas": [...],
+###     "horarios": [...]
+###   },
+###   "message": "Datos del dashboard obtenidos exitosamente (TEST)"
+### }

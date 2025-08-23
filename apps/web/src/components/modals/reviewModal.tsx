@@ -6,25 +6,21 @@ import { Button } from "../ui/button";
 import { useState } from "react";
 import { Textarea } from "../ui/textarea";
 import { submitReview } from "@/services/reviews/review";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export const ReviewModal = () => {
-  const { onCloseReview, isOpenReview } = useModal();
+  const { closeModal, isModalOpen, modalData } = useModal();
   const [rating, setRating] = useState(0);
   const [hover, setHover] = useState(0);
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     if (rating === 0) {
-      toast({
-        title: "Error",
-        description: "Por favor selecciona una calificación",
-        variant: "destructive",
-      });
+      toast.error("Por favor selecciona una calificación");
+
       return;
     }
 
@@ -34,24 +30,18 @@ export const ReviewModal = () => {
       await submitReview({
         rating,
         comment,
+        complexId: modalData?.complexId!,
         // email: "opcional@email.com" // Si decides pedir email
       });
 
-      toast({
-        title: "¡Gracias!",
-        description: "Tu reseña ha sido enviada correctamente",
-      });
+      toast.success("Tu reseña ha sido enviada correctamente");
 
       // Resetear el formulario
       setRating(0);
       setComment("");
-      onCloseReview();
+      closeModal();
     } catch {
-      toast({
-        title: "Error",
-        description: "Hubo un problema al enviar tu reseña",
-        variant: "destructive",
-      });
+      toast.error("Hubo un problema al enviar tu reseña");
     } finally {
       setIsSubmitting(false);
     }
@@ -61,9 +51,7 @@ export const ReviewModal = () => {
     <form onSubmit={handleSubmit} className="space-y-6">
       {/* Sistema de puntuación con estrellas */}
       <div className="flex flex-col items-center">
-        <p className="text-sm text-gray-600 mb-3">
-          ¿Cómo calificarías tu experiencia?
-        </p>
+        <p className="text-sm text-gray-600 mb-3">¿Cómo calificarías tu experiencia?</p>
         <div className="flex gap-1">
           {[1, 2, 3, 4, 5].map((star) => (
             <button
@@ -98,17 +86,11 @@ export const ReviewModal = () => {
           disabled={isSubmitting}
           required
         />
-        <p className="text-xs text-gray-500 mt-1">
-          Tu reseña será publicada de forma anónima
-        </p>
+        <p className="text-xs text-gray-500 mt-1">Tu reseña será publicada de forma anónima</p>
       </div>
 
       {/* Botón de enviar */}
-      <Button
-        type="submit"
-        className="w-full"
-        disabled={isSubmitting || rating === 0}
-      >
+      <Button type="submit" className="w-full" disabled={isSubmitting || rating === 0}>
         {isSubmitting ? "Enviando..." : "Enviar Reseña"}
       </Button>
     </form>
@@ -117,8 +99,8 @@ export const ReviewModal = () => {
   return (
     <Modal
       title="Deja tu reseña"
-      isOpen={isOpenReview}
-      onClose={onCloseReview}
+      isOpen={isModalOpen("REVIEW")}
+      onClose={closeModal}
       body={bodyContent}
     />
   );

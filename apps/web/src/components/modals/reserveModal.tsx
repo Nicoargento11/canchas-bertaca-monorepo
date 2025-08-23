@@ -4,110 +4,141 @@ import { useMemo } from "react";
 import { Stepper } from "../ui/stepper/stepper";
 import { Steps } from "../ui/stepper/steps";
 
-import { ShoppingCart, CalendarDays, Clock9 } from "lucide-react";
-import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
-import { useModal } from "@/contexts/modalContext";
+import { ShoppingCart, CalendarDays, Clock9, Icon } from "lucide-react";
+import { soccerPitch } from "@lucide/lab";
 import Calendar from "../reserve/calendar";
 import AvailableTurns from "../reserve/available-turns";
 import AvailableFields from "../reserve/available-fields";
 import ReserveTurn from "../reserve/reserve-turn";
 
 import { Modal } from "./modal";
-import { useReserve } from "@/contexts/reserveContext";
-import { useToast } from "@/hooks/use-toast";
-import { Session } from "@/services/auth/session";
-import { UnavailableDay } from "@/services/unavailableDay/unavailableDay";
-import { ScheduleDay } from "@/services/scheduleDay/scheduleDay";
-import { FixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
-import { Schedule } from "@/services/schedule/schedule";
+import { SessionPayload } from "@/services/auth/session";
+import { toast } from "sonner";
+import { useReserve } from "@/contexts/newReserveContext";
+import { Complex } from "@/services/complex/complex";
+import { ModalType, useModal } from "@/contexts/modalContext";
+import { SportType } from "@/services/sport-types/sport-types";
 
 enum STEPS {
-  date = 0,
-  hour = 1,
-  field = 2,
-  reserve = 3,
+  DATE = 0,
+  TIME = 1,
+  FIELD = 2,
+  CONFIRM = 3,
 }
 const NUMBER_OF_STEPS = 4;
 
 interface ReserveModalProps {
-  currentUser?: Session | null;
-  unavailableDays: UnavailableDay[];
-  scheduleDays: ScheduleDay[];
-  fixedSchedules: FixedSchedule[];
-  schedules: Schedule[];
+  currentUser?: SessionPayload | null;
+  complex: Complex;
+  sportType: SportType;
+  modalType: ModalType;
 }
 
-const ReserveModal = ({
-  currentUser,
-  scheduleDays,
-  unavailableDays,
-  fixedSchedules,
-  schedules,
-}: ReserveModalProps) => {
-  const { reserveForm, currentStep, goToNextStep, goToPreviousStep } =
-    useReserve();
-  const { isOpenReserve, oncloseReserve } = useModal();
+const ReserveModal = ({ currentUser, complex, sportType, modalType }: ReserveModalProps) => {
+  const {
+    state,
+    getCurrentReservation,
+    updateReservationForm,
+    goToNextStep,
+    goToPreviousStep,
+    hasAvailableTurns,
+  } = useReserve();
 
-  const { toast } = useToast();
+  const { isModalOpen, closeModal } = useModal();
+  const currentReservation = getCurrentReservation();
+  const { complexId, step: currentStep } = state.currentReservation;
 
-  const onSubmit = () => {
+  if (!currentReservation || !complexId || !sportType) {
+    closeModal();
+    return null;
+  }
+
+  const sportConfig = useMemo(() => {
+    const baseConfig = {
+      fieldIcon: soccerPitch,
+      fieldLabel: "Cancha",
+      stepTitles: [
+        "Elige una fecha",
+        "Elige un horario",
+        "Elige una cancha",
+        "Confirma tu reserva",
+      ],
+    };
+
+    switch (sportType.name) {
+      case "PADEL":
+        return {
+          ...baseConfig,
+          // fieldIcon: paddleCourt,
+          fieldLabel: "Pista de pádel",
+        };
+      case "TENIS":
+        return {
+          ...baseConfig,
+          // fieldIcon: tennisCourt,
+          fieldLabel: "Cancha de tenis",
+        };
+      default:
+        return baseConfig;
+    }
+  }, [sportType]);
+
+  const handleSubmit = () => {
     if (
-      currentStep === STEPS.field &&
-      (!reserveForm.hour || !reserveForm.field)
+      currentStep === STEPS.FIELD &&
+      (!currentReservation.form.hour || !currentReservation.form.field)
     ) {
-      toast({
-        variant: "destructive",
-        title: "¡Ha ocurrido un error!",
-        description: "Debes completar todos los campos antes de pasar al pago",
-      });
-      return undefined;
+      toast.error("Debes completar todos los campos antes de continuar");
+      return;
     }
-    if (currentStep !== STEPS.reserve) {
-      return goToNextStep();
-    }
+    goToNextStep();
   };
-  const actionLabel = useMemo(() => {
-    if (currentStep === STEPS.reserve) {
-      return undefined;
-    }
-    return "Siguiente";
-  }, [currentStep]);
 
-  const secondaryActionLabel = useMemo(() => {
-    if (currentStep === STEPS.date) {
-      return undefined;
-    }
-    return "Anterior";
-  }, [currentStep]);
+  // const onSubmit = () => {
+  //   if (currentStep !== STEPS.CONFIRM) {
+  //     return goToNextStep();
+  //   }
+  // };
+
+  const actionLabel = useMemo(() => {
+    if (currentStep === STEPS.CONFIRM) return undefined;
+    if (currentStep === STEPS.TIME && !hasAvailableTurns) return undefined;
+    return "Siguiente";
+  }, [currentStep, hasAvailableTurns]);
+
+  const secondaryActionLabel = useMemo(
+    () => (currentStep === STEPS.DATE ? undefined : "Anterior"),
+    [currentStep]
+  );
 
   //content Reserve
 
   let title = "Elige una fecha";
 
-  let bodyContent = (
-    <Calendar scheduleDays={scheduleDays} unavailableDays={unavailableDays} />
-  );
-
-  if (currentStep === STEPS.hour) {
-    title = "Elige un horario";
-    bodyContent = (
-      <AvailableTurns fixedSchedules={fixedSchedules} schedules={schedules} />
-    );
-  }
-
-  if (currentStep === STEPS.field) {
-    title = "Elige una cancha";
-
-    bodyContent = <AvailableFields />;
-  }
-
-  if (currentStep === STEPS.reserve) {
-    title = "Confirma tu reserva";
-
-    bodyContent = (
-      <ReserveTurn currentUser={currentUser} schedules={schedules} />
-    );
-  }
+  const bodyContent = useMemo(() => {
+    switch (currentStep) {
+      case STEPS.DATE:
+        return (
+          <Calendar
+            complexId={state.currentReservation.complexId || ""}
+            sportType={state.currentReservation.sportType || ""}
+            disabledDates={complex.unavailableDays.map((day) => new Date(day.date))}
+            disabledWeekdays={complex.scheduleDays
+              .filter((day) => !day.isActive)
+              .map((day) => day.dayOfWeek)}
+            maxSelectableDays={30}
+          />
+        );
+      case STEPS.TIME:
+        return <AvailableTurns complex={complex} sportType={sportType} />;
+      case STEPS.FIELD:
+        return <AvailableFields complex={complex} sportType={sportType} />;
+      case STEPS.CONFIRM:
+        return <ReserveTurn currentUser={currentUser} complex={complex} sportType={sportType} />;
+      default:
+        return <div>Error</div>;
+    }
+  }, [currentStep, currentReservation, sportType]);
 
   const headerContent = (
     <Stepper currentStep={currentStep} numberOfSteps={NUMBER_OF_STEPS}>
@@ -118,7 +149,7 @@ const ReserveModal = ({
         <Clock9 size={25} />
       </Steps>
       <Steps currentStep={currentStep} index={2}>
-        <GiSoccerField size={30} />
+        <Icon iconNode={soccerPitch} size={30}></Icon>
       </Steps>
       <Steps currentStep={currentStep} index={3}>
         <ShoppingCart size={25} />
@@ -127,17 +158,15 @@ const ReserveModal = ({
   );
   return (
     <Modal
-      title={title}
-      isOpen={isOpenReserve}
-      onClose={oncloseReserve}
+      isOpen={isModalOpen(modalType)}
+      onClose={closeModal}
+      title={sportConfig.stepTitles[currentStep]}
       header={headerContent}
-      onSubmit={onSubmit}
-      actionLabel={actionLabel}
       body={bodyContent}
-      secondaryAction={
-        currentStep === STEPS.date ? undefined : goToPreviousStep
-      }
+      actionLabel={actionLabel}
       secondaryActionLabel={secondaryActionLabel}
+      onSubmit={handleSubmit}
+      secondaryAction={currentStep === STEPS.DATE ? undefined : goToPreviousStep}
     />
   );
 };

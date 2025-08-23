@@ -27,4 +27,7 @@ export class CreateReviewDto {
   @IsEmail({}, { message: 'El email proporcionado no es válido' })
   @MaxLength(100, { message: 'El email no puede exceder los 100 caracteres' })
   email?: string;
+
+  @IsString()
+  complexId: string;
 }

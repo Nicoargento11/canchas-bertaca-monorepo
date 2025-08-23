@@ -1,0 +1,61 @@
+# ===================================
+# DEBUG Y TROUBLESHOOTING
+# ===================================
+
+### Variables
+@baseUrl = http://localhost:8000
+
+# ===================================
+# TESTS BÁSICOS
+# ===================================
+
+### 1. ¿Está el servidor funcionando?
+GET {{baseUrl}}
+
+### 2. ¿Funciona la base de datos? (test con complejos)
+GET {{baseUrl}}/complexes
+
+### 3. ¿Funciona el auth?
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "valdes.nicoedu@gmail.com",
+  "password": "12345678"
+}
+
+# ===================================
+# TESTS DE REPORTES SIN AUTH
+# ===================================
+
+### 4. ¿Funcionan los reportes? (test endpoint)
+GET {{baseUrl}}/reports/test/daily-summary?date=2025-06-06&complexId=test-id
+
+### 5. ¿Se genera el Excel? (debería devolver binario)
+GET {{baseUrl}}/reports/test/daily-summary/export/excel?date=2025-06-06&complexId=test-id
+
+### 6. ¿Se genera el PDF? (debería devolver binario)
+GET {{baseUrl}}/reports/test/daily-summary/export/pdf?date=2025-06-06&complexId=test-id
+
+# ===================================
+# VERIFICACIÓN DE ERRORES COMUNES
+# ===================================
+
+### Error 404 - Endpoint no existe
+GET {{baseUrl}}/endpoint-que-no-existe
+
+### Error 400 - Parámetros incorrectos
+GET {{baseUrl}}/reports/test/daily-summary?date=fecha-mala&complexId=
+
+### Error 500 - ComplexId que no existe
+GET {{baseUrl}}/reports/test/daily-summary?date=2025-06-06&complexId=id-que-no-existe
+
+# ===================================
+# QUÉ ESPERAR
+# ===================================
+# ✅ Test 1-3: Respuesta 200 con JSON
+# ✅ Test 4: JSON con datos o array vacío
+# ✅ Test 5-6: Contenido binario (caracteres raros) = CORRECTO
+# ❌ Test 7: 404 Not Found = CORRECTO  
+# ❌ Test 8: 400 Bad Request = CORRECTO
+# ❌ Test 9: 500 o datos vacíos = CORRECTO

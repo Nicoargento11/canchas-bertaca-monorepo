@@ -1,21 +1,80 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import { ProductsModule } from './product/products.module';
+import * as cookieParser from 'cookie-parser';
+import { randomUUID } from 'crypto';
+
+// Polyfill para navegadores o entornos limitados
+if (typeof globalThis.crypto?.randomUUID !== 'function') {
+  globalThis.crypto = {
+    ...globalThis.crypto,
+    randomUUID: () => randomUUID(),
+  };
+}
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.enableCors({
-    origin: [
-      'http://localhost:3000', // Desarrollo
-      'https://canchas-bertaca-monorepo-web.vercel.app', // Producción
-      'https://www.tudominio.com', // Alternativa con www
-    ],
-    methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE'], // Permitir estos métodos
-    allowedHeaders: ['Content-Type', 'Authorization'], // Ajusta si tienes otros headers
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log', 'verbose', 'debug'],
   });
 
+  // Configuración mejorada de CORS
+
+  const corsOptions = {
+    origin: (origin, callback) => {
+      // Lista de dominios permitidos
+      const allowedOrigins = [
+        // 'http://localhost:3000',
+        'http://localhost:8000',
+
+        'https://www.partidoya.com',
+        'https://partidoya.com',
+        'https://x1gj7r8c-3000.brs.devtunnels.ms',
+        process.env.FRONT_END_URL,
+      ].filter(Boolean); // Elimina valores undefined/null
+
+      // Permitir solicitudes sin origen (como mobile apps o Postman)
+      if (!origin) return callback(null, true);
+
+      // Verificar si el origen está en la lista blanca
+      if (
+        allowedOrigins.some(
+          (allowedOrigin) =>
+            origin === allowedOrigin || origin.startsWith(allowedOrigin), // Para subdominios
+        )
+      ) {
+        return callback(null, true);
+      }
+
+      // Rechazar solicitudes de orígenes no permitidos
+      console.warn(`CORS bloqueado para origen: ${origin}`);
+      return callback(new Error('Not allowed by CORS'), false);
+    },
+    credentials: true,
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Cookie',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: [
+      'Set-Cookie',
+      'Authorization',
+      'Access-Control-Allow-Origin',
+      'Access-Control-Allow-Credentials',
+    ],
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+  };
+
+  // Aplicar middlewares en el orden correcto
+  app.use(cookieParser());
+  app.enableCors(corsOptions);
+
+  // Resto de tu configuración...
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
@@ -31,15 +90,14 @@ async function bootstrap() {
   );
 
   const config = new DocumentBuilder()
-    .setTitle('API de Gestión de Canchas')
-    .setDescription('API para manejar reservas, productos y pagos')
+    .setTitle('PartidosYa API')
+    .setDescription('API para el sistema de reservas deportivas')
     .setVersion('1.0')
-    .addTag('products')
+    .addBearerAuth()
+    .addCookieAuth('refresh_token')
     .build();
 
-  const document = SwaggerModule.createDocument(app, config, {
-    include: [ProductsModule],
-  });
+  const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api', app, document);
 
   await app.listen(process.env.PORT ?? 8000);

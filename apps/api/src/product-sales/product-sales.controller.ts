@@ -4,72 +4,87 @@ import {
   Post,
   Body,
   Param,
-  Patch,
+  Put,
   Delete,
 } from '@nestjs/common';
-import { ProductSalesService } from './product-sales.service';
 import { CreateProductSaleDto } from './dto/create-product-sale.dto';
 import { UpdateProductSaleDto } from './dto/update-product-sale.dto';
+import { ProductSaleResponseDto } from './dto/product-sale-response.dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ProductSaleService } from './product-sales.service';
+import { ProductSale } from '@prisma/client';
 
-@ApiTags('Product Sales')
+@ApiTags('product-sales')
 @Controller('product-sales')
-export class ProductSalesController {
-  constructor(private readonly productSalesService: ProductSalesService) {}
+export class ProductSaleController {
+  constructor(private readonly productSaleService: ProductSaleService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new product sale' })
   @ApiResponse({
     status: 201,
-    description: 'Product sale created successfully',
+    description: 'Product sale created',
+    type: ProductSaleResponseDto,
   })
-  create(@Body() createProductSaleDto: CreateProductSaleDto) {
-    console.log(createProductSaleDto);
-    return this.productSalesService.create(createProductSaleDto);
+  async create(
+    @Body() createProductSaleDto: CreateProductSaleDto,
+  ): Promise<ProductSaleResponseDto> {
+    return this.productSaleService.create(createProductSaleDto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all product sales' })
-  findAll() {
-    return this.productSalesService.findAll();
+  @ApiResponse({
+    status: 200,
+    description: 'List of product sales',
+    type: [ProductSaleResponseDto],
+  })
+  async findAll(): Promise<ProductSaleResponseDto[]> {
+    return this.productSaleService.findAll();
+  }
+
+  @Get('by-payment/:paymentId')
+  @ApiOperation({ summary: 'Get product sales by payment ID' })
+  @ApiResponse({
+    status: 200,
+    description: 'List of product sales for the payment',
+    type: [ProductSaleResponseDto],
+  })
+  async findByPayment(
+    @Param('paymentId') paymentId: string,
+  ): Promise<ProductSaleResponseDto[]> {
+    return this.productSaleService.findByPayment(paymentId);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get a product sale by ID' })
-  findOne(@Param('id') id: string) {
-    return this.productSalesService.findOne(id);
+  @ApiResponse({
+    status: 200,
+    description: 'Product sale found',
+    type: ProductSaleResponseDto,
+  })
+  async findOne(@Param('id') id: string): Promise<ProductSaleResponseDto> {
+    return this.productSaleService.findOne(id);
   }
 
-  @Get('by-reserve/:reserveId')
-  @ApiOperation({ summary: 'Get product sales by reserve ID' })
-  findByReserve(@Param('reserveId') reserveId: string) {
-    return this.productSalesService.findByReserve(reserveId);
-  }
-
-  @Get('by-product/:productId')
-  @ApiOperation({ summary: 'Get product sales by product ID' })
-  findByProduct(@Param('productId') productId: string) {
-    return this.productSalesService.findByProduct(productId);
-  }
-
-  @Get('total-by-reserve/:reserveId')
-  @ApiOperation({ summary: 'Get total sales amount by reserve ID' })
-  getTotalSalesByReserve(@Param('reserveId') reserveId: string) {
-    return this.productSalesService.getTotalSalesByReserve(reserveId);
-  }
-
-  @Patch(':id')
+  @Put(':id')
   @ApiOperation({ summary: 'Update a product sale' })
-  update(
+  @ApiResponse({
+    status: 200,
+    description: 'Product sale updated',
+    type: ProductSaleResponseDto,
+  })
+  async update(
     @Param('id') id: string,
     @Body() updateProductSaleDto: UpdateProductSaleDto,
-  ) {
-    return this.productSalesService.update(id, updateProductSaleDto);
+  ): Promise<ProductSaleResponseDto> {
+    return this.productSaleService.update(id, updateProductSaleDto);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a product sale' })
-  remove(@Param('id') id: string) {
-    return this.productSalesService.remove(id);
+  @ApiResponse({ status: 200, description: 'Product sale deleted' })
+  async remove(@Param('id') id: string): Promise<ProductSale> {
+    return this.productSaleService.remove(id);
   }
 }

@@ -1,12 +1,20 @@
-import { TurnByDay } from "@/services/reserves/reserves";
 import TableReservesToday from "../TableReservesToday";
+import { SportData } from "@/app/page";
+import { Complex } from "@/services/complex/complex";
+import { SportType } from "@/services/sport-types/sport-types";
 
 interface ReservesTodaySectionProps {
-  reservesDay: TurnByDay | null;
+  reservesDay: SportData;
+  complex: Complex;
+  sportType: SportType;
+  sectionTitle?: string; // Optional custom section title
 }
 
 export const ReservesTodaySection = ({
   reservesDay,
+  complex,
+  sportType,
+  sectionTitle,
 }: ReservesTodaySectionProps) => {
   return (
     <section
@@ -19,7 +27,12 @@ export const ReservesTodaySection = ({
         </h2>
         <div className="px-0 sm:px-4">
           <div className="bg-gray-800/50 backdrop-blur-sm rounded-xl p-4 border border-gray-700 shadow-lg">
-            <TableReservesToday dayReserves={reservesDay} />
+            <TableReservesToday
+              dayReserves={reservesDay.reserves}
+              courts={reservesDay.courts}
+              complex={complex}
+              sportType={sportType}
+            />
           </div>
         </div>
       </div>

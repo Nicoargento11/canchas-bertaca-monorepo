@@ -13,4 +13,12 @@ export class CreateUnavailableDayDto {
   @IsString()
   @IsOptional()
   reason?: string;
+
+  @IsString()
+  @IsOptional()
+  courtId?: string;
+
+  @IsString()
+  @IsOptional()
+  complexId?: string;
 }

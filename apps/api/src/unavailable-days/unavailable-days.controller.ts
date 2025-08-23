@@ -7,11 +7,11 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { UnavailableDayService } from './unavailable-days.service';
 import { CreateUnavailableDayDto } from './dto/create-unavailable-day.dto';
 import { UpdateUnavailableDayDto } from './dto/update-unavailable-day.dto';
-import { Public } from 'src/auth/decorators/public.decorator';
 
 @Controller('unavailable-days')
 export class UnavailableDayController {
@@ -23,8 +23,8 @@ export class UnavailableDayController {
   }
   // @Public()
   @Get()
-  findAll() {
-    return this.unavailableDayService.findAll();
+  findAll(@Query('complexId') complexId?: string) {
+    return this.unavailableDayService.findAll(complexId);
   }
 
   @Get(':id')

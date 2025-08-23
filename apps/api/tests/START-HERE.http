@@ -1,0 +1,54 @@
+# ===================================
+# 🚀 INICIO RÁPIDO - REPORTES
+# ===================================
+
+# Este archivo te da acceso rápido a las funciones más importantes
+
+### Variables principales
+@baseUrl = http://localhost:8000
+@testDate = 2025-06-06
+@complexId = cmadamrdg0000l0g8fv4grm98
+
+# ===================================
+# ⚡ TESTS MÁS USADOS
+# ===================================
+
+### 🔑 Login rápido
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "valdes.nicoedu@gmail.com",
+  "password": "12345678"
+}
+
+### 📊 Reporte JSON (con auth)
+GET {{baseUrl}}/reports/daily-summary?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### 📊 Reporte JSON (sin auth - testing)
+GET {{baseUrl}}/reports/test/daily-summary?date={{testDate}}&complexId={{complexId}}
+
+### 📄 Excel (sin auth - testing) 
+GET {{baseUrl}}/reports/test/daily-summary/export/excel?date={{testDate}}&complexId={{complexId}}
+
+### 📄 PDF (sin auth - testing)
+GET {{baseUrl}}/reports/test/daily-summary/export/pdf?date={{testDate}}&complexId={{complexId}}
+
+# ===================================
+# 🌐 URLs PARA NAVEGADOR (COPY-PASTE)
+# ===================================
+
+# JSON: http://localhost:8000/reports/test/daily-summary?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+# EXCEL: http://localhost:8000/reports/test/daily-summary/export/excel?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98  
+# PDF: http://localhost:8000/reports/test/daily-summary/export/pdf?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+# ===================================
+# 📁 ARCHIVOS ESPECIALIZADOS
+# ===================================
+# - tests/reports.http     -> Testing completo de reportes
+# - tests/auth.http        -> Testing de autenticación  
+# - tests/browser-quick.http -> URLs para navegador
+# - tests/debug.http       -> Troubleshooting
+# - tests/setup-data.http  -> Crear datos de prueba

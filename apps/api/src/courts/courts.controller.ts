@@ -6,65 +6,114 @@ import {
   Patch,
   Param,
   Delete,
-  NotFoundException,
-  ConflictException,
+  Query,
 } from '@nestjs/common';
 import { CourtsService } from './courts.service';
 import { CreateCourtDto } from './dto/create-court.dto';
 import { UpdateCourtDto } from './dto/update-court.dto';
-import { Public } from 'src/auth/decorators/public.decorator';
+import { QueryCourtDto } from './dto/query-court.dto';
+import {
+  ApiOperation,
+  ApiResponse,
+  ApiTags,
+  ApiParam,
+  ApiQuery,
+} from '@nestjs/swagger';
+import { CourtResponseDto } from './dto/court-response.dto';
 
+@ApiTags('Courts - Canchas Deportivas')
 @Controller('courts')
 export class CourtsController {
   constructor(private readonly courtsService: CourtsService) {}
 
   @Post()
-  async create(@Body() createCourtDto: CreateCourtDto) {
-    const existingCourt = await this.courtsService.findByName(
-      createCourtDto.name,
-    );
-    if (existingCourt) {
-      throw new ConflictException(
-        `La cancha "${createCourtDto.name}" ya existe`,
-      );
-    }
+  @ApiOperation({ summary: 'Crear una nueva cancha' })
+  @ApiResponse({
+    status: 201,
+    description: 'Cancha creada',
+    type: CourtResponseDto,
+  })
+  @ApiResponse({ status: 400, description: 'Datos inválidos' })
+  create(@Body() createCourtDto: CreateCourtDto) {
     return this.courtsService.create(createCourtDto);
   }
 
-  @Public()
   @Get()
-  findAll() {
-    return this.courtsService.findAll();
+  @ApiOperation({ summary: 'Obtener todas las canchas' })
+  @ApiQuery({
+    name: 'complexId',
+    required: false,
+    description: 'Filtrar por complejo',
+  })
+  @ApiQuery({
+    name: 'sportTypeId',
+    required: false,
+    description: 'Filtrar por tipo de deporte',
+  })
+  @ApiQuery({
+    name: 'isActive',
+    required: false,
+    description: 'Filtrar por estado activo/inactivo',
+  })
+  @ApiQuery({
+    name: 'search',
+    required: false,
+    description: 'Buscar por nombre o descripción',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Lista de canchas',
+    type: [CourtResponseDto],
+  })
+  findAll(@Query() query: QueryCourtDto) {
+    return this.courtsService.findAll(query);
   }
 
-  @Public()
-  @Get(':name')
-  findOne(@Param('name') name: string) {
-    const court = this.courtsService.findByName(name);
-    if (!court) {
-      throw new NotFoundException(`Cancha con nombre "${name}" no encontrada`);
-    }
-    return court;
+  @Get(':id')
+  @ApiOperation({ summary: 'Obtener una cancha por ID' })
+  @ApiParam({ name: 'id', description: 'ID de la cancha' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cancha encontrada',
+    type: CourtResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Cancha no encontrada' })
+  findOne(@Param('id') id: string) {
+    return this.courtsService.findOne(id);
   }
 
   @Patch(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateCourtDto: UpdateCourtDto,
-  ) {
-    const updatedCourt = this.courtsService.update(id, updateCourtDto);
-    if (!updatedCourt) {
-      throw new NotFoundException(`Cancha con ID ${id} no encontrada`);
-    }
-    return updatedCourt;
+  @ApiOperation({ summary: 'Actualizar una cancha' })
+  @ApiParam({ name: 'id', description: 'ID de la cancha' })
+  @ApiResponse({
+    status: 200,
+    description: 'Cancha actualizada',
+    type: CourtResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Cancha no encontrada' })
+  update(@Param('id') id: string, @Body() updateCourtDto: UpdateCourtDto) {
+    return this.courtsService.update(id, updateCourtDto);
+  }
+
+  @Patch(':id/toggle-status')
+  @ApiOperation({ summary: 'Cambiar estado de la cancha (activo/inactivo)' })
+  @ApiParam({ name: 'id', description: 'ID de la cancha' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado cambiado',
+    type: CourtResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Cancha no encontrada' })
+  toggleStatus(@Param('id') id: string) {
+    return this.courtsService.toggleStatus(id);
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string) {
-    const deletedCourt = this.courtsService.remove(id);
-    if (!deletedCourt) {
-      throw new NotFoundException(`Cancha con ID ${id} no encontrada`);
-    }
-    return { message: `Cancha con ID ${id} eliminada correctamente` };
+  @ApiOperation({ summary: 'Eliminar una cancha' })
+  @ApiParam({ name: 'id', description: 'ID de la cancha' })
+  @ApiResponse({ status: 200, description: 'Cancha eliminada' })
+  @ApiResponse({ status: 404, description: 'Cancha no encontrada' })
+  remove(@Param('id') id: string) {
+    return this.courtsService.remove(id);
   }
 }

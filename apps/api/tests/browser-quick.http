@@ -1,0 +1,36 @@
+# ===================================
+# NAVEGADOR - URLs DIRECTAS (SIN TOKEN)
+# ===================================
+
+# Copia estas URLs y pégalas directamente en tu navegador para testing rápido
+# Los endpoints /test/* no requieren autenticación
+
+## JSON - Ver datos en navegador
+http://localhost:8000/reports/test/daily-summary?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+## EXCEL - Descarga automática
+http://localhost:8000/reports/test/daily-summary/export/excel?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+## PDF - Descarga automática  
+http://localhost:8000/reports/test/daily-summary/export/pdf?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+# ===================================
+# TAMBIÉN FUNCIONA EN REST CLIENT
+# ===================================
+
+### Test rápido JSON
+GET http://localhost:8000/reports/test/daily-summary?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+### Test rápido Excel
+GET http://localhost:8000/reports/test/daily-summary/export/excel?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+### Test rápido PDF
+GET http://localhost:8000/reports/test/daily-summary/export/pdf?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+
+# ===================================
+# INSTRUCCIONES RÁPIDAS
+# ===================================
+# 1. Servidor corriendo: npm run start:dev
+# 2. Para archivos: USA EL NAVEGADOR (las URLs de arriba)
+# 3. Para JSON: REST Client o navegador
+# 4. Cambiar fecha/complexId según necesites

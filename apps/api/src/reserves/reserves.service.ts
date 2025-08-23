@@ -1,8 +1,15 @@
-import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+  OnModuleInit,
+  UnprocessableEntityException,
+} from '@nestjs/common';
 import { CreateReserveDto } from './dto/create-reserve.dto';
 import { UpdateReserveDto } from './dto/update-reserve.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
-import { UsersService } from 'src/user/users.service';
+import { Status } from '@prisma/client';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class ReservesService implements OnModuleInit {
@@ -10,6 +17,7 @@ export class ReservesService implements OnModuleInit {
     private prisma: PrismaService,
     private usersService: UsersService,
   ) {}
+
   private timeouts = new Map<string, NodeJS.Timeout>();
 
   setReservationTimeout(reserveId: string, delay: number) {
@@ -22,12 +30,12 @@ export class ReservesService implements OnModuleInit {
   }
 
   async checkAndExpireReservation(reserveId: string) {
-    const reserve = await this.prisma.reserves.findUnique({
+    const reserve = await this.prisma.reserve.findUnique({
       where: { id: reserveId },
     });
 
     if (reserve?.status === 'PENDIENTE') {
-      await this.prisma.reserves.update({
+      await this.prisma.reserve.update({
         where: { id: reserveId },
         data: {
           status: 'RECHAZADO',
@@ -52,7 +60,7 @@ export class ReservesService implements OnModuleInit {
   }
 
   private async reprogramPendingTimeouts() {
-    const pendingReservations = await this.prisma.reserves.findMany({
+    const pendingReservations = await this.prisma.reserve.findMany({
       where: {
         status: 'PENDIENTE',
         expiresAt: { gt: new Date() },
@@ -69,173 +77,293 @@ export class ReservesService implements OnModuleInit {
     });
   }
 
+  // ----------------------------
+  // MÉTODOS PRINCIPALES (Públicos)
+  // ----------------------------
+
   async create(createReserveDto: CreateReserveDto) {
-    const user = await this.usersService.findById(createReserveDto.userId);
-    if (!user) {
-      throw new BadRequestException('No existe el usuario');
-    }
-
-    const userReserves = await this.findByUser(createReserveDto.userId);
-    const pendingReserve = userReserves?.find(
-      (reserve) => reserve.status === 'PENDIENTE',
-    );
-    if (pendingReserve) {
-      throw new BadRequestException(
-        'No puedes realizar reservas teniendo otras pendientes',
-      );
-    }
-
-    const existingReservation = await this.prisma.reserves.findFirst({
-      where: {
-        date: new Date(createReserveDto.date),
-        schedule: createReserveDto.schedule,
-        court: createReserveDto.court,
-        NOT: { status: 'RECHAZADO' },
-      },
-    });
-
-    if (existingReservation)
-      throw new BadRequestException(
-        'Una reserva con la misma fecha, horario y cancha ya existe',
-      );
-
-    return this.prisma.reserves.create({
-      data: { ...createReserveDto },
-    });
+    await this.validateCreateReserve(createReserveDto);
+    return this.createReservation(createReserveDto);
   }
 
   async paginate(page: number, limit: number) {
-    const skip = (page - 1) * limit;
+    return this.paginateReserves(page, limit);
+  }
 
-    const total = await this.prisma.reserves.count();
-    const reserves = await this.prisma.reserves.findMany({
-      skip,
-      take: limit,
-      orderBy: { createdAt: 'desc' },
-      include: {
-        User: true,
-      },
+  async update(id: string, data: UpdateReserveDto) {
+    await this.validateUpdateReserve(id, data);
+    return this.updateReservation(id, data);
+  }
+
+  // ----------------------------
+  // MÉTODOS DE VALIDACIÓN (Privados)
+  // ----------------------------
+
+  private async validateCreateReserve(dto: CreateReserveDto) {
+    await this.validateUser(dto.userId);
+    await this.validateUserHasNoPendingReserves(dto.userId);
+    await this.validateReservationConflict(dto);
+  }
+
+  private async validateUpdateReserve(id: string, dto: UpdateReserveDto) {
+    if (dto.userId) {
+      await this.validateUser(dto.userId);
+      await this.validateUserHasNoPendingReserves(dto.userId, id);
+    }
+
+    if (dto.date || dto.schedule || dto.courtId || dto.complexId) {
+      await this.validateReservationConflict({
+        ...dto,
+        id, // Pasamos el ID para excluirlo de la validación
+      } as UpdateReserveDto & { id: string });
+    }
+  }
+
+  private async validateUser(userId: string) {
+    const user = await this.usersService.findOne(userId);
+    if (!user) {
+      throw new NotFoundException('Usuario no encontrado');
+    }
+  }
+
+  private async validateUserHasNoPendingReserves(
+    userId: string,
+    excludeId?: string,
+  ) {
+    const where: any = {
+      userId,
+      status: 'PENDIENTE',
+    };
+
+    if (excludeId) {
+      where.id = { not: excludeId };
+    }
+
+    const pendingReserve = await this.prisma.reserve.findFirst({ where });
+
+    if (pendingReserve) {
+      throw new ConflictException('El usuario tiene reservas pendientes');
+    }
+  }
+
+  private async validateReservationConflict(dto: {
+    courtId: string;
+    complexId: string;
+    date: Date | string;
+    schedule: string;
+    id?: string;
+  }) {
+    const where: any = {
+      courtId: dto.courtId,
+      date: dto.date instanceof Date ? dto.date : new Date(dto.date),
+      schedule: dto.schedule,
+      complexId: dto.complexId,
+      status: { not: 'RECHAZADO' },
+    };
+
+    if (dto.id) {
+      where.id = { not: dto.id };
+    }
+
+    const existing = await this.prisma.reserve.findFirst({ where });
+
+    if (existing) {
+      throw new UnprocessableEntityException(
+        'Conflicto de reserva: fecha/horario no disponible',
+      );
+    }
+  }
+
+  // ----------------------------
+  // MÉTODOS DE ACCESO A DATOS (Privados)
+  // ----------------------------
+
+  private async createReservation(dto: CreateReserveDto) {
+    return this.prisma.reserve.create({
+      data: dto,
+      include: this.defaultInclude,
     });
+  }
+
+  private async paginateReserves(page: number, limit: number) {
+    const skip = (page - 1) * limit;
+    const [total, reserves] = await Promise.all([
+      this.prisma.reserve.count(),
+      this.prisma.reserve.findMany({
+        skip,
+        take: limit,
+        orderBy: { createdAt: 'desc' },
+        include: this.paginateInclude,
+      }),
+    ]);
 
     return { total, reserves };
   }
 
-  findAll() {
-    return this.prisma.reserves.findMany();
+  private async updateReservation(id: string, data: UpdateReserveDto) {
+    return this.prisma.reserve.update({
+      where: { id },
+      data: {
+        ...data,
+      },
+      include: this.defaultInclude,
+    });
+  }
+
+  // ----------------------------
+  // MÉTODOS DE CONSULTA (Públicos)
+  // ----------------------------
+
+  private get defaultInclude() {
+    return {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          phone: true,
+          role: true,
+        },
+      },
+      court: true,
+      fixedReserve: true,
+    };
+  }
+
+  private get paginateInclude() {
+    return {
+      user: true,
+      court: true,
+    };
+  }
+
+  findAll(complexId, sportTypeId?: string) {
+    return this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        court: sportTypeId ? { sportTypeId } : undefined,
+      },
+      include: this.defaultInclude,
+    });
   }
 
   findById(id: string) {
-    return this.prisma.reserves.findUnique({
+    return this.prisma.reserve.findUnique({
       where: { id },
       include: {
-        User: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            phone: true,
-            role: true,
-          },
-        },
+        ...this.defaultInclude,
+        complex: true,
+        court: { include: { sportType: true } },
+        payment: { include: { CashSession: true } },
       },
     });
   }
 
   findByUser(userId: string) {
-    return this.prisma.reserves.findMany({ where: { userId } });
-  }
-
-  findBySchedule(date: string, schedule: string) {
-    return this.prisma.reserves.findMany({
-      where: { date: new Date(date), schedule, NOT: { status: 'RECHAZADO' } },
-    });
-  }
-
-  findByDay(date: string) {
-    return this.prisma.reserves.findMany({
-      where: { date: new Date(date), NOT: { status: 'RECHAZADO' } },
+    return this.prisma.reserve.findMany({
+      where: { userId },
       include: {
-        User: true,
-        Payment: true,
-        consumitions: { include: { product: true } },
+        court: true,
+        complex: true,
       },
     });
   }
 
-  findByMonth(month: number, year: number) {
+  findBySchedule(
+    date: string,
+    schedule: string,
+    complexId,
+    sportTypeId?: string,
+  ) {
+    return this.prisma.reserve.findMany({
+      where: {
+        date: new Date(date),
+        schedule,
+        NOT: { status: 'RECHAZADO' },
+        complexId,
+        court: sportTypeId ? { sportTypeId } : undefined,
+      },
+      include: {
+        court: true,
+        user: true,
+      },
+    });
+  }
+
+  findByDay(date: string, complexId: string, sportTypeId?: string) {
+    return this.prisma.reserve.findMany({
+      where: {
+        date: new Date(date),
+        NOT: { status: 'RECHAZADO' },
+        complexId,
+        court: sportTypeId ? { sportTypeId } : undefined,
+      },
+      include: {
+        user: true,
+        payment: { include: { CashSession: true } },
+        court: true,
+      },
+    });
+  }
+
+  findByMonth(
+    month: number,
+    year: number,
+    complexId: string,
+    sportTypeId?: string,
+  ) {
     const startOfMonth = new Date(year, month - 1, 1);
     const endOfMonth = new Date(year, month, 0);
 
-    return this.prisma.reserves.findMany({
+    return this.prisma.reserve.findMany({
       where: {
         date: {
           gte: startOfMonth,
           lte: endOfMonth,
         },
         NOT: { status: 'RECHAZADO' },
-      },
-      select: { date: true },
-    });
-  }
-
-  findPendingWithToken() {
-    return this.prisma.reserves.findMany({
-      where: {
-        paymentToken: { not: null },
-        status: 'PENDIENTE',
+        complexId,
+        court: sportTypeId ? { sportTypeId } : undefined,
       },
       select: {
-        id: true,
-        paymentToken: true,
-        userId: true,
         date: true,
-        court: true,
-        schedule: true,
-      }, // Solo campos necesarios
-      take: 100, // Límite máximo por ejecución
-      orderBy: { createdAt: 'asc' }, // Las más antiguas primero
+        price: true,
+        status: true,
+        court: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
   }
 
-  async update(id: string, data: UpdateReserveDto) {
-    console.log('data', data);
-    const user = await this.usersService.findById(data.userId);
-
-    if (!user) {
-      throw new BadRequestException('No existe el usuario');
-    }
-
-    const userReserves = await this.findByUser(data.userId);
-    const pendingReserve = userReserves?.find(
-      (reserve) => reserve.status === 'PENDIENTE' && reserve.id !== id,
-    );
-    if (pendingReserve) {
-      throw new BadRequestException(
-        'No puede realizar reservas teniendo otras pendientes',
-      );
-    }
-
-    const existingReservation = await this.prisma.reserves.findFirst({
-      where: {
-        date: new Date(data.date),
-        schedule: data.schedule,
-        court: data.court,
-        NOT: [
-          { status: 'RECHAZADO' },
-          { id }, // Excluye la reserva actual de la verificación
-        ],
+  findHasPaymentToken() {
+    return this.prisma.reserve.findMany({
+      where: { NOT: { paymentToken: null } },
+      include: {
+        user: true,
       },
     });
-    console.log(existingReservation);
-    if (existingReservation)
-      throw new BadRequestException(
-        'Una reserva con la misma fecha, horario y cancha ya existe',
-      );
+  }
 
-    return this.prisma.reserves.update({ where: { id }, data });
+  async updateStatus(id: string, status: Status) {
+    return this.prisma.reserve.update({
+      where: { id },
+      data: { status },
+      include: {
+        user: true,
+      },
+    });
   }
 
   remove(id: string) {
-    return this.prisma.reserves.delete({ where: { id } });
+    return this.prisma.reserve.delete({
+      where: { id },
+      include: {
+        user: true,
+        court: true,
+      },
+    });
   }
 }

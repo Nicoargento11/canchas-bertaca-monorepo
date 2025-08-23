@@ -16,13 +16,25 @@ export class UnavailableDayService {
   }
 
   @Public()
-  async findAll() {
-    return this.prisma.unavailableDay.findMany();
+  async findAll(complexId?: string) {
+    return this.prisma.unavailableDay.findMany({
+      where: {
+        complexId,
+      },
+      include: {
+        court: true,
+        complex: true,
+      },
+    });
   }
 
   async findOne(id: string) {
     return this.prisma.unavailableDay.findUnique({
       where: { id },
+      include: {
+        court: true,
+        complex: true,
+      },
     });
   }
 

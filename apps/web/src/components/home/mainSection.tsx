@@ -1,17 +1,20 @@
 "use client";
 import Link from "next/link";
 import { useModal } from "@/contexts/modalContext";
-import {
-  ChevronsDown,
-  CalendarCheck,
-  ArrowRightCircle,
-  Edit3,
-  Star,
-} from "lucide-react";
+import { ChevronsDown, CalendarCheck, ArrowRightCircle, Edit3, Star } from "lucide-react";
 import { motion } from "framer-motion";
+import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
+import { Complex } from "@/services/complex/complex";
+import { useReserve } from "@/contexts/newReserveContext";
 
-export const MainSection = () => {
-  const { onOpenReserve, onOpenReview } = useModal();
+interface MainSectionProps {
+  complex: Complex;
+  sportTypes: Record<SportTypeKey, SportType>;
+}
+
+export const MainSection = ({ complex, sportTypes }: MainSectionProps) => {
+  const { openModal } = useModal();
+  const { initReservation, getCurrentReservation, state, resetReservation } = useReserve();
 
   return (
     <div className="relative h-screen w-full">
@@ -52,14 +55,20 @@ export const MainSection = () => {
           <div className="flex flex-col w-full max-w-[320px] sm:max-w-sm space-y-5 sm:space-y-4">
             {/* Botón principal */}
             <button
-              onClick={onOpenReserve}
+              onClick={() => {
+                if (
+                  !getCurrentReservation()?.form ||
+                  state.currentReservation.sportType !== "FUTBOL_5"
+                ) {
+                  resetReservation();
+                  initReservation(complex.id, "FUTBOL_5", sportTypes.FUTBOL_5.id);
+                }
+                openModal("RESERVE_FUTBOL", { complexId: complex.id, sportType: "FUTBOL_5" });
+              }}
               className="w-full px-6 py-4 sm:px-6 sm:py-4 rounded-xl border-2 border-Primary-light text-Primary-light font-bold text-2xl sm:text-2xl relative overflow-hidden group transition-all ease-in-out duration-300 hover:text-Primary hover:border-Primary hover:bg-Primary/10"
             >
               <span className="flex items-center justify-center gap-3">
-                <ArrowRightCircle
-                  size={32}
-                  className="group-hover:text-Primary"
-                />
+                <ArrowRightCircle size={32} className="group-hover:text-Primary" />
                 Reservar ahora
               </span>
               <span className="absolute inset-0 border-2 border-Primary opacity-0 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300 ease-in-out"></span>
@@ -75,7 +84,9 @@ export const MainSection = () => {
                 <span>Ver horarios</span>
               </Link>
               <button
-                onClick={onOpenReview}
+                onClick={() => {
+                  openModal("REVIEW", { complexId: complex?.id });
+                }}
                 className="w-[20%] aspect-square p-2 rounded-xl backdrop-blur-lg bg-green-900/40 text-green-100 font-bold hover:bg-green-800/50 transition-all duration-300 flex flex-col items-center justify-center border-2 border-green-700/50 hover:border-green-500/60 shadow-[0_4px_20px_rgba(0,0,0,0.3)] hover:shadow-[0_6px_25px_rgba(74,222,128,0.25)] relative group overflow-hidden"
                 title="Dejar tu reseña"
               >
@@ -95,9 +106,7 @@ export const MainSection = () => {
                 </div>
 
                 {/* Texto */}
-                <span className="text-xs font-semibold mt-1 text-green-50 z-10">
-                  Opinar
-                </span>
+                <span className="text-xs font-semibold mt-1 text-green-50 z-10">Opinar</span>
 
                 {/* Tooltip funcional - Cambio clave aquí */}
                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-1.5 bg-green-950/90 text-green-50 text-xs rounded-md opacity-0 group-hover:opacity-100 transition-opacity duration-300 whitespace-nowrap backdrop-blur-sm border border-green-700/40 shadow-xl z-20 pointer-events-none">

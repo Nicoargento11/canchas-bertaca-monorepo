@@ -11,19 +11,19 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { loginSchema } from "@/schemas";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button } from "../ui/button";
 import { Social } from "@/components/social";
-import { FormError } from "@/components/form-error";
-import { FormSucces } from "@/components/form-succes";
-import { signIn } from "@/services/auth/auth";
+import { Button } from "@/components/ui/button";
 import { useModal } from "@/contexts/modalContext";
+import { signIn } from "@/services/auth/auth";
+import { loginSchema } from "@/schemas/auth";
+import { FormError } from "../form-error";
+import { FormSucces } from "../form-succes";
 
 export const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
-  const { oncloseLogin, onOpenReserve } = useModal();
+  const { openModal, closeModal, modalData } = useModal();
 
   const [errror, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
@@ -42,16 +42,21 @@ export const LoginForm = () => {
 
     startTransition(() => {
       signIn(values).then((data) => {
-        if (data.succes) {
-          oncloseLogin();
+        if (data.success) {
+          closeModal();
+          // oncloseLogin();
           const reservaTemporal = localStorage.getItem("reserveData");
           if (reservaTemporal) {
-            onOpenReserve();
+            openModal("RESERVE_FUTBOL", {
+              complexId: modalData?.complexId,
+              sportType: modalData?.sportType,
+            });
+            // onOpenFutbolReserve();
             localStorage.removeItem("reserveData");
           }
         }
         setError(data?.error);
-        setSucces(data?.succes);
+        // setSucces(data.success);
       });
     });
   };
@@ -95,12 +100,7 @@ export const LoginForm = () => {
                       className="border-gray-400"
                     />
                   </FormControl>
-                  <Button
-                    size="sm"
-                    variant="link"
-                    asChild
-                    className="px-0 font-normal"
-                  >
+                  <Button size="sm" variant="link" asChild className="px-0 font-normal">
                     {/* <Link href="">¿Olvidaste tu contraseña?</Link> */}
                   </Button>
                   <FormMessage />
@@ -110,11 +110,7 @@ export const LoginForm = () => {
           </div>
           <FormError message={errror} />
           <FormSucces message={succes} />
-          <Button
-            type="submit"
-            disabled={isPending}
-            className="w-full bg-Primary text-base"
-          >
+          <Button type="submit" disabled={isPending} className="w-full bg-Primary text-base ">
             Ingresar
           </Button>
         </form>

@@ -11,21 +11,21 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { registerSchema } from "@/schemas";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "../ui/button";
 import { Social } from "@/components/social";
+import { registerSchema } from "@/schemas/auth";
 import { signIn, signUp } from "@/services/auth/auth";
+import { useModal } from "@/contexts/modalContext";
 import { FormError } from "../form-error";
 import { FormSucces } from "../form-succes";
-import { useModal } from "@/contexts/modalContext";
 // import { login } from "@/actions/auth/login";
 
 export const RegisterForm = () => {
   const [error, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
-  const { onCloseRegister, onOpenReserve } = useModal();
+  const { closeModal, openModal } = useModal();
 
   const [isPending, startTransition] = useTransition();
 
@@ -45,13 +45,13 @@ export const RegisterForm = () => {
     startTransition(() => {
       signUp(values).then((data) => {
         setError(data?.error);
-        setSucces(data?.succes);
-        if (data.succes) {
+        setSucces(data?.data?.message);
+        if (data.success) {
           signIn({ email: values.email, password: values.password });
-          onCloseRegister();
+          closeModal();
           const reservaTemporal = localStorage.getItem("reserveData");
           if (reservaTemporal) {
-            onOpenReserve();
+            openModal("RESERVE_FUTBOL", {});
             localStorage.removeItem("reserveData");
           }
         }
@@ -60,7 +60,7 @@ export const RegisterForm = () => {
   };
 
   return (
-    <div className="flex flex-col gap-2">
+    <div className="flex flex-col gap-2 ">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="space-y-2">
@@ -136,12 +136,7 @@ export const RegisterForm = () => {
                       className="border-gray-400"
                     />
                   </FormControl>
-                  <Button
-                    size="sm"
-                    variant="link"
-                    asChild
-                    className="px-0 font-normal"
-                  >
+                  <Button size="sm" variant="link" asChild className="px-0 font-normal">
                     {/* <Link href="/auth/reset">¿Olvidaste tu contraseña?</Link> */}
                   </Button>
                   <FormMessage />
@@ -151,11 +146,7 @@ export const RegisterForm = () => {
           </div>
           <FormError message={error} />
           <FormSucces message={succes} />
-          <Button
-            type="submit"
-            disabled={isPending}
-            className="w-full bg-Primary text-base"
-          >
+          <Button type="submit" disabled={isPending} className="w-full bg-Primary text-base">
             {isPending ? "Registrando..." : "Registrarse"}
           </Button>
         </form>

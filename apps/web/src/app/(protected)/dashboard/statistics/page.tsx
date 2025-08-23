@@ -50,6 +50,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { soccerBall } from "@lucide/lab";
+import { useParams } from "next/navigation";
+import { DateRange } from "react-day-picker";
+import { addDays, format } from "date-fns";
+import { getDashboard } from "@/services/reports/reports";
+import { getComplexBySlug } from "@/services/complex/complex";
+import { DashboardHeader } from "../DashboardHeader";
 
 interface DailyData {
   day: string;
@@ -100,7 +106,7 @@ interface HorarioData {
   reservas: number;
 }
 
-interface DashboardData {
+export interface DashboardData {
   daily: DailyData[];
   weekly: WeeklyData[];
   monthly: MonthlyData[];
@@ -110,90 +116,68 @@ interface DashboardData {
   horarios: HorarioData[];
 }
 
-// Datos demo para reservas de fútbol
-const generateData = (seed = 1) => {
-  const random = (min: number, max: number) => {
-    const x = Math.sin(seed++) * 10000;
-    const r = x - Math.floor(x);
-    return Math.floor(r * (max - min + 1)) + min;
-  };
-
-  const days = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
-  const weeks = ["Sem 1", "Sem 2", "Sem 3", "Sem 4"];
-  const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun"];
-
-  return {
-    daily: days.map((day) => ({
-      day,
-      reservas: 20 + random(0, 30),
-      ingresos: 50000 + random(0, 80000),
-      diaAnterior: 18 + random(0, 25),
-      cancelaciones: random(0, 5),
-      ocupacion: 60 + random(0, 30),
-      clientesNuevos: 5 + random(0, 8),
-    })),
-    weekly: weeks.map((week) => ({
-      week,
-      reservas: 120 + random(0, 80),
-      ingresos: 300000 + random(0, 200000),
-      semanaAnterior: 110 + random(0, 70),
-      ocupacion: 65 + random(0, 25),
-      clientesNuevos: 25 + random(0, 15),
-    })),
-    monthly: months.map((month) => ({
-      month,
-      reservas: 500 + random(0, 300),
-      ingresos: 1200000 + random(0, 800000),
-      mesAnterior: 480 + random(0, 280),
-      ocupacion: 70 + random(0, 20),
-      clientesNuevos: 100 + random(0, 50),
-    })),
-    products: [
-      { name: "Gatorade", sales: 120, category: "Bebidas" },
-      { name: "Agua Mineral", sales: 95, category: "Bebidas" },
-      { name: "Barrita Energética", sales: 75, category: "Snacks" },
-      { name: "Camiseta", sales: 40, category: "Merchandising" },
-      { name: "Pelota", sales: 30, category: "Equipamiento" },
-      { name: "Botines", sales: 25, category: "Equipamiento" },
-    ],
-    paymentMethods: [
-      { name: "Efectivo", value: 45 },
-      { name: "Tarjeta", value: 35 },
-      { name: "Transferencia", value: 20 },
-    ],
-    canchas: [
-      { name: "Cancha 1", reservas: 180 },
-      { name: "Cancha 2", reservas: 150 },
-      { name: "Cancha 3", reservas: 120 },
-      { name: "Cancha 5", reservas: 90 },
-    ],
-    horarios: [
-      { hora: "08-10", reservas: 30 },
-      { hora: "10-12", reservas: 45 },
-      { hora: "12-14", reservas: 20 },
-      { hora: "14-16", reservas: 25 },
-      { hora: "16-18", reservas: 60 },
-      { hora: "18-20", reservas: 80 },
-      { hora: "20-22", reservas: 70 },
-    ],
-  };
-};
 type TimeRange = "daily" | "weekly" | "monthly";
 type compareMode = "previous" | "none";
 type chartType = "area" | "bar" | "line";
 
+const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6", "#ec4899"];
+const COLORS_PAYMENTS = ["#22c55e", "#3b82f6", "#f59e0b"];
+
 export default function FootballReservationsDashboard() {
+  // const { slug } = useParams();
   const [timeRange, setTimeRange] = useState<TimeRange>("daily");
   const [compareMode, setCompareMode] = useState<compareMode>("previous");
   const [chartType, setChartType] = useState<chartType>("bar");
   const [currentPage, setCurrentPage] = useState(0);
   const [data, setData] = useState<DashboardData | null>(null);
-
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [complex, setComplex] = useState<any>(null);
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
+    from: addDays(new Date(), -7),
+    to: new Date(),
+  });
   useEffect(() => {
-    setData(generateData(1)); // Semilla fija para consistencia
-  }, []);
+    const fetchComplexAndData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
 
-  if (!data) {
+        // Primero obtener el complejo por slug
+        const complexResult = await getComplexBySlug("bertaca");
+        if (!complexResult.data) {
+          setError("No se encontró el complejo");
+          return;
+        }
+
+        setComplex(complexResult.data);
+
+        // Luego obtener los datos del dashboard usando el ID del complejo
+        const result = await getDashboard(
+          complexResult.data.id
+          // dateRange?.from ? format(dateRange.from, "yyyy-MM-dd") : undefined,
+          // dateRange?.to ? format(dateRange.to, "yyyy-MM-dd") : undefined
+        );
+
+        if (result.success && result.data) {
+          setData(result.data);
+        } else {
+          setError(result.error || "Error al cargar los datos");
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Error al conectar con el servidor");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // if (slug) {
+    // }
+    fetchComplexAndData();
+  }, [dateRange]);
+
+  if (loading) {
     return (
       <div className="p-6 space-y-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -206,20 +190,31 @@ export default function FootballReservationsDashboard() {
     );
   }
 
-  const {
-    daily,
-    weekly,
-    monthly,
-    products,
-    paymentMethods,
-    canchas,
-    horarios,
-  } = data;
-  const currentData =
-    timeRange === "daily" ? daily : timeRange === "weekly" ? weekly : monthly;
+  if (error) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <strong className="font-bold">Error: </strong>
+          <span className="block sm:inline">{error}</span>
+        </div>
+      </div>
+    );
+  }
 
-  const xAxisKey =
-    timeRange === "daily" ? "day" : timeRange === "weekly" ? "week" : "month";
+  if (!data) {
+    return (
+      <div className="p-6">
+        <div className="bg-yellow-100 border border-yellow-400 text-yellow-700 px-4 py-3 rounded relative">
+          No se encontraron datos para mostrar
+        </div>
+      </div>
+    );
+  }
+
+  const { daily, weekly, monthly, products, paymentMethods, canchas, horarios } = data;
+  const currentData = timeRange === "daily" ? daily : timeRange === "weekly" ? weekly : monthly;
+
+  const xAxisKey = timeRange === "daily" ? "day" : timeRange === "weekly" ? "week" : "month";
 
   const comparisonKey =
     compareMode === "previous"
@@ -244,27 +239,23 @@ export default function FootballReservationsDashboard() {
     return Math.round(((current - previous) / previous) * 100);
   };
 
-  const totalReservas = currentData.reduce(
-    (sum, item) => sum + item.reservas,
-    0
-  );
-  const totalIngresos = currentData.reduce(
-    (sum, item) => sum + item.ingresos,
-    0
-  );
-  const avgOcupacion =
-    currentData.reduce((sum, item) => sum + item.ocupacion, 0) /
-    currentData.length;
-  const totalClientesNuevos = currentData.reduce(
-    (sum, item) => sum + item.clientesNuevos,
-    0
-  );
-  const canchaPopular = canchas.reduce((prev, current) =>
-    prev.reservas > current.reservas ? prev : current
-  );
-  const horarioPico = horarios.reduce((prev, current) =>
-    prev.reservas > current.reservas ? prev : current
-  );
+  const currentPeriodData = currentData[currentData.length - 1]; // Último período (día/semana/mes)
+  const previousPeriodData = currentData.length > 1 ? currentData[currentData.length - 2] : null;
+
+  const totalReservas = currentPeriodData?.reservas || 0;
+  const totalIngresos = currentPeriodData?.ingresos || 0;
+  const avgOcupacion = currentPeriodData?.ocupacion || 0;
+  const totalClientesNuevos = currentPeriodData?.clientesNuevos || 0;
+
+  const canchaPopular =
+    canchas.length > 0
+      ? canchas.reduce((prev, current) => (prev.reservas > current.reservas ? prev : current))
+      : { name: "Sin datos", reservas: 0 };
+
+  const horarioPico =
+    horarios.length > 0
+      ? horarios.reduce((prev, current) => (prev.reservas > current.reservas ? prev : current))
+      : { hora: "Sin datos", reservas: 0 };
 
   const lastData = currentData[currentData.length - 1];
 
@@ -272,24 +263,22 @@ export default function FootballReservationsDashboard() {
     timeRange === "daily" && lastData && "cancelaciones" in lastData
       ? `${lastData.cancelaciones} cancelaciones`
       : undefined;
+
   return (
-    <div className="p-6 space-y-6 bg-muted/10">
+    <div className="p-2 sm:p-6 space-y-6 bg-muted/10">
       {/* Header con controles */}
+      <DashboardHeader title="Estadísticas de Reservas" />
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">
-            Dashboard de Reservas de Fútbol
+            Dashboard de {complex?.name || "Complejo Deportivo"}
           </h1>
           <p className="text-muted-foreground">
             Estadísticas y rendimiento de tu complejo deportivo
           </p>
         </div>
-
         <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Select
-            value={timeRange}
-            onValueChange={(v) => setTimeRange(v as TimeRange)}
-          >
+          <Select value={timeRange} onValueChange={(v) => setTimeRange(v as TimeRange)}>
             <SelectTrigger className="w-[150px]">
               <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
@@ -303,10 +292,7 @@ export default function FootballReservationsDashboard() {
             </SelectContent>
           </Select>
 
-          <Select
-            value={compareMode}
-            onValueChange={(v) => setCompareMode(v as compareMode)}
-          >
+          <Select value={compareMode} onValueChange={(v) => setCompareMode(v as compareMode)}>
             <SelectTrigger className="w-[200px]">
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4" />
@@ -319,42 +305,60 @@ export default function FootballReservationsDashboard() {
             </SelectContent>
           </Select>
 
-          <Button variant="outline">
+          {/* <Button variant="outline">
             <Download className="h-4 w-4 mr-2" />
             Exportar
-          </Button>
+          </Button> */}
         </div>
       </div>
 
       {/* Tarjetas de métricas */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
-          title="Reservas Totales"
+          title={
+            timeRange === "daily"
+              ? "Reservas Hoy"
+              : timeRange === "weekly"
+                ? "Reservas Esta Semana"
+                : "Reservas Este Mes"
+          }
           value={totalReservas}
           icon={<Users className="h-5 w-5" />}
           change={calculateChange(
-            currentData[currentData.length - 1]?.reservas,
-            currentData[currentData.length - 2]?.reservas
+            currentPeriodData?.reservas || 0,
+            previousPeriodData?.reservas || 0
           )}
           secondaryValue={secondaryValue}
         />
         <MetricCard
-          title="Ingresos Totales"
+          title={
+            timeRange === "daily"
+              ? "Ingresos Hoy"
+              : timeRange === "weekly"
+                ? "Ingresos Esta Semana"
+                : "Ingresos Este Mes"
+          }
           value={`$${totalIngresos.toLocaleString("es-AR")}`}
           icon={<DollarSign className="h-5 w-5" />}
           change={calculateChange(
-            currentData[currentData.length - 1]?.ingresos,
-            currentData[currentData.length - 2]?.ingresos
+            currentPeriodData?.ingresos || 0,
+            previousPeriodData?.ingresos || 0
           )}
           secondaryValue={`Promedio: $${Math.round(totalIngresos / currentData.length).toLocaleString("es-AR")}`}
         />
         <MetricCard
-          title="Ocupación"
+          title={
+            timeRange === "daily"
+              ? "Ocupación Hoy"
+              : timeRange === "weekly"
+                ? "Ocupación Esta Semana"
+                : "Ocupación Este Mes"
+          }
           value={`${avgOcupacion.toFixed(1)}%`}
           icon={<Percent className="h-5 w-5" />}
           change={calculateChange(
-            currentData[currentData.length - 1]?.ocupacion,
-            currentData[currentData.length - 2]?.ocupacion
+            currentPeriodData?.ocupacion || 0,
+            previousPeriodData?.ocupacion || 0
           )}
           secondaryValue={`Máximo: ${Math.max(...currentData.map((d) => d.ocupacion))}%`}
         />
@@ -371,26 +375,34 @@ export default function FootballReservationsDashboard() {
           secondaryValue={`${horarioPico.reservas} reservas`}
         />
         <MetricCard
-          title="Clientes Nuevos"
+          title={
+            timeRange === "daily"
+              ? "Clientes Nuevos Hoy"
+              : timeRange === "weekly"
+                ? "Clientes Nuevos Esta Semana"
+                : "Clientes Nuevos Este Mes"
+          }
           value={totalClientesNuevos}
           icon={<TrendingUp className="h-5 w-5" />}
           change={calculateChange(
-            currentData[currentData.length - 1]?.clientesNuevos,
-            currentData[currentData.length - 2]?.clientesNuevos
+            currentPeriodData?.clientesNuevos || 0,
+            previousPeriodData?.clientesNuevos || 0
           )}
         />
         <MetricCard
           title="Productos Vendidos"
-          value={products.reduce((sum, p) => sum + p.sales, 0)}
+          value={products.length > 0 ? products.reduce((sum, p) => sum + p.sales, 0) : 0}
           icon={<ShoppingBag className="h-5 w-5" />}
           secondaryValue={`${products.length} productos`}
         />
         <MetricCard
           title="Método de Pago"
           value={
-            paymentMethods.reduce((prev, current) =>
-              prev.value > current.value ? prev : current
-            ).name
+            paymentMethods.length > 0
+              ? paymentMethods.reduce((prev, current) =>
+                  prev.value > current.value ? prev : current
+                ).name
+              : "Sin datos"
           }
           icon={<CreditCard className="h-5 w-5" />}
         />
@@ -418,10 +430,10 @@ export default function FootballReservationsDashboard() {
         </TabsList>
 
         <TabsContent value="trend">
-          <Card>
-            <CardHeader>
+          <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="pb-1 px-2">
               <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <CardTitle className="flex items-center gap-2">
+                <CardTitle className="flex items-center gap-2 text-base">
                   {timeRange === "daily"
                     ? "Tendencia Diaria"
                     : timeRange === "weekly"
@@ -453,8 +465,8 @@ export default function FootballReservationsDashboard() {
                 </div>
               </div>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
+            <CardContent className="p-0">
+              <div className="h-[320px] sm:h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === "area" ? (
                     <AreaChart data={currentData}>
@@ -541,9 +553,9 @@ export default function FootballReservationsDashboard() {
         </TabsContent>
 
         <TabsContent value="comparison">
-          <Card>
-            <CardHeader>
-              <CardTitle>
+          <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="pb-1 px-2">
+              <CardTitle className="text-base">
                 {timeRange === "daily"
                   ? "Comparación Diaria"
                   : timeRange === "weekly"
@@ -551,8 +563,8 @@ export default function FootballReservationsDashboard() {
                     : "Comparación Mensual"}
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="h-80">
+            <CardContent className="p-0">
+              <div className="h-[320px] sm:h-80 w-full">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={currentData}>
                     <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -584,12 +596,12 @@ export default function FootballReservationsDashboard() {
         <TabsContent value="details">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Gráfico de productos */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Ventas en Tienda</CardTitle>
+            <Card className="border-none shadow-none bg-transparent">
+              <CardHeader className="pb-1 px-2">
+                <CardTitle className="text-base">Ventas en Tienda</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-64">
+              <CardContent className="p-0">
+                <div className="h-[260px] sm:h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -600,15 +612,10 @@ export default function FootballReservationsDashboard() {
                         fill="#8884d8"
                         dataKey="sales"
                         nameKey="name"
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
                         {products.map((entry, index) => (
-                          <Cell
-                            key={`cell-${index}`}
-                            fill={COLORS[index % COLORS.length]}
-                          />
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
                       <Tooltip />
@@ -619,19 +626,14 @@ export default function FootballReservationsDashboard() {
                 <div className="mt-4 flex justify-between items-center">
                   <div className="text-sm text-muted-foreground">
                     {paginatedProducts.map((product) => (
-                      <div
-                        key={product.name}
-                        className="flex items-center justify-between py-1"
-                      >
+                      <div key={product.name} className="flex items-center justify-between py-1">
                         <div className="flex items-center gap-2">
                           <Badge variant="outline" className="px-2 py-0.5">
                             {product.category}
                           </Badge>
                           <span>{product.name}</span>
                         </div>
-                        <span className="font-medium">
-                          {product.sales} ventas
-                        </span>
+                        <span className="font-medium">{product.sales} ventas</span>
                       </div>
                     ))}
                   </div>
@@ -658,12 +660,12 @@ export default function FootballReservationsDashboard() {
             </Card>
 
             {/* Métodos de pago */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Métodos de Pago</CardTitle>
+            <Card className="border-none shadow-none bg-transparent">
+              <CardHeader className="pb-1 px-2">
+                <CardTitle className="text-base">Métodos de Pago</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-64">
+              <CardContent className="p-0">
+                <div className="h-[260px] sm:h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
                       <Pie
@@ -676,16 +678,12 @@ export default function FootballReservationsDashboard() {
                         paddingAngle={5}
                         dataKey="value"
                         nameKey="name"
-                        label={({ name, percent }) =>
-                          `${name} ${(percent * 100).toFixed(0)}%`
-                        }
+                        label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
                       >
                         {paymentMethods.map((entry, index) => (
                           <Cell
                             key={`cell-${index}`}
-                            fill={
-                              COLORS_PAYMENTS[index % COLORS_PAYMENTS.length]
-                            }
+                            fill={COLORS_PAYMENTS[index % COLORS_PAYMENTS.length]}
                           />
                         ))}
                       </Pie>
@@ -696,16 +694,11 @@ export default function FootballReservationsDashboard() {
                 </div>
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   {paymentMethods.map((method) => (
-                    <div
-                      key={method.name}
-                      className="flex flex-col items-center"
-                    >
+                    <div key={method.name} className="flex flex-col items-center">
                       <Badge variant="outline" className="px-3 py-1">
                         {method.name}
                       </Badge>
-                      <span className="text-sm font-medium mt-1">
-                        {method.value}%
-                      </span>
+                      <span className="text-sm font-medium mt-1">{method.value}%</span>
                     </div>
                   ))}
                 </div>
@@ -717,12 +710,12 @@ export default function FootballReservationsDashboard() {
         <TabsContent value="canchas">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Uso de canchas */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Reservas por Cancha</CardTitle>
+            <Card className="border-none shadow-none bg-transparent">
+              <CardHeader className="pb-1 px-2">
+                <CardTitle className="text-base">Reservas por Cancha</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-64">
+              <CardContent className="p-0">
+                <div className="h-[260px] sm:h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={canchas}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -741,20 +734,19 @@ export default function FootballReservationsDashboard() {
                 </div>
                 <div className="mt-4 text-sm text-muted-foreground">
                   <p>
-                    Cancha más solicitada: {canchaPopular.name} (
-                    {canchaPopular.reservas} reservas)
+                    Cancha más solicitada: {canchaPopular.name} ({canchaPopular.reservas} reservas)
                   </p>
                 </div>
               </CardContent>
             </Card>
 
             {/* Horarios */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Reservas por Horario</CardTitle>
+            <Card className="border-none shadow-none bg-transparent">
+              <CardHeader className="pb-1 px-2">
+                <CardTitle className="text-base">Reservas por Horario</CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="h-64">
+              <CardContent className="p-0">
+                <div className="h-[260px] sm:h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={horarios}>
                       <CartesianGrid strokeDasharray="3 3" opacity={0.3} />
@@ -772,8 +764,7 @@ export default function FootballReservationsDashboard() {
                 </div>
                 <div className="mt-4 text-sm text-muted-foreground">
                   <p>
-                    Horario pico: {horarioPico.hora} ({horarioPico.reservas}{" "}
-                    reservas)
+                    Horario pico: {horarioPico.hora} ({horarioPico.reservas} reservas)
                   </p>
                 </div>
               </CardContent>
@@ -784,17 +775,6 @@ export default function FootballReservationsDashboard() {
     </div>
   );
 }
-
-// Componentes auxiliares
-const COLORS = [
-  "#3b82f6",
-  "#10b981",
-  "#f59e0b",
-  "#ef4444",
-  "#8b5cf6",
-  "#ec4899",
-];
-const COLORS_PAYMENTS = ["#22c55e", "#3b82f6", "#f59e0b"];
 
 function MetricCard({
   title,
@@ -822,11 +802,7 @@ function MetricCard({
         {change !== undefined && (
           <div
             className={`flex items-center text-xs mt-1 ${
-              change > 0
-                ? "text-green-500"
-                : change < 0
-                  ? "text-red-500"
-                  : "text-gray-500"
+              change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-gray-500"
             }`}
           >
             {change > 0 ? (
@@ -837,9 +813,7 @@ function MetricCard({
             {change !== 0 ? `${Math.abs(change)}%` : "Sin cambios"}
           </div>
         )}
-        {secondaryValue && (
-          <p className="text-xs text-muted-foreground mt-2">{secondaryValue}</p>
-        )}
+        {secondaryValue && <p className="text-xs text-muted-foreground mt-2">{secondaryValue}</p>}
       </CardContent>
     </Card>
   );

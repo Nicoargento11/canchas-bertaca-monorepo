@@ -1,0 +1,87 @@
+# ===================================
+# SETUP DE DATOS DE PRUEBA
+# ===================================
+
+### Variables
+@baseUrl = http://localhost:8000
+@email = valdes.nicoedu@gmail.com
+@password = 12345678
+
+# ===================================
+# AUTENTICACIÓN
+# ===================================
+
+### Login para obtener token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+# ===================================
+# CREAR DATOS DE PRUEBA
+# ===================================
+
+### Crear producto de prueba
+POST {{baseUrl}}/products
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.access_token}}
+
+{
+  "name": "Bebida Test",
+  "price": 150,
+  "stock": 100,
+  "complexId": "cmadamrdg0000l0g8fv4grm98"
+}
+
+### Crear venta de producto (requiere más setup)
+# POST {{baseUrl}}/product-sales
+# Content-Type: application/json
+# Authorization: Bearer {{login.response.body.access_token}}
+# 
+# {
+#   "productId": "PRODUCT_ID_AQUI",
+#   "quantity": 2,
+#   "unitPrice": 150,
+#   "paymentId": "PAYMENT_ID_AQUI"
+# }
+
+### Crear reserva de prueba (requiere cancha existente)
+# POST {{baseUrl}}/reserves
+# Content-Type: application/json
+# Authorization: Bearer {{login.response.body.access_token}}
+# 
+# {
+#   "date": "2025-06-06",
+#   "schedule": "14:00",
+#   "courtId": "COURT_ID_AQUI",
+#   "userId": "USER_ID_AQUI",
+#   "complexId": "cmadamrdg0000l0g8fv4grm98"
+# }
+
+# ===================================
+# VERIFICAR DATOS EXISTENTES
+# ===================================
+
+### Ver complejos disponibles
+GET {{baseUrl}}/complexes
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Ver canchas del complejo
+GET {{baseUrl}}/courts?complexId=cmadamrdg0000l0g8fv4grm98
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Ver productos del complejo
+GET {{baseUrl}}/products?complexId=cmadamrdg0000l0g8fv4grm98
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Ver reservas recientes
+GET {{baseUrl}}/reserves/paginate?page=1&limit=10
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Ver ventas de productos
+GET {{baseUrl}}/product-sales
+Authorization: Bearer {{login.response.body.access_token}}

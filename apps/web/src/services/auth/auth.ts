@@ -1,135 +1,103 @@
-"use server";
-
-import { loginSchema, registerSchema } from "@/schemas";
 import { z } from "zod";
-import { BACKEND_URL } from "../../config/constants";
-import {
-  createSession,
-  deleteSession,
-  getSession,
-  updateTokens,
-} from "./session";
-import { authFetch } from "./authFetch";
+import api from "../api";
+import axios from "axios";
+import { createSession, deleteSession, updateSession } from "./session";
+import { loginSchema, registerSchema } from "@/schemas/auth";
 
-export const signUp = async (values: z.infer<typeof registerSchema>) => {
-  const validationFields = registerSchema.safeParse(values);
+type AuthResult<T = { message?: string }> = {
+  success: boolean;
+  data?: T;
+  error?: string;
+};
 
-  if (!validationFields.success) {
-    return { error: "Campos invalidos" };
+const handleAxiosError = (error: unknown): AuthResult => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || "Error en la solicitud";
+
+      if (status === 401) return { success: false, error: "Credenciales inválidas" };
+      if (status === 409) return { success: false, error: "El email ya está en uso" };
+
+      return { success: false, error: message };
+    }
+    return { success: false, error: "Error de conexión" };
   }
-  // confirm password
-  const { ...payload } = validationFields.data;
+  return { success: false, error: "Error desconocido" };
+};
 
-  const response = await fetch(`${BACKEND_URL}/auth/signup`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(payload),
-  });
-  if (response.ok) {
-    return { succes: "¡Usuario creado con exito!" };
-  } else {
-    return {
-      error:
-        response.status === 409 ? "El usuario ya existe" : response.statusText,
-    };
+export const signUp = async (values: z.infer<typeof registerSchema>): Promise<AuthResult> => {
+  const { success, data } = registerSchema.safeParse(values);
+  if (!success) return { success: false, error: "Campos inválidos" };
+
+  try {
+    await api.post("/auth/register", data, {
+      headers: { "Content-Type": "application/json" },
+      withCredentials: true,
+    });
+    return { success: true, data: { message: "¡Usuario creado con éxito!" } };
+  } catch (error) {
+    return handleAxiosError(error);
   }
 };
 
-export const signIn = async (values: z.infer<typeof loginSchema>) => {
-  const validationFields = loginSchema.safeParse(values);
+export const signIn = async (values: z.infer<typeof loginSchema>): Promise<AuthResult> => {
+  const { success, data } = loginSchema.safeParse(values);
+  if (!success) return { success: false, error: "Campos inválidos" };
 
-  if (!validationFields.success) {
-    return { error: "Campos invalidos" };
-  }
-
-  const response = await fetch(`${BACKEND_URL}/auth/signin`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify(validationFields.data),
-  });
-
-  if (response.ok) {
-    const result = await response.json();
+  try {
+    const response = await api.post("/auth/login", data);
+    const { user, access_token } = response.data;
 
     await createSession({
       user: {
-        id: result.id,
-        name: result.name,
-        role: result.role,
-        email: result.email,
-        phone: result.phone,
+        id: user.id,
+        name: user.name,
+        role: user.role,
+        email: user.email,
+        phone: user.phone,
+        complexId: user.Complex?.id,
+        complexSlug: user.Complex?.slug,
       },
-      accessToken: result.accessToken,
-      refreshToken: result.refreshToken,
+      accessToken: access_token,
+      // No almacenamos refreshToken en el cliente (se maneja por cookies)
     });
-    return { succes: "Inicio de sesion exitoso" };
-  } else {
-    return {
-      error:
-        response.status === 401
-          ? "Credenciales invalidas"
-          : response.statusText,
-    };
+
+    return { success: true, data: { message: "Inicio de sesión exitoso" } };
+  } catch (error) {
+    return handleAxiosError(error);
   }
 };
 
-export const signOut = async () => {
+export const signOut = async (): Promise<AuthResult> => {
   try {
-    const response = await authFetch(`${BACKEND_URL}/auth/signout`, {
-      method: "POST",
-    });
-
-    if (!response.ok) {
-      return { error: "Error al cerrar sesión" };
-    }
-
+    await api.post("/auth/logout");
     await deleteSession();
     return { success: true };
-  } catch {
-    // console.error("Error during sign out:", error);
-    return { error: "Error al cerrar sesión" };
+  } catch (error) {
+    await deleteSession(); // Siempre limpiamos la sesión local
+    return handleAxiosError(error);
   }
 };
 
-export const refreshToken = async (oldRefreshToken: string) => {
+export const refreshTokens = async (): Promise<AuthResult> => {
   try {
-    const response = await fetch(`${BACKEND_URL}/auth/refresh`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        refresh: oldRefreshToken,
-      }),
+    const response = await api.post("/auth/refresh");
+
+    await updateSession({
+      accessToken: response.data.access_token,
+      // No actualizamos refreshToken (se maneja por cookies)
     });
-    if (!response.ok) {
-      throw new Error("Failed to refresh token " + response.statusText);
+
+    return { success: true };
+  } catch (error) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
+      await deleteSession();
+      return {
+        success: false,
+        error: "Sesión expirada. Por favor ingresa nuevamente.",
+      };
     }
-
-    const { accessToken, refreshToken } = await response.json();
-
-    if (!accessToken || !refreshToken) throw new Error("Provide Tokens");
-
-    const session = await getSession();
-    if (session) {
-      await updateTokens({
-        accessToken,
-        refreshToken: session.refreshToken, // Mantenemos el mismo refresh token
-      });
-    }
-
-    await updateTokens({ accessToken, refreshToken });
-
-    // if (!updateRes) throw new Error("Failed to update the tokens");
-
-    return accessToken;
-  } catch {
-    // console.error("Refresh Token failed:", err);
-    await deleteSession();
-    return null;
+    return handleAxiosError(error);
   }
 };

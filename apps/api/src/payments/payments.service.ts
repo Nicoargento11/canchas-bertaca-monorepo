@@ -1,8 +1,7 @@
-import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Preference } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
-// import { Cron, CronExpression } from '@nestjs/schedule';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
@@ -12,95 +11,108 @@ import { UpdatePaymentDto } from './dto/update-payment.dto';
 
 @Injectable()
 export class PaymentsService {
-  private readonly logger = new Logger(ReservesService.name);
   constructor(
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
     private prisma: PrismaService,
   ) {}
 
-  // @Cron(CronExpression.EVERY_5_MINUTES)
+  // @Cron(CronExpression.EVERY_10_MINUTES)
   // async checkExpiredReservations() {
-  //   function logMemoryUsage(context: string) {
-  //     const used = process.memoryUsage();
-  //     const toMB = (bytes: number) => (bytes / 1024 / 1024).toFixed(2) + ' MB';
-
-  //     console.log(`🧠 Memoria usada (${context}):`);
-  //     console.log(
-  //       `  - RSS: ${toMB(used.rss)} (total incluyendo buffers y código nativo)`,
-  //     );
-  //     console.log(`  - Heap Total: ${toMB(used.heapTotal)} (reservado por V8)`);
-  //     console.log(
-  //       `  - Heap Used: ${toMB(used.heapUsed)} (efectivamente usado)`,
-  //     );
-  //     console.log(
-  //       `  - External: ${toMB(used.external)} (buffers externos, como crypto, streams)`,
-  //     );
-  //   }
-  //   logMemoryUsage('Antes de procesar reservas');
-
-  //   this.logger.log('Iniciando verificación de reservas expiradas...');
-  //   try {
-  //     const expiredReservations =
-  //       await this.reserveService.findPendingWithToken();
-  //     let processedCount = 0;
-  //     const batchSize = 50;
-
-  //     for (let i = 0; i < expiredReservations.length; i += batchSize) {
-  //       const batch = expiredReservations.slice(i, i + batchSize);
-  //       await this.processBatch(batch);
-  //       processedCount += batch.length;
-  //     }
-
-  //     this.logger.log(`Procesadas ${processedCount} reservas expiradas.`);
-  //   } catch (error) {
-  //     this.logger.error('Error en checkExpiredReservations:', error.stack);
-  //   }
-
-  //   logMemoryUsage('Despues de procesar reservas');
+  //   const reserves = await this.reserveService.findHasPaymentToken();
+  //   await Promise.all(
+  //     reserves.map(async (reserve) => {
+  //       try {
+  //         await this.jwtService.verify(reserve.paymentToken);
+  //       } catch (error) {
+  //         if (error.name === 'TokenExpiredError') {
+  //           await this.reserveService.update(reserve.id, {
+  //             date: reserve.date,
+  //             courtId: reserve.courtId,
+  //             schedule: reserve.schedule,
+  //             paymentToken: null,
+  //             paymentUrl: null,
+  //             complexId: reserve.complexId,
+  //             status: 'RECHAZADO',
+  //           });
+  //         }
+  //       }
+  //     }),
+  //   );
   // }
-
-  createPreference({
-    court,
+  async createPreference({
+    courtId,
     date,
     reservationAmount,
     schedule,
     reserveId,
+    court,
+    complex,
   }: CreatePreferenceDto) {
-    // Obtener la fecha y hora actual en formato ISO 8601
+    // Validar que las URLs estén configuradas
+    if (!process.env.PAYMENT_BACK_URL || !process.env.NOTIFICATION_URL) {
+      throw new Error('Payment URLs are not properly configured');
+    }
+
     const currentDateTime = new Date().toISOString();
     const expirationDateTime = new Date(
       Date.now() + 20 * 60 * 1000,
     ).toISOString();
-    const payment = new Preference(mercadoPagoConfig).create({
-      body: {
-        items: [
-          {
-            id: reserveId,
-            title: `${date.toLocaleString('es-AR')} C${court} ${schedule}`,
-            description: date.toLocaleDateString(),
-            unit_price: reservationAmount,
-            currency_id: 'ARS',
-            quantity: 1,
-            category_id: 'services',
+
+    // Formatear fecha para mostrar
+    const formattedDate = new Date(date)
+      .toLocaleDateString('es-AR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+      })
+      .replace(/\//g, '-');
+    try {
+      const payment = await new Preference(mercadoPagoConfig).create({
+        body: {
+          items: [
+            {
+              picture_url:
+                'https://http2.mlstatic.com/D_NQ_NP_2X_711116-MLA46114833477_052021-F.jpg',
+              id: reserveId,
+              title: `Reserva C${court.courtNumber || court.name} - ${schedule} (${formattedDate})`,
+              description: `Reserva de cancha ${courtId} para el ${formattedDate}`,
+              unit_price: Number(reservationAmount),
+              currency_id: 'ARS',
+              quantity: 1,
+              category_id: 'services',
+            },
+          ],
+
+          auto_return: 'all',
+          back_urls: {
+            // success: `${process.env.FRONT_END_URL}/${complex.slug}/payment/success`,
+            // failure: `${process.env.FRONT_END_URL}/${complex.slug}/payment/failure`,
+            // pending: `${process.env.FRONT_END_URL}/${complex.slug}/payment/pending`,
+            success: `https://${complex.slug}/payment/success`,
+            failure: `https://${complex.slug}/payment/failure`,
+            pending: `https://${complex.slug}/payment/pending`,
           },
-        ],
-        back_urls: {
-          success: `${process.env.PAYMENT_BACK_URL}/payment/succes`,
-          failure: `${process.env.PAYMENT_BACK_URL}/payment/failure`,
-          pending: `${process.env.PAYMENT_BACK_URL}/`,
+
+          notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago`,
+          statement_descriptor: 'Reserva F5 Dimas',
+          expires: true,
+          expiration_date_from: currentDateTime,
+          expiration_date_to: expirationDateTime,
+          binary_mode: true,
+          external_reference: reserveId,
+          payment_methods: {
+            excluded_payment_methods: [{ id: 'visa' }], // ✅ si el examen lo pide
+            installments: 6, // ✅ máximo de cuotas permitido
+          },
         },
-        notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago`,
-        statement_descriptor: 'Reserva cancha F5 Dimas',
-        auto_return: 'approved',
-        expires: true,
-        expiration_date_from: currentDateTime,
-        expiration_date_to: expirationDateTime,
-        binary_mode: true,
-        external_reference: reserveId,
-      },
-    });
-    return payment;
+      });
+
+      return payment;
+    } catch (error) {
+      console.error('Error creating MercadoPago preference:', error);
+      throw new Error('Failed to create payment preference');
+    }
   }
 
   cancelPayment(paymentId: string) {
@@ -113,11 +125,13 @@ export class PaymentsService {
 
   async create(createDto: CreatePaymentDto) {
     // Verificar que la reserva existe
-    const reserve = await this.prisma.reserves.findUnique({
-      where: { id: createDto.reserveId },
-    });
-    if (!reserve) {
-      throw new NotFoundException('Reserve not found');
+    if (createDto.reserveId) {
+      const reserve = await this.prisma.reserve.findUnique({
+        where: { id: createDto.reserveId },
+      });
+      if (!reserve) {
+        throw new NotFoundException('Reserve not found');
+      }
     }
 
     return this.prisma.payment.create({
@@ -126,8 +140,15 @@ export class PaymentsService {
         method: createDto.method,
         isPartial: createDto.isPartial,
         reserveId: createDto.reserveId, // Usando el campo directo
+        complexId: createDto.complexId || undefined,
+        cashSessionId: createDto.cashSessionId || undefined,
+        transactionType: createDto.transactionType || 'RESERVA', // TODO arreglar harcodeada
       },
-      include: { reserve: true },
+
+      include: {
+        reserve: createDto.reserveId ? true : false,
+        productSales: { include: { product: true } },
+      },
     });
   }
 
@@ -180,42 +201,5 @@ export class PaymentsService {
     return this.prisma.payment.delete({
       where: { id },
     });
-  }
-
-  private async processBatch(
-    reservations: Array<{
-      id: string;
-      date: Date;
-      schedule: string;
-      court: number;
-      userId: string;
-      paymentToken: string;
-    }>,
-  ) {
-    const updates = [];
-
-    for (const reserve of reservations) {
-      try {
-        await this.jwtService.verify(reserve.paymentToken);
-      } catch (error) {
-        if (error.name === 'TokenExpiredError') {
-          updates.push(
-            await this.reserveService.update(reserve.id, {
-              paymentToken: null,
-              paymentUrl: null,
-              status: 'RECHAZADO',
-              userId: reserve.userId,
-              date: reserve.date,
-              court: reserve.court,
-              schedule: reserve.schedule,
-            }),
-          );
-        }
-      }
-    }
-
-    if (updates.length > 0) {
-      await this.prisma.$transaction(updates); // Ejecuta todas las actualizaciones en una sola transacción
-    }
   }
 }

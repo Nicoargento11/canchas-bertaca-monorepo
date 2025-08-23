@@ -1,0 +1,49 @@
+# ===================================
+# TEST DE ZONA HORARIA ARGENTINA (UTC-3)
+# ===================================
+# Validar que las consultas filtren correctamente los datos
+# considerando que Argentina está UTC-3
+# 
+# EXPLICACIÓN DEL PROBLEMA:
+# - En Argentina: 00:00 a 23:59 del día local
+# - En UTC: 03:00 del día actual a 02:59 del día siguiente
+# 
+# EJEMPLO: Para el día 2025-06-06 en Argentina:
+# - Inicio: 2025-06-06 00:00 ARG = 2025-06-06 03:00 UTC
+# - Fin:    2025-06-06 23:59 ARG = 2025-06-07 02:59 UTC
+
+@baseUrl = http://localhost:8000
+@testDate = 2025-06-06
+@complexId = cmadamrdg0000l0g8fv4grm98
+
+### Test zona horaria - Resumen diario (endpoint sin auth)
+# Este debería incluir datos creados entre:
+# 2025-06-06 03:00:00.000Z y 2025-06-07 02:59:59.999Z
+GET {{baseUrl}}/reports/test/daily-summary?date={{testDate}}&complexId={{complexId}}
+
+### Test zona horaria - Día anterior 
+# Para comparar qué datos se obtienen del día anterior
+GET {{baseUrl}}/reports/test/daily-summary?date=2025-06-05&complexId={{complexId}}
+
+### Test zona horaria - Día siguiente
+# Para comparar qué datos se obtienen del día siguiente
+GET {{baseUrl}}/reports/test/daily-summary?date=2025-06-07&complexId={{complexId}}
+
+### Test con rango de fechas (zona horaria)
+GET {{baseUrl}}/reports/test/date-range?startDate=2025-06-05&endDate=2025-06-07&complexId={{complexId}}
+
+### Test Excel con zona horaria
+GET {{baseUrl}}/reports/test/daily-summary/export/excel?date={{testDate}}&complexId={{complexId}}
+
+### Test PDF con zona horaria  
+GET {{baseUrl}}/reports/test/daily-summary/export/pdf?date={{testDate}}&complexId={{complexId}}
+
+### ===============================
+### DEBUG: Verificar datos en BD
+### ===============================
+
+### Ver todas las reservas sin filtro de fecha (para debug)
+GET {{baseUrl}}/reserves?complexId={{complexId}}&limit=50
+
+### Ver productos vendidos sin filtro de fecha (para debug) 
+GET {{baseUrl}}/products-sales?complexId={{complexId}}&limit=50

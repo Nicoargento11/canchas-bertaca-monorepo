@@ -17,22 +17,33 @@ export class GoogleStrategy extends PassportStrategy(Strategy) {
       clientSecret: googleConfig.clientSecret,
       callbackURL: googleConfig.callbackURL,
       scope: ['email', 'profile'],
+      passReqToCallback: true,
     });
   }
 
   async validate(
+    req: Request, // Tipo específico de Express
     accessToken: string,
     refreshToken: string,
     profile: any,
     done: VerifyCallback,
   ) {
-    const user = await this.authService.validateGoogleService({
-      email: profile.emails[0].value,
-      name: profile.displayName,
-      password: '',
-    });
+    // Esperamos ver: { code: '...', state: '/fratelli', scope: '...' }
+    try {
+      // Validar que existe email
+      if (!profile.emails || !profile.emails[0]?.value) {
+        return done(new Error('No email provided by Google'), null);
+      }
 
-    done(null, user);
-    // return user;
+      const user = await this.authService.validateGoogleService({
+        email: profile.emails[0].value,
+        name: profile.displayName,
+        password: '',
+      });
+
+      done(null, user);
+    } catch (error) {
+      done(error, null);
+    }
   }
 }

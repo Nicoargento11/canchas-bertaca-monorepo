@@ -1,13 +1,7 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, JSX } from "react";
 import { Badge } from "@/components/ui/badge";
-import {
-  Table,
-  TableHeader,
-  TableBody,
-  TableCell,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableHeader, TableBody, TableCell, TableRow } from "@/components/ui/table";
 import {
   CheckCircle2,
   AlertCircle,
@@ -18,16 +12,17 @@ import {
   Clock9,
   ArrowBigDownDash,
   ArrowBigUpDash,
+  Icon,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { SideBarButton } from "../../_components/dashboard/sideBarButton";
-import {
-  getAllReservesPagination,
-  Reserve,
-} from "@/services/reserves/reserves";
-import formatDateUTC from "@/utils/formatDateUtc";
 
-const statusReserve = {
+import formatDateUTC from "@/utils/formatDateUtc";
+import { getPaginatedReserves, Reserve, Status } from "@/services/reserve/reserve";
+import { soccerPitch } from "@lucide/lab";
+import { DashboardHeader } from "../DashboardHeader";
+
+const statusReserve: Record<Status, { icon: JSX.Element; color: string }> = {
   APROBADO: {
     icon: <CheckCircle2 size={25} className="text-Success w-full" />,
     color: "bg-Success",
@@ -39,6 +34,14 @@ const statusReserve = {
   RECHAZADO: {
     icon: <CircleX size={25} className="text-Error w-full" />,
     color: "bg-Error",
+  },
+  CANCELADO: {
+    icon: <CircleX size={25} className="text-Error w-full" />,
+    color: "bg-Error",
+  },
+  COMPLETADO: {
+    icon: <CheckCircle2 size={25} className="text-Success w-full" />,
+    color: "bg-Success",
   },
 };
 
@@ -55,11 +58,13 @@ const PageDashboardReserves = () => {
   useEffect(() => {
     const loadInitialData = async () => {
       setIsLoading(true);
-      const data = await getAllReservesPagination(1, ITEMS_PER_PAGE);
-      if (data) {
+      const { success, data, error } = await getPaginatedReserves(1, ITEMS_PER_PAGE);
+      if (success && data) {
         setReserves(data.reserves);
         setTotalReserves(data.total);
         setHasMore(data.reserves.length === ITEMS_PER_PAGE);
+      } else {
+        console.error("Error loading initial data:", error);
       }
       setIsLoading(false);
     };
@@ -72,9 +77,9 @@ const PageDashboardReserves = () => {
 
     setIsLoading(true);
     const nextPage = page + 1;
-    const data = await getAllReservesPagination(nextPage, ITEMS_PER_PAGE);
+    const { success, data } = await getPaginatedReserves(nextPage, ITEMS_PER_PAGE);
 
-    if (data && data.reserves.length > 0) {
+    if (success && data && data.reserves.length > 0) {
       setReserves((prev) => [...prev, ...data.reserves]);
       setPage(nextPage);
       setHasMore(data.reserves.length === ITEMS_PER_PAGE);
@@ -111,9 +116,7 @@ const PageDashboardReserves = () => {
 
   return (
     <div className="w-full p-2 overflow-x-auto">
-      <div className="p-2 w-full flex justify-end">
-        <SideBarButton />
-      </div>
+      <DashboardHeader title="Gestión de Reservas" />
 
       <div className="mb-4 text-sm text-gray-500">
         Mostrando {reserves.length} de {totalReserves} reservas
@@ -153,28 +156,26 @@ const PageDashboardReserves = () => {
               reservationAmount,
               schedule,
               status,
-              User,
+              user,
               id,
               createdAt,
               updatedAt,
-              paymentId,
+              paymentIdExt,
             }) => (
               <TableRow key={id} className="">
                 <TableCell className="whitespace-nowrap">
-                  {User && (
+                  {user && (
                     <>
                       <div className="text-sm text-gray-900 font-semibold">
-                        {clientName ? clientName : User.name}
+                        {clientName ? clientName : user.name}
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {User.email}
-                      </div>
+                      <div className="text-sm text-muted-foreground">{user.email}</div>
                     </>
                   )}
                   <div className="text-sm text-muted-foreground">{phone}</div>
                 </TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap">
-                  <div className="flex text-sm text-gray-900 gap-2 items-center">
+                  <div className="flex text-sm gap-2 items-center">
                     <CalendarDays />
                     {formatDateUTC(new Date(date).toUTCString())}
                   </div>
@@ -183,20 +184,14 @@ const PageDashboardReserves = () => {
                     {schedule}
                   </div>
                   <div className="flex items-center text-sm gap-2 text-gray-500">
-                    <GiSoccerField className="text-black" />
-                    Cancha {court}
+                    <Icon iconNode={soccerPitch} />
+                    Cancha {court.name}
                   </div>
                 </TableCell>
-                <TableCell className="text-center">
-                  {statusReserve[status].icon}
-                </TableCell>
+                <TableCell className="text-center">{statusReserve[status].icon}</TableCell>
                 <TableCell className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">
-                    Precio total: ${price}
-                  </div>
-                  <div className="text-sm text-gray-500">
-                    Reserva pagada: ${reservationAmount}
-                  </div>
+                  <div className="text-sm text-gray-500">Precio total: ${price}</div>
+                  <div className="text-sm text-gray-500">Reserva pagada: ${reservationAmount}</div>
                   <div className="text-sm text-gray-500">
                     Monto faltante: ${price! - reservationAmount!}
                   </div>
@@ -204,16 +199,12 @@ const PageDashboardReserves = () => {
                 <TableCell className="text-center">
                   <Badge
                     className={`${
-                      paymentId ||
-                      status == "RECHAZADO" ||
-                      status == "PENDIENTE"
+                      paymentIdExt || status == "RECHAZADO" || status == "PENDIENTE"
                         ? "bg-Info"
                         : "bg-Success"
                     } rounded-full p-[5px]`}
                   >
-                    {paymentId ||
-                    status == "RECHAZADO" ||
-                    status == "PENDIENTE" ? (
+                    {paymentIdExt || status == "RECHAZADO" || status == "PENDIENTE" ? (
                       <MonitorCheck size={20} />
                     ) : (
                       <Hand size={20} />
@@ -247,9 +238,7 @@ const PageDashboardReserves = () => {
         </div>
       )}
       {!hasMore && reserves.length > 0 && (
-        <div className="text-center py-4 text-gray-500">
-          No hay más reservas para mostrar
-        </div>
+        <div className="text-center py-4 text-gray-500">No hay más reservas para mostrar</div>
       )}
     </div>
   );

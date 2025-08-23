@@ -1,26 +1,23 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import React from "react";
-
-import { StepForward } from "lucide-react";
+import { ArrowRightCircle } from "lucide-react";
 
 interface ButtonPaymentProps {
   paymentUrl: string;
 }
+
 export const ButtonPayment = ({ paymentUrl }: ButtonPaymentProps) => {
   const router = useRouter();
+
   return (
     <Button
-      onClick={() => {
-        router.push(paymentUrl);
-      }}
-      className={`flex sm:absolute right-2 bottom-2 gap-2 bg-gray-300 border-r-1 border-b-1 border-gray-400 shadow-lg rounded-2xl text-blue-700
-       font-semibold py-1 px-2 lg:py-2 lg:px-4`}
+      onClick={() => router.push(paymentUrl)}
+      className="gap-2 bg-emerald-600 text-white hover:bg-emerald-700 hover:cursor-pointer w-full sm:w-auto text-sm sm:text-base py-2 px-3 sm:px-4"
     >
-      <StepForward color="blue" size={20} />
-      <p className="hidden lg:block">Continuar pago</p>
-      <p className="block lg:hidden">Continuar</p>
+      <ArrowRightCircle className="h-4 w-4 flex-shrink-0" />
+      <span className="hidden sm:inline">Continuar pago</span>
+      <span className="inline sm:hidden">Pagar</span>
     </Button>
   );
 };

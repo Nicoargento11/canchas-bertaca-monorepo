@@ -3,50 +3,70 @@ import {
   Get,
   Post,
   Body,
-  Param,
   Patch,
+  Param,
   Delete,
+  Query,
 } from '@nestjs/common';
-import { InventoryMovementsService } from './inventory-movements.service';
+import { MovementType } from '@prisma/client';
+import { InventoryMovementService } from './inventory-movements.service';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
 import { UpdateInventoryMovementDto } from './dto/update-inventory-movement.dto';
-import { ApiTags } from '@nestjs/swagger';
 
-@ApiTags('Inventory Movements')
 @Controller('inventory-movements')
-export class InventoryMovementsController {
-  constructor(private readonly service: InventoryMovementsService) {}
+export class InventoryMovementController {
+  constructor(
+    private readonly inventoryMovementService: InventoryMovementService,
+  ) {}
 
   @Post()
-  create(@Body() createDto: CreateInventoryMovementDto) {
-    return this.service.create(createDto);
+  create(@Body() createInventoryMovementDto: CreateInventoryMovementDto) {
+    return this.inventoryMovementService.create(createInventoryMovementDto);
   }
 
   @Get()
   findAll() {
-    return this.service.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.service.findOne(id);
+    return this.inventoryMovementService.findAll();
   }
 
   @Get('by-product/:productId')
   findByProduct(@Param('productId') productId: string) {
-    return this.service.findByProduct(productId);
+    return this.inventoryMovementService.findByProduct(productId);
+  }
+
+  @Get('by-complex/:complexId')
+  findByComplex(@Param('complexId') complexId: string) {
+    return this.inventoryMovementService.findByComplex(complexId);
+  }
+
+  @Get('filter')
+  filter(
+    @Query('type') type?: MovementType,
+    @Query('productId') productId?: string,
+    @Query('complexId') complexId?: string,
+  ) {
+    return this.inventoryMovementService.filter({
+      type,
+      productId,
+      complexId,
+    });
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.inventoryMovementService.findOne(id);
   }
 
   @Patch(':id')
   update(
     @Param('id') id: string,
-    @Body() updateDto: UpdateInventoryMovementDto,
+    @Body() updateInventoryMovementDto: UpdateInventoryMovementDto,
   ) {
-    return this.service.update(id, updateDto);
+    return this.inventoryMovementService.update(id, updateInventoryMovementDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.service.remove(id);
+    return this.inventoryMovementService.remove(id);
   }
 }

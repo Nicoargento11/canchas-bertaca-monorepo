@@ -1,26 +1,14 @@
-import {
-  IsInt,
-  IsPositive,
-  IsNumber,
-  IsBoolean,
-  IsOptional,
-  IsString,
-} from 'class-validator';
+import { IsString, IsNumber, IsBoolean, IsOptional } from 'class-validator';
 
 export class CreateProductSaleDto {
-  @IsString()
-  productId: string;
-
   @IsString()
   @IsOptional()
   reserveId?: string;
 
-  @IsInt()
-  @IsPositive()
+  @IsNumber()
   quantity: number;
 
   @IsNumber()
-  @IsPositive()
   price: number;
 
   @IsNumber()
@@ -30,4 +18,13 @@ export class CreateProductSaleDto {
   @IsBoolean()
   @IsOptional()
   isGift?: boolean;
+
+  @IsString()
+  productId: string;
+
+  @IsString()
+  paymentId: string;
+
+  @IsString()
+  complexId: string;
 }

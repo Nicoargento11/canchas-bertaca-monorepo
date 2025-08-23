@@ -1,32 +1,33 @@
 "use client";
+import { SportTypeKey } from "@/services/sport-types/sport-types";
 import React, { createContext, useContext, useState } from "react";
 
+export type ModalType =
+  | "LOGIN"
+  | "REGISTER"
+  | "REVIEW"
+  | "RESERVE_PADEL"
+  | "RESERVE_FUTBOL"
+  | "RESERVE_BASKET"; // Puedes añadir más según necesites
+
+interface ModalData {
+  complexId?: string;
+  sportType?: SportTypeKey;
+  // cualquier otro dato específico que necesites pasar
+}
 interface ModalProviderProps {
   children: React.ReactNode;
 }
 
-type ThemeContext = {
-  //Reserve
-  isOpenReserve: boolean;
-  onOpenReserve: () => void;
-  oncloseReserve: () => void;
-  //Login
-  onOpenLogin: () => void;
-  oncloseLogin: () => void;
-  isOpenLogin: boolean;
-  handleChangeLogin: () => void;
-  //Register
-  onOpenRegister: () => void;
-  onCloseRegister: () => void;
-  isOpenRegister: boolean;
-  handleChangeRegister: () => void;
-  //review
-  isOpenReview: boolean;
-  onOpenReview: () => void;
-  onCloseReview: () => void;
-};
+interface ModalContextType {
+  openModal: (type: ModalType, data?: ModalData) => void;
+  closeModal: () => void;
+  currentModal: ModalType | null;
+  modalData: ModalData | null;
+  isModalOpen: (type: ModalType) => boolean;
+}
 
-const ModalContext = createContext<ThemeContext | null>(null);
+const ModalContext = createContext<ModalContextType | null>(null);
 
 export const useModal = () => {
   const context = useContext(ModalContext);
@@ -36,62 +37,28 @@ export const useModal = () => {
 };
 
 export const ModalProvider = ({ children }: ModalProviderProps) => {
-  const [isOpenReserve, setIsOpenReserve] = useState(false);
-  const [isOpenLogin, setIsOpenLogin] = useState(false);
-  const [isOpenRegister, setIsOpenRegister] = useState(false);
-  const [isOpenReview, setIsOpenReview] = useState(false);
+  const [currentModal, setCurrentModal] = useState<ModalType | null>(null);
+  const [modalData, setModalData] = useState<ModalData | null>(null);
 
-  const handleChangeLogin = () => {
-    setIsOpenLogin((value) => !value);
+  const openModal = (type: ModalType, data?: ModalData) => {
+    setCurrentModal(type);
+    setModalData(data || null);
   };
-  const handleChangeRegister = () => {
-    setIsOpenRegister((value) => !value);
+
+  const closeModal = () => {
+    setCurrentModal(null);
+    setModalData(null);
   };
-  //Reserve
-  const onOpenReserve = () => {
-    setIsOpenReserve(true);
-  };
-  const oncloseReserve = () => {
-    setIsOpenReserve(false);
-  };
-  //Login
-  const onOpenLogin = () => {
-    setIsOpenLogin(true);
-  };
-  const oncloseLogin = () => {
-    setIsOpenLogin(false);
-  };
-  //Register
-  const onOpenRegister = () => {
-    setIsOpenRegister(true);
-  };
-  const onCloseRegister = () => {
-    setIsOpenRegister(false);
-  };
-  //Review
-  const onOpenReview = () => {
-    setIsOpenReview(true);
-  };
-  const onCloseReview = () => {
-    setIsOpenReview(false);
-  };
+
+  const isModalOpen = (type: ModalType) => currentModal === type;
   return (
     <ModalContext.Provider
       value={{
-        isOpenLogin,
-        isOpenRegister,
-        isOpenReserve,
-        isOpenReview,
-        onOpenLogin,
-        oncloseLogin,
-        onOpenRegister,
-        onCloseRegister,
-        onOpenReserve,
-        oncloseReserve,
-        onOpenReview,
-        onCloseReview,
-        handleChangeLogin,
-        handleChangeRegister,
+        openModal,
+        closeModal,
+        currentModal,
+        modalData,
+        isModalOpen,
       }}
     >
       {children}

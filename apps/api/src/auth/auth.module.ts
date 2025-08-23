@@ -1,45 +1,33 @@
+// auth.module.ts
 import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
-import { UsersService } from 'src/user/users.service';
-import { PrismaService } from 'src/prisma/prisma.service';
-import { LocalStrategy } from './strategies/local.strategy';
-import { JwtModule } from '@nestjs/jwt';
-import jwtConfig from './config/jwt.config';
-import { ConfigModule } from '@nestjs/config';
+import { UsersModule } from '../users/users.module';
 import { JwtStrategy } from './strategies/jwt.strategy';
-import refreshConfig from './config/refresh.config';
-import { RefreshStrategy } from './strategies/refresh-token.strategy';
-import googleOauthConfig from './config/google-oauth.config';
+import jwtConfig from './config/jwt.config';
+import { LocalStrategy } from './strategies/local.strategy';
 import { GoogleStrategy } from './strategies/google.strategy';
-// import { APP_GUARD } from '@nestjs/core';
-// import { JwtAuthGuard } from './guards/jwt-auth/jwt-auth.guard';
-// import { RolesGuard } from './guards/roles/roles.guard';
+import googleOauthConfig from './config/google-oauth.config';
+import { UsersService } from 'src/users/users.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Module({
   imports: [
+    UsersModule,
     JwtModule.registerAsync(jwtConfig.asProvider()),
     ConfigModule.forFeature(jwtConfig),
-    ConfigModule.forFeature(refreshConfig),
     ConfigModule.forFeature(googleOauthConfig),
   ],
   controllers: [AuthController],
   providers: [
     AuthService,
     UsersService,
+    JwtStrategy, // Asegúrate de incluir JwtStrategy
     PrismaService,
     LocalStrategy,
-    JwtStrategy,
-    RefreshStrategy,
     GoogleStrategy,
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: JwtAuthGuard, // @useGuard(JwtAuthGuard)
-    // },
-    // {
-    //   provide: APP_GUARD,
-    //   useClass: RolesGuard, // @useGuard(RolesGuard)
-    // },
   ],
 })
 export class AuthModule {}

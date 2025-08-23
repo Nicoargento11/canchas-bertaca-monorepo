@@ -14,16 +14,21 @@ import { PaymentsService } from './payments.service';
 import {
   CreatePaymentDto,
   CreatePaymentOnlineDto,
+  PaymentPreferenceResponseDto,
 } from './dto/create-payment.dto';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { Public } from 'src/auth/decorators/public.decorator';
-import { UsersService } from 'src/user/users.service';
 import { JwtService } from '@nestjs/jwt';
 import { Payment } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
-import { PaymentMethod, Status } from '@prisma/client';
-import { ApiTags } from '@nestjs/swagger';
+import { PaymentMethod, SportName, Status } from '@prisma/client';
+import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { UsersService } from 'src/users/users.service';
+import { CreateReserveDto } from 'src/reserves/dto/create-reserve.dto';
+import { CourtsService } from 'src/courts/courts.service';
+import { ComplexService } from 'src/complexs/complexs.service';
+import { MailService } from 'src/mail/mail.service';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -32,55 +37,81 @@ export class PaymentsController {
     private readonly paymentsService: PaymentsService,
     private readonly reserveService: ReservesService,
     private readonly userService: UsersService,
+    private readonly courtService: CourtsService,
+    private readonly complexService: ComplexService,
+    private readonly mailService: MailService,
     private jwtService: JwtService,
   ) {}
   // TODO quitar public
-  @Public()
   @Post('create')
+  @ApiOperation({ summary: 'Crear pago online y reserva asociada' })
+  @ApiResponse({
+    status: 201,
+    description: 'Preferencia de pago creada exitosamente',
+    type: PaymentPreferenceResponseDto,
+  })
   async createPayment(@Body() createPaymentDto: CreatePaymentOnlineDto) {
     // TODO simplificar al objeto y usar spread operator para pasar los datos y verificar que funcione
-    const utcDate = new Date(
-      Date.UTC(
-        createPaymentDto.date.getFullYear(),
-        createPaymentDto.date.getMonth(),
-        createPaymentDto.date.getDate(),
-      ),
+    // const utcDate = new Date(
+    //   Date.UTC(
+    //     createPaymentDto.date.getFullYear(),
+    //     createPaymentDto.date.getMonth(),
+    //     createPaymentDto.date.getDate(),
+    //   ),
+    // );
+    const courtData = await this.courtService.findOne(createPaymentDto.courtId);
+    const complex = await this.complexService.findOne(
+      createPaymentDto.complexId,
     );
+    const utcDate = this.convertToUTC(createPaymentDto.date);
+    // Crear DTO para la reserva
     const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 minutos
-    const reserve = await this.reserveService.create({
+    const createReserveDto: CreateReserveDto = {
       date: utcDate,
       schedule: createPaymentDto.schedule,
-      court: createPaymentDto.court,
+      courtId: createPaymentDto.courtId,
       price: createPaymentDto.price,
       reservationAmount: createPaymentDto.reservationAmount,
       userId: createPaymentDto.userId,
       status: 'PENDIENTE',
       phone: createPaymentDto.phone,
+      clientName: createPaymentDto.clientName || '',
+      complexId: createPaymentDto.complexId,
+      reserveType: createPaymentDto.reserveType,
+      ...(createPaymentDto.fixedReserveId && {
+        fixedReserveId: createPaymentDto.fixedReserveId,
+      }),
       expiresAt: expiresAt,
-    });
+    };
+
+    // Crear reserva
+    const reserve = await this.reserveService.create(createReserveDto);
     this.reserveService.setReservationTimeout(reserve.id, 20 * 60 * 1000);
 
     const preference = await this.paymentsService.createPreference({
       ...createPaymentDto,
+      // date: utcDate,
       reserveId: reserve.id,
+      court: courtData,
+      complex: complex,
     });
     const paymentToken = this.jwtService.sign({
-      court: createPaymentDto.court,
-      date: createPaymentDto.date,
+      court: createPaymentDto.courtId,
+      date: utcDate,
       schedule: createPaymentDto.schedule,
     });
 
     await this.userService.update(createPaymentDto.userId, {
       phone: createPaymentDto.phone,
     });
-
     await this.reserveService.update(preference.items[0].id, {
       paymentUrl: preference.init_point,
       paymentToken,
       userId: createPaymentDto.userId,
-      court: createPaymentDto.court,
+      courtId: createPaymentDto.courtId,
       date: utcDate,
       schedule: createPaymentDto.schedule,
+      complexId: createPaymentDto.complexId,
     });
 
     // TODO logica del token expire
@@ -122,15 +153,15 @@ export class PaymentsController {
           status: Status.APROBADO,
           paymentUrl: null,
           paymentToken: null,
-          paymentId: searchedPayment.id.toString(),
+          paymentIdExt: searchedPayment.id.toString(),
         },
         rejected: {
           status: Status.PENDIENTE,
-          paymentId: searchedPayment.id.toString(),
+          paymentIdExt: searchedPayment.id.toString(),
         },
         pending: {
           status: Status.PENDIENTE,
-          paymentId: searchedPayment.id.toString(),
+          paymentIdExt: searchedPayment.id.toString(),
         },
       };
 
@@ -139,7 +170,6 @@ export class PaymentsController {
 
       // if (searchedPayment.status === 'rejected') {
       //   const prueba = await this.paymentsService.cancelPayment(paymentId);
-      //   console.log(prueba);
       // }
 
       if (!statusUpdate) {
@@ -148,34 +178,36 @@ export class PaymentsController {
           HttpStatus.BAD_REQUEST,
         );
       }
-      const utcDate = new Date(
-        Date.UTC(
-          searchedReserve.date.getFullYear(),
-          searchedReserve.date.getMonth(),
-          searchedReserve.date.getDate(),
-        ),
-      );
 
       await this.reserveService.update(searchedReserve.id, {
-        status: statusUpdate,
+        ...statusUpdate,
         userId: searchedReserve.userId,
-        date: utcDate,
+        date: searchedReserve.date,
         schedule: searchedReserve.schedule,
-        court: searchedReserve.court,
+        courtId: searchedReserve.courtId,
+        complexId: searchedReserve.complexId,
       });
-      // Si el pago fue aprobado, cancelar el timeout
+
       if (searchedPayment.status === 'approved') {
         this.reserveService.clearReservationTimeout(searchedReserve.id);
-      }
-      // Crear el registro de pago
-      const paymentDto: CreatePaymentDto = {
-        amount: searchedPayment.transaction_amount,
-        method: PaymentMethod.MERCADOPAGO, // Asumiendo que MERCADOPAGO está en tu enum
-        isPartial: true, // O puedes determinar esto basado en algún criterio
-        reserveId: searchedReserve.id,
-      };
+        const paymentDto: CreatePaymentDto = {
+          amount: searchedPayment.transaction_amount,
+          method: PaymentMethod.MERCADOPAGO,
+          isPartial: true,
+          reserveId: searchedReserve.id,
+          transactionType: 'RESERVA',
+        };
 
-      await this.paymentsService.create(paymentDto);
+        await this.paymentsService.create(paymentDto);
+
+        // ✅ Enviar mail al cliente confirmando la reserva
+        await this.mailService.sendMail({
+          to: searchedReserve.user.email,
+          subject: `✅ Reserva confirmada en ${searchedReserve.complex.name}`,
+          text: this.generatePlainTextEmail(searchedReserve),
+          html: this.generateHtmlEmail(searchedReserve),
+        });
+      }
 
       return {
         message: 'Payment notification processed successfully',
@@ -223,5 +255,140 @@ export class PaymentsController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.paymentsService.remove(id);
+  }
+
+  private convertToUTC(date: Date): Date {
+    const parsedDate = date instanceof Date ? date : new Date(date);
+    if (isNaN(parsedDate.getTime())) {
+      throw new Error('Fecha inválida proporcionada');
+    }
+
+    return new Date(
+      Date.UTC(
+        parsedDate.getFullYear(),
+        parsedDate.getMonth(),
+        parsedDate.getDate(),
+      ),
+    );
+  }
+
+  private generatePlainTextEmail(reserve: any): string {
+    return `
+Hola ${reserve.clientName ?? 'Cliente'},
+
+Tu reserva de ${this.getSportName(reserve.court.sportType)} en ${reserve.complex.name} ha sido confirmada:
+
+📌 Complejo: ${reserve.complex.name}
+📍 Dirección: ${reserve.complex.address}
+📞 Teléfono: ${reserve.complex.phone || 'No disponible'}
+
+🏅 Detalles de la reserva:
+- Deporte: ${this.getSportName(reserve.court.sportType)}
+- Fecha: ${new Date(reserve.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+- Hora: ${reserve.schedule}
+- Cancha: ${reserve.court.name} (N° ${reserve.court.courtNumber})
+${reserve.court.characteristics?.length ? '- Características: ' + reserve.court.characteristics.join(', ') : ''}
+
+¡Gracias por reservar con nosotros!
+${reserve.complex.name}
+${reserve.complex.website ? '\n' + reserve.complex.website : ''}
+`.trim();
+  }
+
+  private generateHtmlEmail(reserve: any): string {
+    return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Reserva Confirmada</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; max-width: 600px; margin: 0 auto; color: #333;">
+  <div style="background-color: #4CAF50; padding: 20px; text-align: center; color: white;">
+    <h1 style="margin: 0;">✅ Reserva en ${reserve.complex.name}</h1>
+    <p style="margin: 5px 0 0; font-size: 1.2em;">${this.getSportName(reserve.court.sportType)} ${this.getSportIcon(reserve.court.sportType)}</p>
+  </div>
+  
+  <div style="padding: 20px;">
+    <p>Hola <strong>${reserve.clientName ?? 'Cliente'}</strong>,</p>
+    <p>Tu reserva en <strong>${reserve.complex.name}</strong> ha sido confirmada con éxito:</p>
+    
+    <!-- Información del complejo -->
+    <div style="background-color: #f0f7ff; border-radius: 8px; padding: 15px; margin: 15px 0; border: 1px solid #d0e3ff;">
+      <h3 style="margin-top: 0; color: #2c5282;">🏟️ Complejo Deportivo</h3>
+      <p style="margin: 5px 0;"><strong>${reserve.complex.name}</strong></p>
+      <p style="margin: 5px 0;">📍 ${reserve.complex.address}</p>
+      ${reserve.complex.phone ? `<p style="margin: 5px 0;">📞 ${reserve.complex.phone}</p>` : ''}
+      ${reserve.complex.website ? `<p style="margin: 5px 0;">🌐 <a href="${reserve.complex.website}" style="color: #2b6cb0;">${reserve.complex.website}</a></p>` : ''}
+    </div>
+    
+    <!-- Detalles de la reserva -->
+    <div style="background-color: #f9f9f9; border-left: 4px solid #4CAF50; padding: 15px; margin: 20px 0;">
+      <h3 style="margin-top: 0; color: #4CAF50;">📅 Detalles de la Reserva</h3>
+      <ul style="padding-left: 20px;">
+        <li><strong>Deporte:</strong> ${this.getSportName(reserve.court.sportType)} ${this.getSportIcon(reserve.court.sportType)}</li>
+        <li><strong>Fecha:</strong> ${new Date(reserve.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</li>
+        <li><strong>Hora:</strong> ${reserve.schedule}</li>
+        <li><strong>Cancha:</strong> ${reserve.court.name} (N° ${reserve.court.courtNumber})</li>
+        ${
+          reserve.court.characteristics?.length
+            ? `
+          <li>
+            <strong>Características:</strong>
+            <ul style="padding-left: 20px; margin-top: 5px;">
+              ${reserve.court.characteristics.map((feature) => `<li>${feature}</li>`).join('')}
+            </ul>
+          </li>
+        `
+            : ''
+        }
+      </ul>
+    </div>
+
+    <p style="text-align: center; background-color: #e3f2fd; padding: 12px; border-radius: 8px;">
+      ${this.getSportIcon(reserve.court.sportType)} ¡Que disfrutes tu partido de ${this.getSportName(reserve.court.sportType)} en ${reserve.complex.name}!
+    </p>
+    <div style="font-size: 0.9em; color: #666; border-top: 1px solid #eee; padding-top: 15px; margin-top: 20px;">
+      <p>Si tienes alguna pregunta, no dudes en contactar al complejo:</p>
+      ${reserve.complex.phone ? `<p>📞 Teléfono: <a href="tel:${reserve.complex.phone}">${reserve.complex.phone}</a></p>` : ''}
+      ${reserve.complex.email ? `<p>✉️ Email: <a href="mailto:${reserve.complex.email}">${reserve.complex.email}</a></p>` : ''}
+    </div>
+  </div>
+  
+  <div style="background-color: #f1f1f1; padding: 15px; text-align: center; font-size: 0.8em; color: #666;">
+    <p>© ${new Date().getFullYear()} ${reserve.complex.name}. Todos los derechos reservados.</p>
+  </div>
+</body>
+</html>
+`;
+  }
+
+  // Métodos auxiliares para convertir el enum a nombres legibles
+  private getSportName(sportType: SportName): string {
+    const sportNames = {
+      [SportName.FUTBOL_5]: 'Fútbol 5',
+      [SportName.FUTBOL_7]: 'Fútbol 7',
+      [SportName.FUTBOL_11]: 'Fútbol 11',
+      [SportName.PADEL]: 'Pádel',
+      [SportName.TENIS]: 'Tenis',
+      [SportName.BASKET]: 'Básquetbol',
+      [SportName.VOLEY]: 'Vóley',
+      [SportName.HOCKEY]: 'Hockey',
+    };
+    return sportNames[sportType] || 'Deporte';
+  }
+
+  private getSportIcon(sportType: SportName): string {
+    const sportIcons = {
+      [SportName.FUTBOL_5]: '⚽',
+      [SportName.FUTBOL_7]: '⚽',
+      [SportName.FUTBOL_11]: '⚽',
+      [SportName.PADEL]: '🎾',
+      [SportName.TENIS]: '🎾',
+      [SportName.BASKET]: '🏀',
+      [SportName.VOLEY]: '🏐',
+      [SportName.HOCKEY]: '🏒',
+    };
+    return sportIcons[sportType] || '🏆';
   }
 }

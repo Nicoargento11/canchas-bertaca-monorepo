@@ -1,0 +1,128 @@
+### Variables
+@baseUrl = http://localhost:8000
+@reserveId = cmd6ontyx0023oe0rem3vv7b1
+
+### ===== BUSCAR RESERVAS =====
+
+### Obtener reserva por ID
+GET {{baseUrl}}/reserves/{{reserveId}}
+
+### Buscar reservas paginadas
+GET {{baseUrl}}/reserves/paginate?page=1&limit=10
+
+### Buscar reservas por día
+GET {{baseUrl}}/reserves/by-day/reservations?date=2024-07-17&complexId=clm6u8trg0000h9nkac7w2bxh&sportTypeId=clm6u8trg0000h9nkac7w2bxh
+
+### ===== ELIMINAR RESERVAS =====
+
+### Eliminar reserva por ID
+DELETE {{baseUrl}}/reserves/{{reserveId}}
+
+### ===== ACTUALIZAR ESTADO =====
+
+### Cambiar estado a CANCELADO
+PATCH {{baseUrl}}/reserves/{{reserveId}}/status
+Content-Type: application/json
+
+{
+  "status": "CANCELADO"
+}
+
+### Cambiar estado a CONFIRMADO
+PATCH {{baseUrl}}/reserves/{{reserveId}}/status
+Content-Type: application/json
+
+{
+  "status": "CONFIRMADO"
+}
+
+### Cambiar estado a PENDIENTE
+PATCH {{baseUrl}}/reserves/{{reserveId}}/status
+Content-Type: application/json
+
+{
+  "status": "PENDIENTE"
+}
+
+### ===== CREAR RESERVA DE PRUEBA =====
+
+### Crear nueva reserva
+POST {{baseUrl}}/reserves
+Content-Type: application/json
+
+{
+  "clientName": "Juan Test",
+  "clientPhone": "123456789",
+  "clientEmail": "juan@test.com",
+  "date": "2024-07-18",
+  "schedule": "10:00-11:00",
+  "complexId": "clm6u8trg0000h9nkac7w2bxh",
+  "courtId": "clm6u8trg0000h9nkac7w2bxh",
+  "sportTypeId": "clm6u8trg0000h9nkac7w2bxh",
+  "price": 15000,
+  "status": "PENDIENTE"
+}
+
+### ===== ACTUALIZAR RESERVA =====
+
+### Actualizar reserva completa
+PATCH {{baseUrl}}/reserves/{{reserveId}}
+Content-Type: application/json
+
+{
+  "clientName": "Juan Actualizado",
+  "clientPhone": "987654321",
+  "price": 20000,
+  "status": "CONFIRMADO"
+}
+
+### ===== CONSULTAS ESPECÍFICAS =====
+
+### Ver horarios disponibles
+GET {{baseUrl}}/reserves/by-day/schedules?date=2024-07-18&complexId=clm6u8trg0000h9nkac7w2bxh&sportTypeId=clm6u8trg0000h9nkac7w2bxh
+
+### Ver disponibilidad diaria
+GET {{baseUrl}}/reserves/availability/daily?date=2024-07-18&complexId=clm6u8trg0000h9nkac7w2bxh&sportTypeId=clm6u8trg0000h9nkac7w2bxh
+
+### Ver disponibilidad para horario específico
+GET {{baseUrl}}/reserves/availability/schedule?date=2024-07-18&schedule=10:00-11:00&complexId=clm6u8trg0000h9nkac7w2bxh&sportTypeId=clm6u8trg0000h9nkac7w2bxh
+
+### ===== ENDPOINTS PARA ELIMINACIÓN RÁPIDA =====
+
+### Buscar reservas por nombre de cliente
+GET {{baseUrl}}/reserves/search?clientName=Juan
+
+### Buscar reservas por teléfono
+GET {{baseUrl}}/reserves/search?phone=123456789
+
+### Buscar reservas por fecha
+GET {{baseUrl}}/reserves/search?date=2024-07-17
+
+### Buscar reservas por estado
+GET {{baseUrl}}/reserves/search?status=PENDIENTE
+
+### ===== TESTING RÁPIDO =====
+
+### Test: Crear → Buscar → Actualizar → Eliminar
+POST {{baseUrl}}/reserves
+Content-Type: application/json
+
+{
+  "clientName": "Test Rápido",
+  "clientPhone": "999999999",
+  "clientEmail": "test@rapido.com",
+  "date": "2024-07-19",
+  "schedule": "15:00-16:00",
+  "complexId": "clm6u8trg0000h9nkac7w2bxh",
+  "courtId": "clm6u8trg0000h9nkac7w2bxh",
+  "sportTypeId": "clm6u8trg0000h9nkac7w2bxh",
+  "price": 10000,
+  "status": "PENDIENTE"
+}
+
+### ===== PRODUCCIÓN =====
+# Cambiar baseUrl para producción
+# @baseUrl = https://tu-api-produccion.railway.app
+
+### Test en producción
+GET https://tu-api-produccion.railway.app/reserves/paginate?page=1&limit=5

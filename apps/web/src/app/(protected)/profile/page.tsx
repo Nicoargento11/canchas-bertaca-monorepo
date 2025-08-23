@@ -1,22 +1,29 @@
 import Profile from "../_components/profile/profile";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { getSession } from "@/services/auth/session";
-import { getUserById } from "@/services/users/users";
+import { getComplexBySlug } from "@/services/complex/complex";
+import { getUserById } from "@/services/user/user";
+import { notFound } from "next/navigation";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({ params }: { params: Promise<{ slug: string }> }) {
+  // const { slug } = await params;
+
   const sessionUser = await getSession();
-  const userReserves = sessionUser?.user.id
-    ? await getUserById(sessionUser.user.id)
-    : null;
+  const { data: complejo } = await getComplexBySlug("bertaca");
+
+  if (!complejo) {
+    return notFound();
+  }
+  const { success, data, error } = await getUserById(sessionUser?.user.id!);
+  if (!success || !data) {
+    return <div>Error</div>;
+  }
+
   return (
-    <div className="w-full min-h-screen flex justify-center bg-gradient-to-t from-Primary-light/30 to-Primary-lighter/30 backdrop-blur-md">
-      <div className="py-10 w-full md:w-10/12 lg:w-8/12">
-        <TooltipProvider>
-          <div className="bg-white/30 backdrop-blur-lg border border-white/20 rounded-xl shadow-lg">
-            <Profile userData={userReserves} />
-          </div>
-        </TooltipProvider>
-      </div>
+    <div className="min-h-screen bg-gradient-to-br from-Primary-darker via-Primary to-Primary-light">
+      <TooltipProvider>
+        <Profile userData={data} slug={"bertaca"} />
+      </TooltipProvider>
     </div>
   );
 }

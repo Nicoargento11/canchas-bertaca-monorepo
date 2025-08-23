@@ -2,7 +2,24 @@ import { Injectable } from '@nestjs/common';
 import { CreateScheduleDayDto } from './dto/create-schedule-day.dto';
 import { UpdateScheduleDayDto } from './dto/update-schedule-day.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
+import {
+  Court,
+  FixedReserve,
+  Rate,
+  Schedule,
+  ScheduleDay,
+  User,
+} from '@prisma/client';
 
+export type ScheduleDayWithRelations = ScheduleDay & {
+  fixedReserves: (FixedReserve & {
+    user: User;
+    court: Court;
+  })[];
+  schedules: (Schedule & {
+    rates: Rate[];
+  })[];
+};
 @Injectable()
 export class ScheduleDayService {
   constructor(private prisma: PrismaService) {}
@@ -22,16 +39,26 @@ export class ScheduleDayService {
   async findOne(id: string) {
     return this.prisma.scheduleDay.findUnique({
       where: { id },
-      include: { FixedSchedule: true },
+      include: { fixedReserves: true },
     });
   }
 
-  async findByDay(dayOfWeek: number) {
+  async findByDay(
+    dayOfWeek: number,
+    complexId: string,
+    sportTypeId: string,
+  ): Promise<ScheduleDayWithRelations | null> {
     return this.prisma.scheduleDay.findFirst({
-      where: { dayOfWeek },
+      where: { dayOfWeek, complexId },
       include: {
-        FixedSchedule: { include: { user: true } },
-        schedules: { include: { rates: true } },
+        fixedReserves: {
+          include: { user: true, court: true },
+          where: { court: { sportTypeId } },
+        },
+        schedules: {
+          where: { sportTypeId },
+          include: { rates: true },
+        },
       },
     });
   }

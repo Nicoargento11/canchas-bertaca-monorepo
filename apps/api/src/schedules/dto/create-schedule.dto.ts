@@ -1,32 +1,33 @@
-// src/schedules/dto/create-schedule.dto.ts
-import { Type } from 'class-transformer';
-import {
-  IsString,
-  IsNotEmpty,
-  IsArray,
-  IsOptional,
-  IsNumber,
-} from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, Matches } from 'class-validator';
 
 export class CreateScheduleDto {
   @IsString()
   @IsNotEmpty()
+  @Matches(/^([01]?[0-9]|2[0-4]):[0-5][0-9]$/, {
+    message: 'Formato de hora inválido (HH:MM)',
+  })
   startTime: string;
 
   @IsString()
   @IsNotEmpty()
+  @Matches(/^([01]?[0-9]|2[0-4]):[0-5][0-9]$/, {
+    message: 'Formato de hora inválido (HH:MM)',
+  })
   endTime: string;
 
-  @IsNumber()
-  @IsNotEmpty()
-  scheduleDay: number;
+  @IsString()
+  scheduleDayId: string;
 
+  @IsString()
+  complexId?: string;
+
+  @IsString()
   @IsOptional()
-  @Type(() => String) // Asegura que el valor sea transformado a string
-  rates?: string | string[]; // Puede ser una sola tarifa o un array de tarifas
+  courtId?: string;
 
-  @IsArray()
-  @IsString({ each: true }) // Valida que cada elemento sea un string
-  @IsOptional() // Opcional porque se puede crear sin beneficios
-  benefits?: string[];
+  @IsString()
+  rateId: string;
+
+  @IsString()
+  sportTypeId: string;
 }

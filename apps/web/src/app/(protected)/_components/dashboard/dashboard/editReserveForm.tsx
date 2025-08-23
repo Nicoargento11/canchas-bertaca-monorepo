@@ -14,13 +14,8 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { editReserveAdminSchema } from "@/schemas";
 import { z } from "zod";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
 import {
@@ -33,39 +28,36 @@ import {
 import dayHours from "@/utils/dayHours";
 import { useDashboardDetailsModalStore } from "@/store/reserveDashboardDetailsModalStore";
 import { useDashboardEditReserveModalStore } from "@/store/editReserveDashboardModalStore";
-import { editReserve } from "@/services/reserves/reserves";
 import { format } from "date-fns";
-import { useToast } from "@/hooks/use-toast";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { getSchedules, Schedule } from "@/services/schedule/schedule";
 import { Card, CardContent } from "@/components/ui/card";
-import { useReserve } from "@/contexts/reserveContext";
+import { editReserveAdminSchema } from "@/schemas/reserve";
+import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
+import { updateReserve } from "@/services/reserve/reserve";
+import { toast } from "sonner";
 
 export const EditReserveForm = () => {
   const [isPending, startTransition] = useTransition();
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
 
-  const { handleChangeDetails } = useDashboardDetailsModalStore(
-    (state) => state
-  );
-  const { getReservesByDay } = useReserve();
+  const { handleChangeDetails } = useDashboardDetailsModalStore((state) => state);
+  const { fetchReservationsByDay, state } = useReservationDashboard();
+  const courts =
+    state.currentComplex?.courts.filter((court) => court.sportTypeId === state.sportType?.id) || [];
+
   const { reserve, date } = useDashboardDataStore((state) => state);
 
-  const { handleChangeEditReserve } = useDashboardEditReserveModalStore(
-    (state) => state
-  );
+  const { handleChangeEditReserve } = useDashboardEditReserveModalStore((state) => state);
   const selectedDate = date && format(date, "yyyy-MM-dd");
-
-  const { toast } = useToast();
-
   const form = useForm<z.infer<typeof editReserveAdminSchema>>({
     defaultValues:
-      reserve && reserve.User
+      reserve && reserve.user && date
         ? {
-            court: reserve.court,
-            date: new Date(date),
+            courtId: reserve.court.id,
+            date: date,
             schedule: reserve.schedule,
-            clientName: reserve.clientName || reserve.User.name,
+            clientName: reserve.clientName || reserve.user.name,
           }
         : undefined,
   });
@@ -74,40 +66,31 @@ export const EditReserveForm = () => {
     if (!reserve) return;
 
     startTransition(() => {
-      editReserve({
+      updateReserve(reserve.id, {
         ...values,
-        court: parseInt(values.court.toString()),
-        id: reserve.id,
+        courtId: values.courtId,
+        complexId: state.currentComplex?.id,
       }).then((data) => {
-        if (data?.succes) {
-          toast({
-            duration: 3000,
-            variant: "default",
-            title: "¡Excelente!",
-            description: data.succes,
-          });
+        if (data?.success) {
+          toast.success("La reserva se ha editado correctamente");
         }
         if (data?.error) {
-          toast({
-            duration: 3000,
-            variant: "destructive",
-            title: "¡Error!",
-            description: data.error,
-          });
+          toast.error(data.error);
         }
-        getReservesByDay(selectedDate);
+        if (selectedDate) {
+          fetchReservationsByDay(selectedDate, state.currentComplex?.id!, state.sportType?.id);
+        }
         handleChangeEditReserve();
         handleChangeDetails();
       });
     });
   };
-
   useEffect(() => {
     if (reserve) {
       const fetchData = async () => {
         try {
-          const data = await getSchedules();
-          setSchedules(data);
+          const { data: schedules } = await getSchedules();
+          if (schedules) setSchedules(schedules);
         } catch (error) {
           console.error("Error fetching schedules:", error);
         }
@@ -180,20 +163,22 @@ export const EditReserveForm = () => {
                   >
                     <FormControl>
                       <SelectTrigger className="border-Neutral text-lg">
-                        <SelectValue placeholder="Selecciona un horario" />
+                        {/* Mostrar el horario actual si existe */}
+                        <SelectValue placeholder={field.value || "Selecciona un horario"} />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {reserve &&
-                        schedules &&
-                        dayHours(
-                          new Date(reserve.date).getDay(),
-                          schedules
-                        ).map((hour, index) => (
-                          <SelectItem key={index} value={hour}>
-                            {hour}
+                      {schedules && reserve ? (
+                        dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => (
+                          <SelectItem key={hour.timeRange} value={hour.timeRange}>
+                            {hour.timeRange}
                           </SelectItem>
-                        ))}
+                        ))
+                      ) : (
+                        <SelectItem value="cargando..." disabled>
+                          Cargando horarios...
+                        </SelectItem>
+                      )}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -204,27 +189,31 @@ export const EditReserveForm = () => {
             {/* Campo Cancha */}
             <FormField
               control={form.control}
-              name="court"
+              name="courtId"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel className="flex items-center gap-2 text-Neutral-dark">
-                    <Icon
-                      iconNode={soccerPitch}
-                      className="text-Primary"
-                      size={20}
-                    />
+                    <Icon iconNode={soccerPitch} className="text-Primary" size={20} />
                     Cancha
                   </FormLabel>
-                  <FormControl>
-                    <Input
-                      {...field}
-                      disabled={isPending}
-                      type="number"
-                      min="1"
-                      max="4"
-                      className="border-Neutral text-lg"
-                    />
-                  </FormControl>
+                  <Select
+                    onValueChange={field.onChange}
+                    value={field.value}
+                    disabled={isPending || courts.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger className="border-Neutral text-lg">
+                        <SelectValue placeholder="Selecciona una cancha" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {courts.map((court) => (
+                        <SelectItem key={court.id} value={court.id.toString()}>
+                          Cancha {court.courtNumber}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}

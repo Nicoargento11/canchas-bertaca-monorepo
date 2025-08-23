@@ -1,48 +1,91 @@
-import { PaymentMethod } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { PaymentMethod, ReserveType, TransactionType } from '@prisma/client';
 import {
-  IsString,
-  IsDate,
-  IsInt,
-  IsPhoneNumber,
+  IsBoolean,
+  IsEnum,
+  IsISO8601,
   IsNotEmpty,
   IsNumber,
-  IsPositive,
-  IsEnum,
-  IsBoolean,
+  IsOptional,
+  IsString,
 } from 'class-validator';
 
 export class CreatePaymentOnlineDto {
-  @IsNotEmpty()
-  @IsDate()
-  @Type(() => Date)
+  @ApiProperty({
+    description: 'Fecha de la reserva',
+    example: '2023-12-25T10:00:00Z',
+  })
+  @IsISO8601()
   date: Date;
 
+  @ApiProperty({
+    description: 'Horario de la reserva',
+    example: '10:00-11:00',
+  })
   @IsString()
-  @IsNotEmpty()
   schedule: string;
 
-  @IsInt()
-  @IsNotEmpty()
-  court: number;
+  @ApiProperty({
+    description: 'ID de la cancha',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsString()
+  courtId: string;
 
-  @IsInt()
+  @ApiProperty({ description: 'Precio total', example: 5000 })
+  @IsNumber()
   price: number;
 
-  @IsInt()
+  @ApiProperty({ description: 'Monto de reserva', example: 2500 })
+  @IsNumber()
   reservationAmount: number;
 
-  @IsPhoneNumber('AR') // Cambiar 'AR' al código de país si es necesario
+  @ApiProperty({
+    description: 'Teléfono del cliente',
+    example: '+5491123456789',
+  })
+  @IsString()
   phone: string;
 
+  @ApiProperty({ description: 'Nombre del cliente', example: 'Juan Pérez' })
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
+  clientName?: string;
+
+  @ApiProperty({
+    description: 'ID del usuario',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsString()
   userId: string;
+
+  @ApiProperty({
+    description: 'ID del complejo',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsString()
+  complexId: string;
+
+  @ApiPropertyOptional({
+    description: 'Tipo de reserva',
+    enum: ReserveType,
+  })
+  @IsOptional()
+  @IsEnum(ReserveType)
+  reserveType?: ReserveType;
+
+  @ApiPropertyOptional({
+    description: 'ID de reserva fija si aplica',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsOptional()
+  @IsString()
+  fixedReserveId?: string;
 }
 
 export class CreatePaymentDto {
   @IsNumber()
-  @IsPositive()
+  @IsNotEmpty()
   amount: number;
 
   @IsEnum(PaymentMethod)
@@ -52,6 +95,33 @@ export class CreatePaymentDto {
   @IsNotEmpty()
   isPartial: boolean;
 
+  @IsEnum(TransactionType)
   @IsNotEmpty()
+  transactionType: TransactionType;
+
+  @IsOptional()
+  @IsNotEmpty()
+  reserveId?: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  complexId?: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  cashSessionId?: string;
+}
+
+export class PaymentPreferenceResponseDto {
+  @ApiProperty({ description: 'ID de la preferencia de pago' })
+  id: string;
+
+  @ApiProperty({ description: 'URL de inicio de pago' })
+  init_point: string;
+
+  @ApiProperty({ description: 'ID de la reserva creada' })
   reserveId: string;
+
+  @ApiProperty({ description: 'Token de pago para verificación' })
+  paymentToken: string;
 }

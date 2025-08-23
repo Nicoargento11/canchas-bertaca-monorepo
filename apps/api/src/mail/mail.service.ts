@@ -1,6 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import * as nodemailer from 'nodemailer';
 
+interface MailOptions {
+  to: string;
+  subject: string;
+  text: string;
+  html?: string; // HTML es opcional
+}
+
 @Injectable()
 export class MailService {
   private transporter;
@@ -15,12 +22,14 @@ export class MailService {
     });
   }
 
-  async sendMail(mailOptions: { to: string; subject: string; text: string }) {
+  async sendMail(mailOptions: MailOptions) {
     try {
-      console.log(mailOptions);
       await this.transporter.sendMail({
         from: process.env.EMAIL_USER,
-        ...mailOptions,
+        to: mailOptions.to,
+        subject: mailOptions.subject,
+        text: mailOptions.text,
+        html: mailOptions.html, // se envía si existe
       });
     } catch (error) {
       console.error('Error sending email:', error);

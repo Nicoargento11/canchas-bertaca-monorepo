@@ -1,124 +1,121 @@
-import React, { useEffect, useState } from "react";
-import { format } from "date-fns";
+import React, { useEffect, useMemo, useState } from "react";
+import { format, isAfter, parse } from "date-fns";
 import { es } from "date-fns/locale";
 import { SkeletonModal } from "@/components/skeletonModal";
-import dayHours from "@/utils/dayHours";
-// import beerService from "@/utils/beerService";
-// import { CupSoda } from "lucide-react";
-import { useReserve } from "@/contexts/reserveContext";
-import { FixedSchedule } from "@/services/fixed-schedules/fixedSchedules";
-import { Schedule } from "@/services/schedule/schedule";
+import { useReserve } from "@/contexts/newReserveContext";
+import { Complex } from "@/services/complex/complex";
+import { CalendarX } from "lucide-react";
+import { SportType } from "@/services/sport-types/sport-types";
+import { createAdjustedDateTime } from "@/utils/timeValidation";
 
 interface AvailableTurnsProps {
-  fixedSchedules: FixedSchedule[];
-  schedules: Schedule[];
+  complex: Complex;
+  sportType: SportType;
 }
-const AvailableTurns = ({ fixedSchedules, schedules }: AvailableTurnsProps) => {
+
+const AvailableTurns = ({ complex, sportType }: AvailableTurnsProps) => {
   const {
-    reserveForm,
-    handleReserveForm,
-    getAvailableReservesByDay,
-    availableReservesByDay,
+    state,
+    getCurrentReservation,
+    updateReservationForm,
+    fetchAvailability,
+    goToNextStep,
+    setHasAvailableTurns,
   } = useReserve();
 
-  const formatedDay = format(reserveForm.day, "yyyy-MM-dd");
-
-  const [isLoading, setLoading] = useState(true);
+  const currentReservation = getCurrentReservation();
+  const selectedDate = currentReservation?.form.day;
+  const availabilityByDay = currentReservation?.availability.byDay || [];
+  const [currentTime, setCurrentTime] = useState(new Date());
 
   useEffect(() => {
-    getAvailableReservesByDay(formatedDay);
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (selectedDate) {
+      fetchAvailability("day", format(selectedDate, "yyyy-MM-dd"));
+    }
+  }, [selectedDate]);
+  // Filtrar horarios disponibles, eliminando los que ya pasaron
+  availabilityByDay;
+  const filteredAvailability = useMemo(() => {
+    if (!selectedDate) return availabilityByDay;
 
-  // Obtener el día de la semana del día seleccionado (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
-  const selectedDayOfWeek = reserveForm.day.getDay();
+    const today = new Date();
+    const isToday = format(selectedDate, "yyyy-MM-dd") === format(today, "yyyy-MM-dd");
 
-  // Filtrar los turnos fijos que coincidan con el día de la semana seleccionado
-  const fixedSchedulesForDay = fixedSchedules.filter(
-    (fixedSchedule) =>
-      fixedSchedule.scheduleDay.dayOfWeek === selectedDayOfWeek &&
-      fixedSchedule.isActive
-  );
+    if (!isToday) return availabilityByDay;
 
-  // Obtener los horarios ocupados por turnos fijos
-  const fixedScheduleHours = fixedSchedulesForDay.map(
-    (fixedSchedule) => fixedSchedule.startTime
-  );
+    return availabilityByDay.filter((horario) => {
+      // Parsear la hora del horario (ej: "09:00 - 10:00" -> extraer "09:00")
+      const startTimeStr = horario.schedule.split(" - ")[0];
+      const horarioTime = createAdjustedDateTime(today, startTimeStr);
 
-  // Obtener los horarios ocupados por reservas normales
-  const fullSchedules =
-    (availableReservesByDay &&
-      availableReservesByDay.filter((turno) => turno.court.length <= 0)) ??
-    [];
+      // Comparar con la hora actual
+      return isAfter(horarioTime, currentTime);
+    });
+  }, [availabilityByDay, selectedDate, currentTime]);
+
+  // Calcular si hay turnos disponibles (con canchas disponibles)
+  const hasAvailableTurns = useMemo(() => {
+    return filteredAvailability.some((horario) => horario.court.length > 0);
+  }, [filteredAvailability]);
+
+  // Actualizar el estado en el contexto cuando cambie la disponibilidad
+  useEffect(() => {
+    setHasAvailableTurns(hasAvailableTurns);
+  }, [hasAvailableTurns, setHasAvailableTurns]);
+
+  if (!currentReservation || !selectedDate || currentReservation.loading) {
+    return <SkeletonModal />;
+  }
+
+  const handleTimeSelect = (timeRange: string) => {
+    updateReservationForm("hour", timeRange);
+    goToNextStep();
+  };
 
   return (
     <div className="pt-2">
-      {isLoading ? (
-        <SkeletonModal />
-      ) : (
-        reserveForm.day && (
-          <div>
-            {/* Título y fecha */}
-            <div className="text-center mb-6">
-              <p className="font-bold text-2xl text-Primary">
-                Turnos disponibles
-              </p>
-              <p className="text-lg text-Neutral-dark">
-                {format(reserveForm.day, "d' de 'MMMM", { locale: es })}
-              </p>
-            </div>
+      <div>
+        <div className="text-center mb-6">
+          <p className="font-bold text-2xl text-Primary">Turnos disponibles</p>
+          <p className="text-lg text-Neutral-dark">
+            {format(selectedDate, "d' de 'MMMM", { locale: es })}
+          </p>
+        </div>
 
-            {/* Lista de turnos */}
-            <ul className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-              {dayHours(selectedDayOfWeek, schedules)
-                .filter(
-                  (horario) =>
-                    !fullSchedules?.find(
-                      (turno) => turno.schedule === horario
-                    ) && // Filtra horarios ocupados por reservas normales
-                    !fixedScheduleHours.includes(horario) // Filtra horarios ocupados por turnos fijos
-                )
-                .map((horario, index) => (
-                  <li
-                    key={index}
-                    className={`${
-                      reserveForm.hour === horario
-                        ? "border-Primary bg-Primary text-white shadow-lg"
-                        : "border-Neutral-light bg-white text-Primary hover:bg-Primary-light hover:text-white"
-                    } border-2 rounded-xl p-4 text-center cursor-pointer font-bold transition-all duration-200 ease-in-out transform hover:scale-105`}
-                    onClick={() => handleReserveForm("hour", horario)}
-                  >
-                    {/* Contenedor de la hora y el icono de cerveza */}
-                    <div className="flex flex-col justify-center items-center gap-2">
-                      {/* Icono de cerveza */}
-                      {/* {beerService(horario) && (
-                        <div className="w-8 h-8 bg-Accent-1 rounded-full flex items-center justify-center">
-                          <CupSoda
-                            color={
-                              reserveForm.hour === horario ? "white" : "#096FB1"
-                            }
-                            size={18}
-                          />
-                        </div>
-                      )} */}
-
-                      {/* Hora del turno */}
-                      <span className="text-lg">{horario}</span>
-                    </div>
-
-                    {/* Indicador de cerveza (texto) */}
-                    {/* {beerService(horario) && (
-                      <span className="block text-sm text-Accent-1 mt-1">
-                        ¡Cerveza incluida!
-                      </span>
-                    )} */}
-                  </li>
-                ))}
-            </ul>
-          </div>
-        )
-      )}
+        <ul className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredAvailability.length === 0 ? (
+            <li className="col-span-full py-10 text-center">
+              <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md border border-Neutral-light">
+                <CalendarX className="w-12 h-12 mx-auto text-Primary mb-4" />
+                <h3 className="text-lg font-bold text-Primary mb-2">No hay turnos disponibles</h3>
+                <p className="text-Neutral-dark mb-4">
+                  {format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
+                    ? "Los turnos para hoy ya han pasado o no hay disponibilidad."
+                    : "Lo sentimos, no hay horarios libres para este día."}
+                </p>
+              </div>
+            </li>
+          ) : (
+            filteredAvailability.map((horario, index) =>
+              horario.court.length > 0 ? (
+                <li
+                  key={index}
+                  className={`${
+                    currentReservation.form.hour === horario.schedule
+                      ? "border-Primary bg-Primary text-white shadow-lg"
+                      : "border-Neutral-light bg-white text-Primary hover:bg-Primary-light hover:text-white"
+                  } border-2 rounded-xl p-4 text-center cursor-pointer font-bold transition-all duration-200`}
+                  onClick={() => handleTimeSelect(horario.schedule)}
+                >
+                  <div className="flex flex-col justify-center items-center gap-2">
+                    <span className="text-lg">{horario.schedule}</span>
+                  </div>
+                </li>
+              ) : null
+            )
+          )}
+        </ul>
+      </div>
     </div>
   );
 };

@@ -22,19 +22,59 @@ import { Modal } from "@/components/modals/modal";
 import { useDashboardEditReserveModalStore } from "@/store/editReserveDashboardModalStore";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { format } from "date-fns";
+import { SessionPayload } from "@/services/auth/session";
+import { deleteReserve } from "@/services/reserve/reserve";
+import { startTransition } from "react";
+import { toast } from "sonner";
+import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
+import { toggleFixedReserveStatus } from "@/services/fixed-reserve/fixed-reserve";
 
-const ReserveDetailsModal = () => {
-  const { isOpen, handleChangeDetails } = useDashboardDetailsModalStore(
-    (state) => state
-  );
+interface ReserveDetailsModalProps {
+  userSession: SessionPayload | null | undefined;
+}
+const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
+  // store modal state
+  const { isOpen, handleChangeDetails } = useDashboardDetailsModalStore((state) => state);
+  const { handleChangeEditReserve } = useDashboardEditReserveModalStore((state) => state);
 
-  const { handleChangeEditReserve } = useDashboardEditReserveModalStore(
-    (state) => state
-  );
+  const { fetchReservationsByDay, state } = useReservationDashboard();
 
-  const { reserve } = useDashboardDataStore((state) => state);
-  const { date } = useDashboardDataStore((state) => state);
+  const { reserve, date } = useDashboardDataStore((state) => state);
+  const selectedDate = date && format(date, "yyyy-MM-dd");
+  console.log(reserve);
+  const handleDeleteReserve = async (id: string) => {
+    startTransition(async () => {
+      try {
+        // Primero, elimina la reserva
+        const deleteData = await deleteReserve(id);
 
+        if (deleteData?.error) {
+          toast.error(deleteData.error);
+          return; // Detiene la ejecución si hay un error
+        }
+
+        if (deleteData?.success) {
+          toast.success("La reserva se ha eliminado correctamente");
+
+          // Si es una reserva fija, actualiza su estado
+          if (reserve?.fixedReserveId) {
+            await toggleFixedReserveStatus(reserve.fixedReserveId, false);
+          }
+
+          // Finalmente, actualiza la vista del dashboard
+          if (selectedDate && state.currentComplex?.id && state.sportType?.id) {
+            await fetchReservationsByDay(selectedDate, state.currentComplex.id, state.sportType.id);
+          }
+
+          // Cierra el modal de detalles
+          handleChangeDetails();
+        }
+      } catch (error) {
+        toast.error("Ocurrió un error inesperado al eliminar la reserva.");
+        console.error("Error deleting reserve:", error);
+      }
+    });
+  };
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "APROBADO":
@@ -44,14 +84,12 @@ const ReserveDetailsModal = () => {
       case "RECHAZADO":
         return <Badge className="bg-Error text-white">Cancelado</Badge>;
       default:
-        return (
-          <Badge className="bg-Neutral-dark text-white">Desconocido</Badge>
-        );
+        return <Badge className="bg-Neutral-dark text-white">Desconocido</Badge>;
     }
   };
 
   const reserveDetails =
-    reserve && reserve.User ? (
+    reserve && reserve.user ? (
       <div className="space-y-4">
         {/* Información del Cliente */}
         <Card className="border border-Neutral">
@@ -66,7 +104,7 @@ const ReserveDetailsModal = () => {
               <div>
                 <p className="text-sm text-black font-medium">Nombre</p>
                 <p className="font-medium text-Primary-darker">
-                  {reserve.clientName || reserve.User.name}
+                  {reserve.clientName || reserve.user.name}
                 </p>
               </div>
             </div>
@@ -75,9 +113,7 @@ const ReserveDetailsModal = () => {
               <Mail className="text-Primary" size={20} />
               <div>
                 <p className="text-sm text-black font-medium">Email</p>
-                <p className="font-medium text-Primary-darker">
-                  {reserve.User.email}
-                </p>
+                <p className="font-medium text-Primary-darker">{reserve.user.email}</p>
               </div>
             </div>
 
@@ -101,41 +137,54 @@ const ReserveDetailsModal = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4">
+            {" "}
             <div className="flex items-center gap-4">
               <CalendarDays className="text-Primary" size={20} />
               <div>
                 <p className="text-sm text-black font-medium">Fecha</p>
                 <p className="font-medium text-Primary-darker">
-                  {format(new Date(date), "PPP")}
+                  {date ? format(new Date(date), "PPP") : "Fecha no disponible"}
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <Clock9 className="text-Primary" size={20} />
               <div>
                 <p className="text-sm text-black font-medium">Horario</p>
-                <p className="font-medium text-Primary-darker">
-                  {reserve.schedule}
-                </p>
+                <p className="font-medium text-Primary-darker">{reserve.schedule}</p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <Icon iconNode={soccerPitch} className="text-Primary" size={20} />
               <div>
                 <p className="text-sm text-black font-medium">Cancha</p>
                 <p className="font-medium text-Primary-darker">
-                  Cancha {reserve.court}
+                  Cancha {reserve.court.courtNumber}
                 </p>
               </div>
             </div>
-
             <div className="flex items-center gap-4">
               <AlertCircle className="text-Primary" size={20} />
               <div>
                 <p className="text-sm text-black font-medium">Estado</p>
                 {getStatusBadge(reserve.status)}
+              </div>
+            </div>
+            <div className="flex items-center gap-4 md:col-span-2">
+              <CalendarDays className="text-Primary" size={20} />
+              <div>
+                <p className="text-sm text-black font-medium">Fecha de Creación</p>
+                <p className="font-medium text-Primary-darker">
+                  {new Date(reserve.createdAt).toLocaleString("es-AR", {
+                    timeZone: "America/Argentina/Buenos_Aires",
+                    day: "2-digit", // Día en 2 dígitos (ej: "05")
+                    month: "2-digit", // Mes en 2 dígitos (ej: "07")
+                    year: "numeric", // Año (ej: "2025")
+                    hour: "2-digit", // Hora en 2 dígitos (ej: "02" PM)
+                    minute: "2-digit", // Minutos (ej: "30")
+                    hour12: true, // Formato AM/PM
+                  })}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -167,12 +216,13 @@ const ReserveDetailsModal = () => {
               <div>
                 <p className="text-sm text-black font-medium">Monto faltante</p>
                 <p className="font-medium text-Primary-darker">
-                  {(
-                    (reserve.price ?? 0) - (reserve.reservationAmount ?? 0)
-                  ).toLocaleString("es-AR", {
-                    style: "currency",
-                    currency: "ARS",
-                  })}
+                  {((reserve.price ?? 0) - (reserve.reservationAmount ?? 0)).toLocaleString(
+                    "es-AR",
+                    {
+                      style: "currency",
+                      currency: "ARS",
+                    }
+                  )}
                 </p>
               </div>
             </div>
@@ -198,6 +248,16 @@ const ReserveDetailsModal = () => {
             onClick={() => handleChangeEditReserve()}
           >
             Editar Reserva
+          </Button>
+        )}
+
+        {userSession?.user.role === "COMPLEJO_ADMIN" && (
+          <Button
+            onClick={() => handleDeleteReserve(reserve.id)}
+            // disabled={}
+            className="w-full bg-Error hover:bg-Error-dark text-white py-4 text-base font-medium"
+          >
+            Eliminar Reserva
           </Button>
         )}
       </div>

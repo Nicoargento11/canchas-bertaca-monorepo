@@ -7,6 +7,7 @@ interface PricingResult {
   rateName: string;
   schedule: string;
   dayOfWeek: number;
+  availableCourts: string[]; // Nuevo: IDs de canchas disponibles
 }
 
 const timeToMinutes = (time: string): number => {
@@ -14,58 +15,93 @@ const timeToMinutes = (time: string): number => {
   return hours * 60 + minutes;
 };
 
+// Función para verificar si un horario está dentro de otro, considerando cruce de medianoche
+const isTimeRangeWithin = (
+  requestedStart: number,
+  requestedEnd: number,
+  scheduleStart: number,
+  scheduleEnd: number
+): boolean => {
+  // Caso normal: el horario del schedule no cruza medianoche
+  if (scheduleStart < scheduleEnd) {
+    return requestedStart >= scheduleStart && requestedEnd <= scheduleEnd;
+  }
+  // Caso horario del schedule CRUZA medianoche
+  else {
+    // El horario solicitado puede estar:
+    // 1. Completamente en el primer segmento (ej: 14:00-18:00)
+    // 2. Completamente en el segundo segmento (ej: 00:00-02:00)
+    // 3. Cruzando medianoche (ej: 23:00-01:00)
+    return (
+      (requestedStart >= scheduleStart && requestedEnd <= 1440) || // Caso 1
+      (requestedStart >= 0 && requestedEnd <= scheduleEnd) || // Caso 2
+      (requestedStart >= scheduleStart && requestedEnd <= scheduleEnd + 1440) // Caso 3
+    );
+  }
+};
+
 const priceCalculator = (
   day: Date,
   timeRange: string, // Formato "HH:MM - HH:MM"
-  schedules: Schedule[]
+  schedules: Schedule[],
+  courtId?: string // Opcional: filtrar por cancha específica
 ): PricingResult | null => {
   try {
-    // 1. Validar formato del rango horario
+    // Validar formato del rango horario
     if (!timeRange.includes(" - ") || timeRange.split(" - ").length !== 2) {
       throw new Error("Formato de horario inválido. Use 'HH:MM - HH:MM'");
     }
 
-    // 2. Obtener día de la semana (0-6)
     const dayOfWeek = day.getDay();
     const [startTime, endTime] = timeRange.split(" - ");
-
     const selectedStartMinutes = timeToMinutes(startTime);
     const selectedEndMinutes = timeToMinutes(endTime);
 
-    // 3. Buscar el schedule que coincida con día y horario
-    const matchingSchedule = schedules.find((s) => {
+    // Buscar TODOS los schedules que coincidan (no solo el primero)
+    const matchingSchedules = schedules.filter((s) => {
       const scheduleStartMinutes = timeToMinutes(s.startTime);
       const scheduleEndMinutes = timeToMinutes(s.endTime);
 
       return (
-        s.scheduleDay.dayOfWeek === dayOfWeek &&
-        selectedStartMinutes >= scheduleStartMinutes &&
-        selectedEndMinutes <= scheduleEndMinutes &&
-        s.scheduleDay.isActive
+        s.scheduleDay?.dayOfWeek === dayOfWeek &&
+        s.scheduleDay.isActive &&
+        (courtId ? s.courtId === courtId : true) &&
+        isTimeRangeWithin(
+          selectedStartMinutes,
+          selectedEndMinutes,
+          scheduleStartMinutes,
+          scheduleEndMinutes
+        )
       );
     });
-    if (!matchingSchedule) {
-      console.warn(
-        `No se encontró horario activo para ${timeRange} en día ${dayOfWeek}`
-      );
+
+    if (matchingSchedules.length === 0) {
+      console.warn(`No se encontraron horarios activos para ${timeRange} en día ${dayOfWeek}`);
       return null;
     }
 
-    // 4. Verificar tarifas disponibles
-    if (!matchingSchedule.rates || matchingSchedule.rates.length === 0) {
-      console.warn(`El horario ${timeRange} no tiene tarifas configuradas`);
+    // Obtener todas las tarifas disponibles de todos los schedules coincidentes
+    const allRates = matchingSchedules.flatMap((s) => s.rates || []);
+
+    if (allRates.length === 0) {
+      console.warn(`Los horarios encontrados no tienen tarifas configuradas`);
       return null;
     }
 
-    // 5. Seleccionar tarifa principal (aquí puedes implementar lógica más compleja si hay múltiples tarifas)
-    const rate = selectRate(matchingSchedule.rates);
+    // Seleccionar la tarifa (puede implementar lógica más compleja aquí)
+    const rate = selectRate(allRates);
+    // Obtener canchas disponibles (opcional)
+    const availableCourts = matchingSchedules
+      .map((s) => s.courtId)
+      .filter((id): id is string => !!id); // Filtra valores undefined
 
     return {
       price: rate.price,
       reservationAmount: rate.reservationAmount,
       rateName: rate.name,
-      schedule: `${matchingSchedule.startTime} - ${matchingSchedule.endTime}`,
-      dayOfWeek: matchingSchedule.scheduleDay.dayOfWeek,
+      schedule: timeRange,
+      dayOfWeek,
+      availableCourts, // Nuevo: lista de canchas disponibles
     };
   } catch (error) {
     console.error("Error en priceCalculator:", error);
@@ -73,10 +109,15 @@ const priceCalculator = (
   }
 };
 
-const selectRate = (rates: Rate[]) => {
-  // Aquí puedes implementar lógica para seleccionar entre múltiples tarifas
-  // Ejemplo: buscar tarifa especial, promocional, etc.
-  return rates[0]; // Por defecto toma la primera
+// Función mejorada para seleccionar tarifas entre múltiples opciones
+const selectRate = (rates: Rate[]): Rate => {
+  // Aquí puedes implementar lógica más sofisticada:
+  // - Priorizar tarifas especiales
+  // - Usar el promedio si hay múltiples tarifas
+  // - Filtrar por algún criterio
+
+  // Ejemplo: tomar la tarifa más baja
+  return rates.reduce((lowest, current) => (current.price < lowest.price ? current : lowest));
 };
 
 export default priceCalculator;

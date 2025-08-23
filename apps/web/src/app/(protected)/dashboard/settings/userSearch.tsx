@@ -2,34 +2,43 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SendDataUser, User } from "@/services/users/users"; // Asegúrate de tener la interfaz User definida
+import { SendDataUser, User } from "@/services/user/user";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"; // Importa componentes de diálogo/modal
+} from "@/components/ui/dialog";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 interface UserSearchProps {
-  users: User[]; // Lista de usuarios existentes
-  onSelectUser: (user: User) => void; // Callback al seleccionar un usuario
-  onCreateUser: (user: SendDataUser) => void; // Callback al crear un nuevo usuario
+  users: User[];
+  onSelectUser: (user: User) => void;
+  onCreateUser: (user: SendDataUser) => Promise<void>;
+  isLoading?: boolean;
 }
 
-const UserSearch = ({ users, onSelectUser, onCreateUser }: UserSearchProps) => {
+const UserSearch = ({ users, onSelectUser, onCreateUser, isLoading }: UserSearchProps) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filteredUsers, setFilteredUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false); // Estado para controlar el diálogo
-  const [newUser, setNewUser] = useState({ name: "", email: "", password: "" });
-
-  // Filtrar usuarios según el término de búsqueda
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+  });
+  const [isCreatingUser, setIsCreatingUser] = useState(false);
   const handleSearch = (term: string) => {
     setSearchTerm(term);
     if (term) {
-      const filtered = users.filter((user) =>
-        user.name.toLowerCase().includes(term.toLowerCase())
+      const filtered = users.filter(
+        (user) =>
+          user.name.toLowerCase().includes(term.toLowerCase()) ||
+          user.email.toLowerCase().includes(term.toLowerCase())
       );
       setFilteredUsers(filtered);
     } else {
@@ -37,145 +46,211 @@ const UserSearch = ({ users, onSelectUser, onCreateUser }: UserSearchProps) => {
     }
   };
 
-  // Seleccionar un usuario de la lista
   const handleSelectUser = (user: User) => {
     setSelectedUser(user);
     onSelectUser(user);
-    setSearchTerm(""); // Limpiar el campo de búsqueda
-    setFilteredUsers([]); // Ocultar la lista de usuarios filtrados
+    setSearchTerm("");
+    setFilteredUsers([]);
   };
 
-  // Crear un nuevo usuario
-  const handleCreateUser = () => {
-    if (newUser.name && newUser.email && newUser.password) {
-      onCreateUser(newUser);
+  const validateUser = (): boolean => {
+    if (!newUser.name.trim()) {
+      toast.error("El nombre es requerido");
+      return false;
+    }
+
+    if (!newUser.email.trim()) {
+      toast.error("El email es requerido");
+      return false;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newUser.email)) {
+      toast.error("Ingrese un email válido");
+      return false;
+    }
+
+    if (!newUser.password || newUser.password.length < 6) {
+      toast.error("La contraseña debe tener al menos 6 caracteres");
+      return false;
+    }
+
+    if (users.some((u) => u.email === newUser.email)) {
+      toast.error("Ya existe un usuario con este email");
+      return false;
+    }
+
+    return true;
+  };
+
+  const handleCreateUser = async () => {
+    if (!validateUser()) return;
+
+    setIsCreatingUser(true);
+    try {
+      await onCreateUser(newUser);
       setNewUser({ name: "", email: "", password: "" });
-      setSearchTerm(""); // Limpiar el campo de búsqueda
-      setIsDialogOpen(false); // Cerrar el diálogo
+      setIsDialogOpen(false);
+    } catch (error) {
+      toast.error("Error al crear el usuario");
+    } finally {
+      setIsCreatingUser(false);
     }
   };
 
   return (
-    <div className="space-y-4">
-      {/* Campo de búsqueda */}
-      <Input
-        placeholder="Buscar usuario por nombre"
-        value={searchTerm}
-        onChange={(e) => handleSearch(e.target.value)}
-      />
+    <div className="space-y-3">
+      <div className="relative">
+        <Input
+          placeholder="Buscar usuario por nombre o email"
+          value={searchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+          disabled={!!selectedUser || isLoading}
+        />
+        {isLoading && (
+          <div className="absolute right-3 top-3">
+            <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
+          </div>
+        )}
+      </div>
 
-      {/* Lista de usuarios filtrados */}
       {filteredUsers.length > 0 && (
-        <div className="border border-blue-200 rounded-lg p-1 max-h-40 overflow-y-auto shadow-md bg-white">
+        <div className="border border-gray-200 rounded-lg max-h-60 overflow-y-auto shadow-sm bg-white scrollbar-custom">
           {filteredUsers.map((user) => (
             <div
               key={user.id}
-              className="p-3 hover:bg-blue-50 cursor-pointer rounded-lg transition-all duration-200 ease-in-out border-b border-blue-100 last:border-b-0"
+              className="p-3 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
               onClick={() => handleSelectUser(user)}
             >
-              <div className="flex flex-col space-y-1">
-                <span className="text-sm font-medium text-blue-900">
-                  {user.name}
-                </span>
-                <span className="text-xs text-blue-600">{user.email}</span>
+              <div className="flex flex-col">
+                <span className="text-sm font-medium text-gray-800">{user.name}</span>
+                <span className="text-xs text-gray-500">{user.email}</span>
               </div>
             </div>
           ))}
-          {/* Estilos personalizados para la barra de desplazamiento */}
-          <style>
-            {`
-      .scrollbar-custom::-webkit-scrollbar {
-        width: 6px;
-      }
-      .scrollbar-custom::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 4px;
-      }
-      .scrollbar-custom::-webkit-scrollbar-thumb {
-        background: #888;
-        border-radius: 4px;
-      }
-      .scrollbar-custom::-webkit-scrollbar-thumb:hover {
-        background: #555;
-      }
-    `}
-          </style>
         </div>
       )}
 
-      {/* Mensaje si no se encuentran usuarios */}
       {searchTerm && filteredUsers.length === 0 && (
-        <div className="text-gray-500">No se encontraron usuarios.</div>
+        <div className="text-gray-500 text-sm py-2">No se encontraron usuarios</div>
       )}
 
-      {/* Badge del usuario seleccionado */}
-      {selectedUser && (
-        <div className="flex items-center justify-between bg-blue-50 p-2 rounded-lg border border-blue-200">
-          <span className="text-sm text-blue-800">
-            Usuario seleccionado:{" "}
-            <span className="font-semibold">{selectedUser.name}</span>
-          </span>
+      {selectedUser ? (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between bg-gray-50 p-3 rounded-md border border-gray-200 gap-2">
+          <div>
+            <p className="text-sm font-medium text-gray-800">{selectedUser.name}</p>
+            <p className="text-xs text-gray-500 break-all">{selectedUser.email}</p>
+          </div>
           <Button
-            variant="ghost"
+            variant="outline"
             size="sm"
-            onClick={() => setSelectedUser(null)}
-            className="text-red-500 hover:text-red-600"
+            onClick={() => {
+              setSelectedUser(null);
+              onSelectUser(null as unknown as User);
+            }}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 w-full sm:w-auto flex items-center justify-center gap-1 transition-colors"
           >
-            Eliminar
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
+            </svg>
+            Deseleccionar
           </Button>
         </div>
-      )}
-
-      {/* Botón para crear un nuevo usuario (siempre visible) */}
-      {!selectedUser && (
+      ) : (
         <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
           <DialogTrigger asChild>
             <Button
-              size="sm"
-              className="bg-Complementary hover:bg-Accent-1 w-full"
+              variant="outline"
+              className="w-full border-gray-300 hover:bg-gray-50"
+              disabled={isLoading}
             >
-              Agregar usuario
+              Crear nuevo usuario
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
-              <DialogTitle>Crear nuevo usuario</DialogTitle>
+              <DialogTitle className="text-gray-800">Nuevo Usuario</DialogTitle>
             </DialogHeader>
-            <div className="space-y-4">
-              <Input
-                placeholder="Nombre del usuario"
-                value={newUser.name}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, name: e.target.value })
-                }
-              />
-              <Input
-                placeholder="Email del usuario"
-                value={newUser.email}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, email: e.target.value })
-                }
-              />
-              <Input
-                type="password"
-                placeholder="Contraseña"
-                value={newUser.password}
-                onChange={(e) =>
-                  setNewUser({ ...newUser, password: e.target.value })
-                }
-              />
-              <div className="flex gap-2">
-                <Button
-                  onClick={handleCreateUser}
-                  className="bg-Complementary hover:bg-Accent-1"
-                >
-                  Guardar usuario
-                </Button>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Nombre completo</Label>
+                <Input
+                  id="name"
+                  placeholder="Ej: Juan Pérez"
+                  value={newUser.name}
+                  onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="Ej: usuario@ejemplo.com"
+                  value={newUser.email}
+                  onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="password">Contraseña</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={newUser.password}
+                  onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleCreateUser}
+                disabled={isCreatingUser}
+                className="bg-gray-800 hover:bg-gray-700"
+              >
+                {isCreatingUser ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Creando...
+                  </>
+                ) : (
+                  "Crear Usuario"
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>
       )}
+
+      <style jsx>{`
+        .scrollbar-custom::-webkit-scrollbar {
+          width: 6px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-track {
+          background: #f8fafc;
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb {
+          background: #e2e8f0;
+          border-radius: 4px;
+        }
+        .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+          background: #cbd5e1;
+        }
+      `}</style>
     </div>
   );
 };

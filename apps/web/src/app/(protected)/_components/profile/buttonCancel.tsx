@@ -10,67 +10,59 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-
-import React from "react";
 import { XCircle } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { deleteReserve } from "@/services/reserves/reserves";
+import { toast } from "sonner";
+import { deleteReserve } from "@/services/reserve/reserve";
 
-interface ButtonPaymentProps {
+interface ButtonCancelProps {
   reserveId: string;
   deleteReserve: (id: string) => void;
 }
+
 export const ButtonCancel = ({
   reserveId,
   deleteReserve: deleteReserveInfo,
-}: ButtonPaymentProps) => {
-  const { toast } = useToast();
+}: ButtonCancelProps) => {
   const handleCancel = async (reserveId: string) => {
     await deleteReserve(reserveId).then((data) => {
-      toast({
-        duration: 3000,
-        variant: "default",
-        title: "",
-        description: data?.succes || data.error,
-      });
+      if (!data.success) {
+        toast.error(data.error);
+        return;
+      }
+      toast.success("Reserva cancelada con éxito");
       deleteReserveInfo(reserveId);
     });
   };
+
   return (
-    <>
-      <AlertDialog>
-        <AlertDialogTrigger asChild>
-          <Button
-            className={`flex sm:absolute right-2 lg:right-2 bottom-12 lg:bottom-14 gap-2 bg-gray-300 border-r-1 border-b-1 border-gray-400 shadow-lg rounded-2xl text-red-700 font-semibold py-1 px-2 lg:py-2 lg:px-4`}
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button
+          variant="outline"
+          className="gap-2 border-red-300 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-700 hover:cursor-pointer w-full sm:w-auto text-sm sm:text-base py-2 px-3 sm:px-4"
+        >
+          <XCircle className="h-4 w-4 flex-shrink-0" />
+          <span className="hidden sm:inline">Cancelar reserva</span>
+          <span className="inline sm:hidden">Cancelar</span>
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle className="text-red-600">¿Cancelar reserva?</AlertDialogTitle>
+          <AlertDialogDescription>
+            Esta acción no se puede deshacer. Se eliminará permanentemente tu reserva.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Volver</AlertDialogCancel>
+          <AlertDialogAction
+            className="bg-red-600 hover:bg-red-700"
+            onClick={() => handleCancel(reserveId)}
           >
-            <XCircle color="red" size={20} />
-            <p className="hidden lg:block">Cancelar reserva</p>
-            <p className="block lg:hidden">Cancelar</p>
-          </Button>
-        </AlertDialogTrigger>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-red-600">
-              ¿Estás seguro de cancelar la reserva?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción no se puede deshacer. Esto eliminará permanentemente
-              tu reserva.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-500"
-              onClick={() => {
-                handleCancel(reserveId);
-              }}
-            >
-              Continuar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-    </>
+            Confirmar cancelación
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
   );
 };

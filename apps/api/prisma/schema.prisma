@@ -13,23 +13,55 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Role {
-  USUARIO
-  MODERADOR
-  ADMINISTRADOR
+enum SportName {
+  FUTBOL_5
+  FUTBOL_7
+  FUTBOL_11
+  PADEL
+  TENIS
+  BASKET
+  VOLEY
+  HOCKEY
 }
 
+// Enums globales
+// Se podrían extraer a otro archivo si se usa monorepo
+
+// =============================================
+// AUTENTICACIÓN Y ROLES DE USUARIO
+// =============================================
+enum Role {
+  SUPER_ADMIN
+  ORGANIZACION_ADMIN
+  COMPLEJO_ADMIN
+  RECEPCION
+  USUARIO
+}
+
+// =============================================
+// GESTIÓN DE RESERVAS / EVENTOS / ESTADOS
+// =============================================
 enum Status {
   APROBADO
   PENDIENTE
   RECHAZADO
+  CANCELADO
+  COMPLETADO
 }
 
 enum ReserveType {
-  NORMAL
+  MANUAL
   FIJO
+  ONLINE
+  TORNEO
+  ESCUELA
+  EVENTO
+  OTRO
 }
 
+// =============================================
+// TRANSACCIONES Y MÉTODOS DE PAGO
+// =============================================
 enum TransactionType {
   RESERVA
   VENTA_PRODUCTO
@@ -47,6 +79,9 @@ enum PaymentMethod {
   OTRO
 }
 
+// =============================================
+// INVENTARIO Y PRODUCTOS
+// =============================================
 enum ProductCategory {
   BEBIDA
   COMIDA
@@ -61,166 +96,645 @@ enum MovementType {
   AJUSTE
   PERDIDA
   DEVOLUCION
+  REGALO
 }
 
-// ---- MODELOS PRINCIPALES ----
+// =============================================
+// ORGANIZACIONES (CLUBES, EMPRESAS, ETC.)
+// =============================================
+enum OrganizationType {
+  CLUB
+  EMPRESA
+  MUNICIPALIDAD
+  PARTICULAR
+  OTRO
+}
+
+// =============================================
+// BUSCAR RIVALES
+// =============================================
+
+enum TypePost {
+  PLAYER_REQUEST
+  RIVAL_REQUEST
+}
+
+enum MatchRound {
+  OCTAVO_FINAL
+  CUARTO_FINAL
+  SEMI_FINAL
+  FINAL
+}
+
+// Gestión de usuarios
 model User {
-  id                 String          @id @default(cuid())
+  id                 String    @id @default(cuid())
   name               String
-  email              String?         @unique
+  email              String    @unique
   emailVerified      DateTime?
+  password           String
   hashedRefreshToken String?
   image              String?
-  password           String
   phone              String?
-  role               Role            @default(USUARIO)
-  createdAt          DateTime        @default(now())
-  updatedAt          DateTime        @updatedAt
-  Reserve            Reserves[]
-  FixedSchedule      FixedSchedule[]
+  role               Role      @default(USUARIO)
+
+  // Relaciones
+  reserves                Reserve[]
+  fixedSchedules          FixedReserve[]
+  Notification            Notification[]
+  Post                    Post[]
+  tournamentRegistrations TournamentRegistration[]
+
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  Complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // CashSession CashSession[]
+
+  @@index([organizationId])
+  @@index([complexId])
+}
+
+model Organization {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  type        OrganizationType
+  logo        String?
+  website     String?
+  isActive    Boolean          @default(true)
+
+  // Relaciones
+  complexes     Complex[]
+  users         User[] // Usuarios con permisos a nivel organización
+  notifications Notification[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([name])
+  @@index([createdAt])
+}
+
+// Gestión de complejos y canchas
+model Complex {
+  id       String   @id @default(cuid())
+  name     String
+  email    String?  @unique
+  address  String
+  slug     String   @unique
+  isActive Boolean  @default(true)
+  services String[]
+
+  managers        User[]
+  courts          Court[]
+  reserves        Reserve[]
+  fixedReserves   FixedReserve[]
+  schedules       Schedule[]
+  scheduleDays    ScheduleDay[]
+  rates           Rate[]
+  unavailableDays UnavailableDay[]
+  notifications   Notification[]
+  posts           Post[]
+  sportTypes      SportType[]
+  tournaments     Tournament[]
+
+  products           Product[]
+  payments           Payment[]
+  productSales       ProductSale[]
+  inventoryMovements InventoryMovement[]
+
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  CashRegister CashRegister[]
+
+  @@index([organizationId])
+  @@index([slug])
+}
+
+model SportType {
+  id          String    @id @default(cuid())
+  name        SportName // "Fútbol 5", "Tenis", "Pádel"
+  description String?
+
+  complexId String
+  complex   Complex @relation(fields: [complexId], references: [id])
+
+  Schedule    Schedule[]
+  courts      Court[]
+  Post        Post[]
+  tournaments Tournament[]
+
+  imageUrl String? // Icono o imagen representativa
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Court {
-  id           String @id @default(cuid())
-  name         String @unique
-  numberCourts Int
+  id              String   @id @default(cuid())
+  name            String?
+  courtNumber     Int?
+  characteristics String[]
+  isActive        Boolean
+  description     String?
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  sportType   SportType? @relation(fields: [sportTypeId], references: [id])
+  sportTypeId String?
+
+  schedules       Schedule[]
+  reserves        Reserve[]
+  fixedSchedules  FixedReserve[]
+  unavailableDays UnavailableDay[]
+  posts           Post[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complexId])
+  @@index([sportTypeId])
 }
 
-// ---- RESERVAS Y PAGOS ----
-model Reserves {
-  id                String         @id @default(cuid())
-  date              DateTime
-  schedule          String
-  court             Int
-  price             Int?
-  reservationAmount Int?
-  status            Status         @default(PENDIENTE)
-  paymentUrl        String?
-  paymentId         String?
-  phone             String?
-  clientName        String?
-  reserveType       ReserveType?
-  User              User           @relation(fields: [userId], references: [id])
-  userId            String
-  paymentToken      String?        @unique
-  FixedSchedule     FixedSchedule? @relation(fields: [fixedScheduleId], references: [id])
-  fixedScheduleId   String?
-  Payment           Payment[]
-  consumitions      ProductSale[]
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
-  expiresAt         DateTime?
-}
-
-model Payment {
-  id        String        @id @default(cuid())
-  amount    Float
-  method    PaymentMethod
-  isPartial Boolean       @default(false)
-  reserve   Reserves?     @relation(fields: [reserveId], references: [id])
-  reserveId String?
-  createdAt DateTime      @default(now())
-}
-
-// ---- INVENTARIO Y VENTAS ----
-
-model Product {
-  id          String              @id @default(cuid())
-  name        String
-  description String?
-  barcode     String?             @unique
-  category    ProductCategory
-  stock       Int                 @default(0)
-  costPrice   Float
-  salePrice   Float
-  minStock    Int                 @default(5)
-  supplier    String?
-  isActive    Boolean             @default(true)
-  sales       ProductSale[]
-  movements   InventoryMovement[]
-}
-
-model ProductSale {
-  id        String    @id @default(cuid())
-  product   Product   @relation(fields: [productId], references: [id])
-  productId String
-  Reserve   Reserves? @relation(fields: [reserveId], references: [id])
-  reserveId String?
-  quantity  Int
-  price     Float // Precio unitario en venta
-  discount  Float?    @default(0)
-  isGift    Boolean   @default(false)
-  createdAt DateTime  @default(now())
-}
-
-model InventoryMovement {
-  id             String       @id @default(cuid())
-  product        Product      @relation(fields: [productId], references: [id])
-  productId      String
-  quantity       Int
-  type           MovementType
-  reason         String?
-  documentNumber String?
-  createdAt      DateTime     @default(now())
-}
-
-// ---- HORARIOS Y TURNOS ----
+// Horarios y tarifas
 model Schedule {
-  id            String      @id @default(cuid())
-  startTime     String
-  endTime       String
-  rates         Rate[]
+  id        String @id @default(cuid())
+  startTime String
+  endTime   String
+
   scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
   scheduleDayId String
-  benefits      Benefit[]
-}
 
-model FixedSchedule {
-  id            String      @id @default(cuid())
-  startTime     String // Hora de inicio del turno fijo
-  endTime       String // Hora de fin del turno fijo
-  court         Int // Número de cancha
-  isActive      Boolean     @default(true)
-  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
-  scheduleDayId String // Relación con el día de la semana
-  rate          Rate        @relation(fields: [rateId], references: [id])
-  rateId        String // Relación con la tarifa
-  reserves      Reserves[] // Relación con las reservas
-  user          User        @relation(fields: [userId], references: [id])
-  userId        String
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  sportType   SportType? @relation(fields: [sportTypeId], references: [id])
+  sportTypeId String?
+
+  court   Court?  @relation(fields: [courtId], references: [id])
+  courtId String?
+
+  rates Rate[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scheduleDayId])
+  @@index([complexId])
+  @@index([courtId])
 }
 
 model ScheduleDay {
-  id            String          @id @default(cuid())
-  dayOfWeek     Int             @unique // 0 = Sunday, ..., 6 = Saturday
-  isActive      Boolean         @default(false)
-  schedules     Schedule[] // Un día puede tener varios horarios
-  FixedSchedule FixedSchedule[]
-}
+  id        String  @id @default(cuid())
+  dayOfWeek Int     @unique
+  isActive  Boolean @default(false)
 
-model Benefit {
-  id          String     @id @default(cuid())
-  clientType  String // Ejemplo: "Normal", "Fijo", "+10 reservas"
-  name        String // Ejemplo: "Descuento por 10 reservas"
-  description String? // Opcional: descripción del beneficio
-  condition   String? // Opcional: condición para aplicar el beneficio
-  discount    Int // Porcentaje o monto fijo de descuento
-  schedules   Schedule[] // Relación muchos a muchos con horarios
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  schedules     Schedule[]
+  fixedReserves FixedReserve[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Rate {
-  id                String          @id @default(cuid())
+  id                String @id @default(cuid())
   name              String
   price             Int
   reservationAmount Int
-  schedules         Schedule[] // Relación muchos a muchos con horarios
-  FixedSchedule     FixedSchedule[]
+
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  schedules     Schedule[]
+  fixedSchedule FixedReserve[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complexId])
 }
 
+// Reservas normales y fijas
+model Reserve {
+  id                String       @id @default(cuid())
+  date              DateTime
+  schedule          String
+  price             Int
+  reservationAmount Int
+  status            Status       @default(PENDIENTE)
+  phone             String
+  clientName        String?
+  reserveType       ReserveType?
+
+  paymentUrl   String?
+  paymentIdExt String?
+  paymentToken String? @unique
+
+  court   Court  @relation(fields: [courtId], references: [id])
+  courtId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  fixedReserve   FixedReserve? @relation(fields: [fixedReserveId], references: [id])
+  fixedReserveId String?
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  payment Payment[]
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  expiresAt DateTime?
+
+  @@index([courtId])
+  @@index([userId, date])
+  @@index([userId])
+  @@index([fixedReserveId])
+  @@index([complexId])
+  @@index([date])
+  @@index([status])
+}
+
+model FixedReserve {
+  id        String  @id @default(cuid())
+  startTime String
+  endTime   String
+  isActive  Boolean @default(true)
+
+  scheduleDay   ScheduleDay @relation(fields: [scheduleDayId], references: [id])
+  scheduleDayId String
+
+  rate   Rate   @relation(fields: [rateId], references: [id])
+  rateId String
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  court   Court  @relation(fields: [courtId], references: [id])
+  courtId String
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  reserves Reserve[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([scheduleDayId])
+  @@index([rateId])
+  @@index([userId])
+  @@index([courtId])
+  @@index([complexId])
+  @@index([scheduleDayId, courtId])
+}
+
+// buscar rivales
+
+model Post {
+  id          String   @id @default(cuid())
+  description String?
+  type        TypePost
+
+  teamName      String?
+  playersNeeded Int?
+
+  contact  String
+  isActive Boolean @default(true)
+
+  dayPreference  DateTime[]
+  timePreference String[]
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  court   Court?  @relation(fields: [courtId], references: [id])
+  courtId String?
+
+  sportType   SportType @relation(fields: [sportTypeId], references: [id])
+  sportTypeId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@index([sportTypeId])
+  @@index([complexId])
+  @@index([courtId])
+}
+
+// Pagos
+model Payment {
+  id              String          @id @default(cuid())
+  amount          Float
+  method          PaymentMethod
+  transactionType TransactionType
+  isPartial       Boolean         @default(false)
+
+  reserve   Reserve? @relation(fields: [reserveId], references: [id])
+  reserveId String?
+
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  tournamentRegistration   TournamentRegistration? @relation(fields: [tournamentRegistrationId], references: [id])
+  tournamentRegistrationId String?
+
+  productSales ProductSale[]
+
+  createdAt     DateTime     @default(now())
+  CashSession   CashSession? @relation(fields: [cashSessionId], references: [id])
+  cashSessionId String?
+
+  @@index([reserveId])
+  @@index([tournamentRegistrationId])
+}
+
+// Inhabilitación de días
 model UnavailableDay {
   id     String   @id @default(cuid())
-  date   DateTime @unique // Día específico en el que no se podrá reservar
-  reason String? // Opcional: motivo (Ej: "Mantenimiento", "Feriado")
+  date   DateTime @unique
+  reason String?
+
+  court   Court?  @relation(fields: [courtId], references: [id])
+  courtId String?
+
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([date, complexId, courtId])
+}
+
+model Notification {
+  id String @id @default(cuid())
+
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+
+  title     String
+  message   String
+  isRead    Boolean @default(false)
+  type      String // "RESERVATION", "PAYMENT", "SYSTEM"
+  relatedId String? // ID del recurso relacionado
+
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId String?
+
+  Organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([complexId])
+  @@index([organizationId])
+  @@index([isRead])
+  @@index([type])
+}
+
+// Inventario y ventas
+
+model Product {
+  id          String          @id @default(cuid())
+  name        String
+  description String?
+  barcode     String?         @unique
+  category    ProductCategory
+  stock       Int             @default(0)
+  costPrice   Float
+  salePrice   Float
+  minStock    Int             @default(5)
+  supplier    String?
+  isActive    Boolean         @default(true)
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  sales     ProductSale[]
+  movements InventoryMovement[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complexId])
+  @@index([stock])
+  @@index([isActive])
+}
+
+model ProductSale {
+  id        String  @id @default(cuid())
+  reserveId String?
+  quantity  Int
+  price     Float // Precio unitario en venta
+  discount  Float?  @default(0)
+  isGift    Boolean @default(false)
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+
+  paymentId String
+  payment   Payment @relation(fields: [paymentId], references: [id])
+
+  complex   Complex @relation(fields: [complexId], references: [id]) // Relación añadida
+  complexId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([complexId])
+  @@index([paymentId])
+}
+
+model InventoryMovement {
+  id String @id @default(cuid())
+
+  type     MovementType
+  quantity Int
+  reason   String?
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+
+  complex   Complex @relation(fields: [complexId], references: [id]) // Relación añadida
+  complexId String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId])
+  @@index([complexId])
+}
+
+model CashRegister {
+  id        String        @id @default(cuid())
+  name      String
+  location  String?
+  isActive  Boolean       @default(true)
+  complex   Complex       @relation(fields: [complexId], references: [id])
+  complexId String
+  sessions  CashSession[]
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model CashSession {
+  id             String        @id @default(cuid())
+  cashRegister   CashRegister  @relation(fields: [cashRegisterId], references: [id])
+  cashRegisterId String
+  // user           User          @relation(fields: [userId], references: [id])
+  // userId         String
+  startAt        DateTime      @default(now())
+  endAt          DateTime?
+  initialAmount  Float
+  finalAmount    Float?
+  totalCash      Float?
+  totalCard      Float?
+  totalTransfers Float?
+  status         SessionStatus @default(ACTIVE)
+  payments       Payment[]
+  observations   String?
+
+  @@index([cashRegisterId])
+  // @@index([userId])
+  @@index([status])
+}
+
+enum SessionStatus {
+  ACTIVE
+  CLOSED
+  CANCELLED
+}
+
+// Torneos y competiciones
+
+model Tournament {
+  id               String    @id @default(cuid())
+  name             String
+  description      String?
+  startDate        DateTime
+  endTime          DateTime?
+  isActive         Boolean
+  isOpen           Boolean
+  maxTeams         Int
+  imageUrl         String?
+  fixturePublished Boolean   @default(false)
+
+  sportTypeId String
+  sportType   SportType @relation(fields: [sportTypeId], references: [id])
+
+  complexId String
+  complex   Complex @relation(fields: [complexId], references: [id])
+
+  winnerTeamId String?
+  winnerTeam   Team?   @relation("WinnerTeam", fields: [winnerTeamId], references: [id])
+
+  registrations TournamentRegistration[]
+  matches       Match[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([sportTypeId])
+  @@index([complexId])
+  @@index([winnerTeamId])
+  @@index([isOpen])
+  @@index([fixturePublished])
+}
+
+model TournamentRegistration {
+  id String @id @default(cuid())
+
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+
+  teamId String
+  team   Team   @relation(fields: [teamId], references: [id])
+
+  registeredById String
+  registeredBy   User   @relation(fields: [registeredById], references: [id])
+
+  paymentIdExt String?
+  paymentToken String  @unique
+  paymentUrl   String?
+
+  paymentId String?
+  payments  Payment[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([tournamentId, teamId])
+  @@index([tournamentId])
+  @@index([teamId])
+  @@index([paymentId])
+}
+
+model Team {
+  id      String   @id @default(cuid())
+  name    String
+  contact String
+  players String[]
+
+  registrationTournaments TournamentRegistration[]
+  matchesHome             Match[]                  @relation("MatchHomeTeam")
+  matchesAway             Match[]                  @relation("MatchAwayTeam")
+  matchesWins             Match[]                  @relation("MatchWinnerTeam")
+  tournamentsWin          Tournament[]             @relation("WinnerTeam")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Match {
+  id String @id @default(cuid())
+
+  tournamentId String
+  tournament   Tournament @relation(fields: [tournamentId], references: [id])
+
+  homeTeamId String
+  homeTeam   Team   @relation("MatchHomeTeam", fields: [homeTeamId], references: [id])
+
+  awayTeamId String
+  awayTeam   Team   @relation("MatchAwayTeam", fields: [awayTeamId], references: [id])
+
+  winnerTeamId String?
+  winnerTeam   Team?   @relation("MatchWinnerTeam", fields: [winnerTeamId], references: [id])
+
+  round       MatchRound
+  homeScore   Int?
+  awayScore   Int?
+  scheduledAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tournamentId])
+  @@index([homeTeamId])
+  @@index([awayTeamId])
+  @@index([winnerTeamId])
+  @@index([round])
+  @@index([scheduledAt])
 }

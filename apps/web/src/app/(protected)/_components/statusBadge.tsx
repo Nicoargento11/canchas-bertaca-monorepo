@@ -1,8 +1,9 @@
 "use client";
-import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import { ComponentProps } from "react";
 
-interface StatusBadgeProps extends BadgeProps {
+interface StatusBadgeProps extends ComponentProps<typeof Badge> {
   status: "pending" | "approved" | "rejected" | "completed" | "cancelled";
   children: React.ReactNode;
 }
@@ -15,17 +16,9 @@ const statusVariants = {
   cancelled: "bg-gray-100 text-gray-800 hover:bg-gray-100/80",
 };
 
-export function StatusBadge({
-  status,
-  className,
-  children,
-  ...props
-}: StatusBadgeProps) {
+export function StatusBadge({ status, className, children, ...props }: StatusBadgeProps) {
   return (
-    <Badge
-      className={cn(statusVariants[status], "capitalize", className)}
-      {...props}
-    >
+    <Badge className={cn(statusVariants[status], "capitalize", className)} {...props}>
       {children}
     </Badge>
   );

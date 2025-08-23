@@ -1,44 +1,69 @@
-import { Home } from "@/components/home/home";
-import LoginModal from "@/components/modals/loginModal";
-import RegisterModal from "@/components/modals/registerModal";
-import ReserveModal from "@/components/modals/reserveModal";
-import NavBar from "@/components/navbar/navBar";
+import React from "react";
+import { notFound } from "next/navigation";
+import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
+import { getComplexBySlug } from "@/services/complex/complex";
 import { getSession } from "@/services/auth/session";
-import { getCourtByName } from "@/services/courts/courts";
-import { getfixedSchedules } from "@/services/fixed-schedules/fixedSchedules";
-import { getAvailableTurnsByDay } from "@/services/reserves/reserves";
-import { getSchedules } from "@/services/schedule/schedule";
-import { getScheduleDays } from "@/services/scheduleDay/scheduleDay";
-import { getUnavailableDays } from "@/services/unavailableDay/unavailableDay";
+import { getDailyAvailability, TurnByDay } from "@/services/reserve/reserve";
 import { format } from "date-fns";
-import { ReviewModal } from "@/components/modals/reviewModal";
+import { Court } from "@/services/court/court";
+import NavBar from "@/components/navbar/navBar";
+import { Home } from "@/components/home/home";
+import ModalManager from "@/components/modals/modalManager";
+
+export interface SportData {
+  reserves: TurnByDay | undefined;
+  courts: Court[]; // Canchas filtradas por deporte
+}
 
 export default async function HomePage() {
-  const sessionUser = await getSession();
-  const unavailableDays = await getUnavailableDays();
-  const scheduleDays = await getScheduleDays();
-  const fixedSchedules = await getfixedSchedules();
-  const schedules = await getSchedules();
+  const { success, data: complejo } = await getComplexBySlug("bertaca");
+  const session = await getSession();
 
-  const reservesDay = await getAvailableTurnsByDay(
-    format(new Date(), "yyyy-MM-dd")
+  const today = new Date();
+  today.setHours(today.getHours() - 3);
+  today.setHours(0, 0, 0, 0);
+
+  if (!complejo) {
+    return notFound();
+  }
+
+  const sportTypes = complejo.sportTypes.reduce(
+    (acc: Record<SportTypeKey, SportType>, sport: SportType) => {
+      acc[sport.name] = sport;
+      return acc;
+    },
+    {} as Record<SportTypeKey, SportType>
   );
-  const courtData = await getCourtByName("dimasf5");
+
+  const sportAvailability = await Promise.all(
+    Object.entries(sportTypes).map(async ([key, sportType]) => {
+      const reserves = await getDailyAvailability(
+        format(today, "yyyy-MM-dd"),
+        complejo.id,
+        sportType.id
+      );
+
+      return {
+        sportKey: key as SportTypeKey,
+        reserves: reserves.data,
+        allCourts: complejo.courts.filter((court) => court.sportTypeId === sportType.id),
+      };
+    })
+  );
+  const sportsData: Record<SportTypeKey, SportData> = sportAvailability.reduce(
+    (acc, { sportKey, reserves, allCourts }) => {
+      acc[sportKey as SportTypeKey] = { reserves, courts: allCourts };
+      return acc;
+    },
+    {} as Record<SportTypeKey, SportData>
+  );
 
   return (
     <div className="">
-      <NavBar currentUser={sessionUser} />
-      <Home reservesDay={reservesDay} courtData={courtData} />
-      <LoginModal />
-      <RegisterModal />
-      <ReserveModal
-        currentUser={sessionUser}
-        unavailableDays={unavailableDays}
-        scheduleDays={scheduleDays}
-        fixedSchedules={fixedSchedules}
-        schedules={schedules}
-      />
-      <ReviewModal />
+      <NavBar currentUser={session} complex={complejo} />
+
+      <Home sportsData={sportsData} complex={complejo} sportTypes={sportTypes} />
+      <ModalManager session={session} complex={complejo} sportTypes={sportTypes} />
     </div>
   );
 }

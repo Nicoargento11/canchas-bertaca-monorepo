@@ -1,4 +1,8 @@
-import { PartialType } from '@nestjs/mapped-types';
+import { ApiProperty } from '@nestjs/swagger';
+import { PartialType } from '@nestjs/swagger';
 import { CreateRateDto } from './create-rate.dto';
 
-export class UpdateRateDto extends PartialType(CreateRateDto) {}
+export class UpdateRateDto extends PartialType(CreateRateDto) {
+  @ApiProperty({ description: 'Estado activo/inactivo', required: false })
+  isActive?: boolean;
+}

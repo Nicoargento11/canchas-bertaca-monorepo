@@ -1,0 +1,80 @@
+# ===================================
+# REPORTES - TESTS COMPLETOS
+# ===================================
+
+### Variables
+@baseUrl = http://localhost:8000
+@email = valdes.nicoedu@gmail.com
+@password = 12345678
+@testDate = 2025-06-06
+@complexId = cmadamrdg0000l0g8fv4grm98
+
+# ===================================
+# AUTENTICACIÓN PRIMERO
+# ===================================
+
+### Login para obtener token
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Obtener lista de complejos (para verificar IDs disponibles)
+GET {{baseUrl}}/complexes
+Authorization: Bearer {{login.response.body.access_token}}
+
+# ===================================
+# ENDPOINTS CON AUTENTICACIÓN
+# ===================================
+
+### Resumen diario JSON
+GET {{baseUrl}}/reports/daily-summary?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Resumen por canchas
+GET {{baseUrl}}/reports/courts-summary?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Resumen de productos
+GET {{baseUrl}}/reports/products-summary?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Rango de fechas
+GET {{baseUrl}}/reports/date-range-summary?startDate={{testDate}}&endDate={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Excel Export (con auth)
+GET {{baseUrl}}/reports/daily-summary/export/excel?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+### PDF Export (con auth)
+GET {{baseUrl}}/reports/daily-summary/export/pdf?date={{testDate}}&complexId={{complexId}}
+Authorization: Bearer {{login.response.body.access_token}}
+
+# ===================================
+# ENDPOINTS DE TESTING (SIN AUTENTICACIÓN)
+# ===================================
+
+### Test JSON (sin auth)
+GET {{baseUrl}}/reports/test/daily-summary?date={{testDate}}&complexId={{complexId}}
+
+### Test Excel (sin auth) - Para usar en navegador
+# URL: http://localhost:8000/reports/test/daily-summary/export/excel?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+GET {{baseUrl}}/reports/test/daily-summary/export/excel?date={{testDate}}&complexId={{complexId}}
+
+### Test PDF (sin auth) - Para usar en navegador  
+# URL: http://localhost:8000/reports/test/daily-summary/export/pdf?date=2025-06-06&complexId=cmadamrdg0000l0g8fv4grm98
+GET {{baseUrl}}/reports/test/daily-summary/export/pdf?date={{testDate}}&complexId={{complexId}}
+
+# ===================================
+# INSTRUCCIONES
+# ===================================
+# 1. Para JSON: Ejecuta directamente en REST Client
+# 2. Para archivos Excel/PDF: 
+#    - Opción A: Ejecuta en REST Client (verás contenido binario)
+#    - Opción B: Copia las URLs comentadas y pégalas en tu navegador para descargar
+# 3. Los endpoints /test/* no requieren autenticación (solo para desarrollo)

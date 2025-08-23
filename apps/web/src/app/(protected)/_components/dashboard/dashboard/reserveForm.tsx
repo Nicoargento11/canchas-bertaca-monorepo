@@ -9,22 +9,13 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import PhoneInput from "react-phone-number-input";
-import { createReserve } from "@/services/reserves/reserves";
-import { createReserveAdminSchema } from "@/schemas";
-import { useToast } from "@/hooks/use-toast";
+import { createReserve } from "@/services/reserve/reserve";
+// import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import {
-  CalendarDays,
-  Clock9,
-  Coins,
-  Mail,
-  Phone,
-  Receipt,
-  UserCircle2,
-} from "lucide-react";
+import { CalendarDays, Clock9, Coins, Mail, Phone, Receipt, UserCircle2 } from "lucide-react";
 import { Icon } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Button } from "@/components/ui/button";
@@ -32,7 +23,6 @@ import { useDashboardReserveModalStore } from "@/store/reserveDashboardModalStor
 import "react-phone-number-input/style.css";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { format } from "date-fns";
-import { createPayment, PaymentMethod } from "@/services/payments/payments";
 import {
   Select,
   SelectContent,
@@ -42,218 +32,180 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { useReserve } from "@/contexts/reserveContext";
+import { createReserveAdminSchema } from "@/schemas/reserve";
+import { createPayment, PaymentMethod } from "@/services/payment/payment";
+import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
+import { toast } from "sonner";
+import { getActiveCashSession } from "@/services/cash-session/cash-session";
+import { getAllCashRegisters } from "@/services/cash-register/cash-register";
 
-export const METODOS_PAGO = {
-  EFECTIVO: { icono: "💵", nombre: "Efectivo" },
-  TARJETA_CREDITO: { icono: "💳", nombre: "Tarjeta" },
-  TRANSFERENCIA: { icono: "↗️", nombre: "Transferencia" },
-  MERCADOPAGO: { icono: "🔵", nombre: "MercadoPago" },
-  OTRO: { icono: "❔", nombre: "Otro" },
-} as const;
+const PAYMENT_METHODS = [
+  { value: "EFECTIVO", label: "Efectivo", icon: "💵" },
+  { value: "TARJETA_CREDITO", label: "Tarjeta", icon: "💳" },
+  { value: "TRANSFERENCIA", label: "Transferencia", icon: "↗️" },
+  { value: "MERCADOPAGO", label: "MercadoPago", icon: "🔵" },
+] as const;
 
 export const ReserveForm = () => {
   const [isPending, startTransition] = useTransition();
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(
-    PaymentMethod.EFECTIVO
-  );
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("EFECTIVO");
 
-  const { handleChangeReserve } = useDashboardReserveModalStore(
-    (state) => state
-  );
-
-  const { getReservesByDay } = useReserve();
-
-  const { createReserve: createReserveData, date } = useDashboardDataStore(
-    (state) => state
-  );
-  const selectedDate = date && format(date, "yyyy-MM-dd");
-
-  const { toast } = useToast();
+  const { handleChangeReserve } = useDashboardReserveModalStore((state) => state);
+  const { fetchReservationsByDay, state } = useReservationDashboard();
+  const { createReserve: reserveData, date } = useDashboardDataStore();
 
   const form = useForm<z.infer<typeof createReserveAdminSchema>>({
     resolver: zodResolver(createReserveAdminSchema),
-    defaultValues: createReserveData && {
-      court: createReserveData.court,
-      date: createReserveData.date,
-      schedule: createReserveData.hour,
-      userId: createReserveData.userId,
-      userEmail: createReserveData.userEmail,
-      price: createReserveData.price,
-      status: "APROBADO",
-      phone: "",
-      clientName: "",
-      reservationAmount: 0,
-    },
+    defaultValues: reserveData
+      ? {
+          date: reserveData.date,
+          schedule: reserveData.schedule,
+          userId: reserveData.userId,
+          price: reserveData.price,
+          status: "APROBADO",
+          phone: "",
+          clientName: "",
+          reservationAmount: 0,
+          courtId: reserveData.courtId,
+          complexId: reserveData.complexId,
+          reserveType: reserveData.reserveType,
+        }
+      : undefined,
   });
 
-  const handleCreatePayment = async (reserveId: string) => {
-    setPaymentProcessing(true);
+  const selectedDate = date && format(date, "yyyy-MM-dd");
+  const handlePayment = async (reserveId: string) => {
     try {
-      const paymentData = {
+      // Obtener cash session activo si hay un complejo seleccionado
+      let cashSessionId: string | undefined;
+
+      if (state.currentComplex?.id) {
+        // Primero obtener los cash registers del complejo
+        const { success: registersSuccess, data: cashRegisters } = await getAllCashRegisters(
+          state.currentComplex.id
+        );
+
+        if (registersSuccess && cashRegisters && cashRegisters.length > 0) {
+          // Tomar el primer cash register activo
+          const activeCashRegister = cashRegisters.find((register) => register.isActive);
+
+          if (activeCashRegister) {
+            // Buscar cash session activo para este cash register
+            const { success, data: activeCashSession } = await getActiveCashSession(
+              activeCashRegister.id
+            );
+
+            if (success && activeCashSession) {
+              cashSessionId = activeCashSession.id;
+            } else {
+              // Advertir que no hay cash session activo pero permitir continuar
+              toast.warning(
+                "No hay una sesión de caja activa. El pago se registrará sin asociar a una sesión."
+              );
+            }
+          } else {
+            toast.warning("No hay cajas registradoras activas en este complejo.");
+          }
+        } else {
+          toast.warning("No se encontraron cajas registradoras para este complejo.");
+        }
+      }
+
+      await createPayment({
         amount: form.getValues("reservationAmount"),
         method: paymentMethod,
-        isPartial: false,
-        reserveId: reserveId,
-      };
-
-      await createPayment(paymentData);
-
-      toast({
-        variant: "default",
-        title: "Pago registrado",
-        description: "El pago se ha registrado correctamente",
+        isPartial: true,
+        reserveId,
+        transactionType: "RESERVA",
+        complexId: state.currentComplex?.id,
+        cashSessionId, // Solo se incluye si hay cash session activo
       });
       return true;
     } catch (error) {
       console.error("Payment error:", error);
+      toast.error("Error al procesar el pago");
       return false;
-    } finally {
-      setPaymentProcessing(false);
     }
   };
 
   const onSubmit = async (values: z.infer<typeof createReserveAdminSchema>) => {
-    if (!values.clientName) return;
-
     startTransition(async () => {
-      const reserveResult = await createReserve({
-        ...values,
-        reservationAmount: parseInt(values.reservationAmount.toString()),
-      });
-
-      if (reserveResult.error) {
-        toast({
-          duration: 3000,
-          variant: "destructive",
-          title: "¡Error!",
-          description: reserveResult.error,
+      try {
+        const {
+          error,
+          success,
+          data: reserveResult,
+        } = await createReserve({
+          ...values,
+          reservationAmount: Number(values.reservationAmount),
         });
-        return;
-      }
+        if (error || !success) {
+          toast.error(error || "Error al crear la reserva");
+          return;
+        }
+        const paymentSuccess = await handlePayment(reserveResult!.id);
 
-      if (reserveResult.succes) {
-        await handleCreatePayment(reserveResult.reserve.id);
+        if (paymentSuccess) {
+          toast.success("Reserva y pago registrados correctamente");
+          if (state.sportType && state.currentComplex) {
+            fetchReservationsByDay(selectedDate!, state.currentComplex?.id, state.sportType.id);
+          }
+          handleChangeReserve();
+        }
+      } catch (err) {
+        console.error("Submission error:", err);
+        toast.error("Ocurrió un error inesperado");
       }
-      getReservesByDay(selectedDate);
-      handleChangeReserve();
-      // router.refresh();
     });
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+        {/* Sección de Información de Reserva (solo lectura) */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800">
-              Información de la Reserva
-            </CardTitle>
+            <CardTitle className="text-lg font-semibold">Información de la Reserva</CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Primera columna */}
             <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="court"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-gray-700">
-                      <Icon
-                        iconNode={soccerPitch}
-                        className="text-Primary"
-                        size={18}
-                      />
-                      Cancha
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled className="bg-gray-100" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <CalendarDays className="text-primary" size={18} />
+                  Fecha
+                </Label>
+                <Input
+                  value={reserveData?.date ? format(reserveData.date, "yyyy-MM-dd") : ""}
+                  disabled
+                  className="bg-muted"
+                />
+              </div>
 
-              <FormField
-                control={form.control}
-                name="date"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-gray-700">
-                      <CalendarDays className="text-Primary" size={18} />
-                      Fecha
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        value={format(field.value, "yyyy-MM-dd")}
-                        disabled
-                        className="bg-gray-100"
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="schedule"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-gray-700">
-                      <Clock9 className="text-Primary" size={18} />
-                      Horario
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled className="bg-gray-100" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Clock9 className="text-primary" size={18} />
+                  Horario
+                </Label>
+                <Input value={reserveData?.schedule || ""} disabled className="bg-muted" />
+              </div>
             </div>
 
-            {/* Segunda columna */}
             <div className="space-y-4">
-              <FormField
-                control={form.control}
-                name="userEmail"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-gray-700">
-                      <Mail className="text-Primary" size={18} />
-                      Email
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled className="bg-gray-100" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="price"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="flex items-center gap-2 text-gray-700">
-                      <Receipt className="text-Primary" size={18} />
-                      Precio
-                    </FormLabel>
-                    <FormControl>
-                      <Input {...field} disabled className="bg-gray-100" />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Receipt className="text-primary" size={18} />
+                  Precio
+                </Label>
+                <Input value={reserveData?.price || ""} disabled className="bg-muted" />
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Sección de Cliente (editable) */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800">
-              Información del Cliente
-            </CardTitle>
+            <CardTitle className="text-lg font-semibold">Información del Cliente</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -261,17 +213,12 @@ export const ReserveForm = () => {
               name="clientName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-gray-700">
-                    <UserCircle2 className="text-Primary" size={18} />
+                  <FormLabel className="flex items-center gap-2">
+                    <UserCircle2 className="text-primary" size={18} />
                     Nombre Completo
                   </FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      disabled={isPending}
-                      placeholder="Ingrese el nombre del cliente"
-                      className="border-gray-300 focus:border-green-500"
-                    />
+                    <Input {...field} disabled={isPending} placeholder="Nombre del cliente" />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -283,8 +230,8 @@ export const ReserveForm = () => {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-gray-700">
-                    <Phone className="text-Primary" size={18} />
+                  <FormLabel className="flex items-center gap-2">
+                    <Phone className="text-primary" size={18} />
                     Teléfono
                   </FormLabel>
                   <FormControl>
@@ -292,8 +239,9 @@ export const ReserveForm = () => {
                       {...field}
                       international
                       defaultCountry="AR"
-                      className="flex h-10 w-full rounded-md border border-gray-300 bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      disabled={isPending}
                       placeholder="Ingrese el teléfono"
+                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                     />
                   </FormControl>
                   <FormMessage />
@@ -303,63 +251,57 @@ export const ReserveForm = () => {
           </CardContent>
         </Card>
 
+        {/* Sección de Pago (editable) */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-lg font-semibold text-gray-800">
-              Información de Pago
-            </CardTitle>
+            <CardTitle className="text-lg font-semibold">Información de Pago</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2 text-gray-700">
-                <Coins className="text-Primary" size={18} />
+              <Label className="flex items-center gap-2">
+                <Coins className="text-primary" size={18} />
                 Método de Pago
               </Label>
               <Select
                 value={paymentMethod}
-                onValueChange={(value) =>
-                  setPaymentMethod(value as PaymentMethod)
-                }
+                onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
                 disabled={isPending}
               >
-                <SelectTrigger className="border-gray-300 focus:border-green-500">
+                <SelectTrigger>
                   <SelectValue placeholder="Seleccione método" />
                 </SelectTrigger>
                 <SelectContent>
-                  {Object.entries(METODOS_PAGO).map(
-                    ([key, { icono, nombre }]) => (
-                      <SelectItem key={key} value={key}>
-                        <div className="flex items-center">
-                          <span className="mr-2">{icono}</span>
-                          {nombre}
-                        </div>
-                      </SelectItem>
-                    )
-                  )}
+                  {PAYMENT_METHODS.map((method) => (
+                    <SelectItem key={method.value} value={method.value}>
+                      <span className="mr-2">{method.icon}</span>
+                      {method.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
-            </div>
-
+            </div>{" "}
             <FormField
               control={form.control}
               name="reservationAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-gray-700">
-                    <Coins className="text-Primary" size={18} />
+                  <FormLabel className="flex items-center gap-2">
+                    <Coins className="text-primary" size={18} />
                     Monto de Reserva/Seña
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                        $
-                      </span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
                       <Input
                         {...field}
-                        disabled={isPending}
                         type="number"
-                        onChange={(e) => field.onChange(Number(e.target.value))}
-                        className="pl-8 border-gray-300 focus:border-green-500"
+                        disabled={isPending}
+                        value={field.value || ""}
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          field.onChange(value === "" ? 0 : parseFloat(value) || 0);
+                        }}
+                        className="pl-8"
                       />
                     </div>
                   </FormControl>
@@ -370,33 +312,10 @@ export const ReserveForm = () => {
           </CardContent>
         </Card>
 
-        <Button
-          type="submit"
-          disabled={isPending || paymentProcessing}
-          className="w-full bg-Primary hover:bg-Primary-dark text-white py-6 text-base font-medium"
-        >
-          {isPending || paymentProcessing ? (
-            <span className="flex items-center justify-center gap-2">
-              <svg
-                className="animate-spin h-5 w-5 text-white"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-              >
-                <circle
-                  className="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  strokeWidth="4"
-                ></circle>
-                <path
-                  className="opacity-75"
-                  fill="currentColor"
-                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                ></path>
-              </svg>
+        <Button type="submit" disabled={isPending} className="w-full py-6">
+          {isPending ? (
+            <span className="flex items-center gap-2">
+              <Spinner />
               Procesando...
             </span>
           ) : (
@@ -407,3 +326,26 @@ export const ReserveForm = () => {
     </Form>
   );
 };
+
+const Spinner = () => (
+  <svg
+    className="animate-spin h-5 w-5 text-white"
+    xmlns="http://www.w3.org/2000/svg"
+    fill="none"
+    viewBox="0 0 24 24"
+  >
+    <circle
+      className="opacity-25"
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+    ></circle>
+    <path
+      className="opacity-75"
+      fill="currentColor"
+      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+    ></path>
+  </svg>
+);

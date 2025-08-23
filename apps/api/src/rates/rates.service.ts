@@ -1,39 +1,59 @@
-// src/rates/rate.service.ts
-import { Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateRateDto } from './dto/create-rate.dto';
 import { UpdateRateDto } from './dto/update-rate.dto';
 
 @Injectable()
-export class RatesService {
+export class RateService {
   constructor(private prisma: PrismaService) {}
-
-  async create(createRateDto: CreateRateDto) {
-    return this.prisma.rate.create({
-      data: createRateDto,
-    });
-  }
 
   async findAll() {
     return this.prisma.rate.findMany();
   }
 
-  async findOne(id: string) {
-    return this.prisma.rate.findUnique({
-      where: { id },
-    });
+  async findById(id: string) {
+    const rate = await this.prisma.rate.findUnique({ where: { id } });
+    if (!rate) throw new NotFoundException();
+    return rate;
+  }
+
+  async create(createRateDto: CreateRateDto) {
+    try {
+      return await this.prisma.rate.create({ data: createRateDto });
+    } catch (error) {
+      if (error.code === 'P2002') {
+        throw new ConflictException('Ya existe una tarifa con este nombre');
+      }
+      throw error;
+    }
   }
 
   async update(id: string, updateRateDto: UpdateRateDto) {
-    return this.prisma.rate.update({
-      where: { id },
-      data: updateRateDto,
-    });
+    try {
+      return await this.prisma.rate.update({
+        where: { id },
+        data: updateRateDto,
+      });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException();
+      }
+      throw error;
+    }
   }
 
-  async remove(id: string) {
-    return this.prisma.rate.delete({
-      where: { id },
-    });
+  async delete(id: string) {
+    try {
+      await this.prisma.rate.delete({ where: { id } });
+    } catch (error) {
+      if (error.code === 'P2025') {
+        throw new NotFoundException();
+      }
+      throw error;
+    }
   }
 }

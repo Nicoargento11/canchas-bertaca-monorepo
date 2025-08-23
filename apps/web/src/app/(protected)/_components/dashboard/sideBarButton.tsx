@@ -5,21 +5,21 @@ import React from "react";
 import { ArrowRightToLine, ArrowLeftToLine } from "lucide-react";
 
 export const SideBarButton = () => {
-  const { expanded, setExpanded } = useSideBarContext();
+  // const { expanded, setExpanded } = useSideBarContext();
 
   return (
     <Button
-      onClick={() => {
-        setExpanded((curr) => !curr);
-      }}
+      // onClick={() => {
+      //   setExpanded((curr) => !curr);
+      // }}
       size={"icon"}
       className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100 block sm:hidden"
     >
-      {expanded ? (
+      {/* {expanded ? (
         <ArrowRightToLine className="text-Primary/80" />
       ) : (
         <ArrowLeftToLine className="text-Primary/80" />
-      )}
+      )} */}
     </Button>
   );
 };

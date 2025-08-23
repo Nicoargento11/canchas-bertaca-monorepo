@@ -8,7 +8,6 @@ export class ReviewsController {
 
   @Post()
   async create(@Body() createReviewDto: CreateReviewDto) {
-    console.log(createReviewDto);
     const review = await this.reviewsService.create(createReviewDto);
     await this.reviewsService.sendEmailNotification(createReviewDto);
     return { success: true, review };

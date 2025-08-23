@@ -1,52 +1,125 @@
-// frontend/services/scheduleService.ts
 import api from "../api";
-import { Benefit } from "../benefit/benefit";
+import axios from "axios";
+import { Complex } from "../complex/complex";
+import { Court } from "../court/court";
 import { Rate } from "../rate/rate";
-import { ScheduleDay } from "../scheduleDay/scheduleDay";
+import { ScheduleDay } from "../schedule-day/schedule-day";
+import { SportType } from "../sport-types/sport-types";
 
-export interface Schedule {
+export type Schedule = {
   id: string;
   startTime: string;
   endTime: string;
-  rates: Rate[];
   scheduleDay: ScheduleDay;
   scheduleDayId: string;
-  benefits?: Benefit[];
-}
+  complex?: Complex | null;
+  complexId?: string | null;
+  court?: Court | null;
+  courtId?: string | null;
+  rates: Rate[];
+  sportTypeId?: string;
+  sportType?: SportType;
+  createdAt: string;
+  updatedAt: string;
+};
 
-export interface sendDataSchedule {
+export interface SendDataSchedule {
   startTime: string;
   endTime: string;
-  scheduleDay: number;
-  rates?: string;
-  benefits?: string;
+  scheduleDayId: string;
+  rateId: string;
+  courtId?: string;
+  complexId: string;
+  sportTypeId: string;
+  benefits?: string[];
 }
 
-export const getSchedules = async (): Promise<Schedule[]> => {
-  const response = await api.get("/schedules");
-  return response.data;
+type ScheduleResult<T = any> = {
+  success: boolean;
+  data?: T;
+  error?: string;
 };
 
-export const getScheduleById = async (id: string): Promise<Schedule> => {
-  const response = await api.get(`/schedules/${id}`);
-  return response.data;
+const handleScheduleError = (error: unknown): ScheduleResult => {
+  if (axios.isAxiosError(error)) {
+    if (error.response) {
+      const status = error.response.status;
+      const message = error.response.data?.message || "Error en la solicitud";
+
+      if (status === 401) return { success: false, error: message || "No autorizado" };
+      if (status === 404) return { success: false, error: message || "Horario no encontrado" };
+      if (status === 409)
+        return { success: false, error: message || "Conflicto con los datos proporcionados" };
+
+      return { success: false, error: message };
+    }
+    return { success: false, error: "Error de conexión" };
+  }
+  return { success: false, error: "Error desconocido" };
 };
 
-export const createSchedule = async (
-  data: sendDataSchedule
-): Promise<Schedule> => {
-  const response = await api.post("/schedules", data);
-  return response.data;
+export const getSchedules = async (): Promise<ScheduleResult<Schedule[]>> => {
+  try {
+    const response = await api.get("/schedules");
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
 };
 
-export const updateSchedule = async (
+export const getScheduleById = async (id: string): Promise<ScheduleResult<Schedule>> => {
+  try {
+    const response = await api.get(`/schedules/${id}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
+};
+
+export const createSchedule = async (data: SendDataSchedule): Promise<ScheduleResult<Schedule>> => {
+  try {
+    const response = await api.post("/schedules", data);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
+};
+
+export const updateScheduleFetch = async (
   id: string,
-  data: sendDataSchedule
-): Promise<Schedule> => {
-  const response = await api.put(`/schedules/${id}`, data);
-  return response.data;
+  data: SendDataSchedule
+): Promise<ScheduleResult<Schedule>> => {
+  try {
+    const response = await api.put(`/schedules/${id}`, data);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
 };
 
-export const deleteSchedule = async (id: string): Promise<void> => {
-  await api.delete(`/schedules/${id}`);
+export const deleteScheduleFetch = async (id: string): Promise<ScheduleResult> => {
+  try {
+    const response = await api.delete(`/schedules/${id}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
+};
+
+export const toggleScheduleStatus = async (id: string): Promise<ScheduleResult<Schedule>> => {
+  try {
+    const response = await api.patch(`/schedules/${id}/toggle-status`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
+};
+
+export const getSchedulesByDay = async (dayId: string): Promise<ScheduleResult<Schedule[]>> => {
+  try {
+    const response = await api.get(`/schedules/day/${dayId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
 };

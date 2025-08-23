@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import {
   eachDayOfInterval,
   addDays,
@@ -9,35 +9,39 @@ import {
   addMonths,
   subMonths,
   getDay,
+  isSameDay,
 } from "date-fns";
 import { es } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useReserve } from "@/contexts/reserveContext";
-import { UnavailableDay } from "@/services/unavailableDay/unavailableDay";
-import { ScheduleDay } from "@/services/scheduleDay/scheduleDay";
+
+import { useReserve } from "@/contexts/newReserveContext";
 
 interface CalendarProps {
-  unavailableDays: UnavailableDay[];
-  scheduleDays: ScheduleDay[];
+  complexId: string; // ID del complejo
+  sportType: string; // Tipo de deporte
+  disabledDates?: Date[]; // Fechas bloqueadas
+  disabledWeekdays?: number[]; // Días de semana no disponibles
+  maxSelectableDays: number; // Límite de días a futuro
 }
 
-const Calendar = ({ scheduleDays, unavailableDays }: CalendarProps) => {
-  const { reserveForm, handleReserveForm } = useReserve();
-
+const Calendar = ({
+  complexId,
+  sportType,
+  disabledDates,
+  disabledWeekdays,
+  maxSelectableDays,
+}: CalendarProps) => {
+  const { updateReservationForm, getCurrentReservation, goToNextStep } = useReserve();
   const today = new Date(); // Hora local del cliente CSR
   const [currentMonth, setCurrentMonth] = useState<Date>(today);
 
-  // Días de la semana deshabilitados (0 = Domingo, 1 = Lunes, ..., 6 = Sábado)
-  const disabledWeekdays = scheduleDays
-    .filter((day) => !day.isActive) // Filtra los días de la semana deshabilitados
-    .map((day) => day.dayOfWeek);
-
-  // Fechas específicas deshabilitadas
-  const disabledDates = unavailableDays.map((date) => new Date(date.date));
+  const currentReservation = getCurrentReservation();
+  const selectedDate = currentReservation?.form.day || today;
 
   const nextMonth = () => {
     const nextMonthDate = addMonths(currentMonth, 1);
-    if (nextMonthDate <= addMonths(today, 1)) {
+    if (nextMonthDate <= addMonths(today, 2)) {
+      // Permitir ver 2 meses adelante
       setCurrentMonth(nextMonthDate);
     }
   };
@@ -49,50 +53,43 @@ const Calendar = ({ scheduleDays, unavailableDays }: CalendarProps) => {
     setCurrentMonth(subMonths(currentMonth, 1));
   };
 
-  const firstDayOfMonth = startOfMonth(currentMonth);
-  const startDay = startOfWeek(firstDayOfMonth);
-  const lastDayOfMonth = endOfMonth(currentMonth);
+  const { days, weekdays } = useMemo(() => {
+    const firstDayOfMonth = startOfMonth(currentMonth);
+    const startDay = startOfWeek(firstDayOfMonth);
+    const lastDayOfMonth = endOfMonth(currentMonth);
 
-  const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-  const days = eachDayOfInterval({
-    start: startDay,
-    end: lastDayOfMonth,
-  }).map((date, index) => {
-    const isPastDay = date < addDays(today, -1); // Deshabilitar dias anteriores
-    // || date > addDays(today, 14);
-    // const isCurrentDay = isToday(date);
-    const isDisabledDate = disabledDates.some(
-      (disabledDate) => disabledDate.toDateString() === date.toDateString()
-    ); // Verificar si la fecha está deshabilitada
-    const isDisabledWeekday = disabledWeekdays.includes(getDay(date)); // Verificar si el día de la semana está deshabilitado
+    const days = eachDayOfInterval({
+      start: startDay,
+      end: lastDayOfMonth,
+    }).map((date, index) => {
+      const isPastDay = date < addDays(today, -1);
+      const isFutureLimit = date > addDays(today, maxSelectableDays);
+      const isDisabledDate = disabledDates && disabledDates.some((d) => isSameDay(d, date));
+      const isDisabledWeekday = disabledWeekdays && disabledWeekdays.includes(getDay(date));
+      const isSelected = isSameDay(date, selectedDate);
 
-    const isDayDisabled = isPastDay || isDisabledDate || isDisabledWeekday; // Combinar todas las condiciones de deshabilitación
+      const isDayDisabled = isPastDay || isFutureLimit || isDisabledDate || isDisabledWeekday;
 
-    return (
-      <div
-        onClick={
-          isDayDisabled ? () => {} : () => handleReserveForm("day", date)
-        }
-        key={index}
-        className={`${
-          reserveForm.day.toDateString() === date.toDateString()
-            ? "bg-Accent-1 text-Primary border-2 border-Primary" // Día seleccionado
-            : isDayDisabled
-              ? "bg-Neutral-light text-Neutral-dark cursor-not-allowed" // Días deshabilitados
-              : "bg-white text-Primary hover:bg-Primary-light hover:text-white" // Días disponibles
-        } flex items-center justify-center w-10 h-10 font-bold rounded-full transition duration-200 ease-in-out cursor-pointer`}
-      >
-        {format(date, "d")}
-      </div>
-    );
-  });
+      return {
+        date,
+        isDisabled: isDayDisabled,
+        isSelected,
+        dayNumber: format(date, "d"),
+      };
+    });
 
-  const weekdays = daysOfWeek.map((day) => (
-    <div key={day} className="text-center font-bold text-Primary w-10">
-      {day}
-    </div>
-  ));
+    return {
+      days,
+      weekdays: daysOfWeek,
+    };
+  }, [currentMonth, selectedDate, disabledDates, disabledWeekdays, maxSelectableDays]);
+
+  const handleDateSelect = async (date: Date) => {
+    updateReservationForm("day", date);
+    goToNextStep();
+  };
 
   return (
     <div className="flex flex-col gap-4 p-4 bg-Neutral-light rounded-lg shadow-md">
@@ -100,21 +97,19 @@ const Calendar = ({ scheduleDays, unavailableDays }: CalendarProps) => {
       <div className="flex justify-between items-center">
         <button
           onClick={prevMonth}
-          className={`p-2 rounded-full ${
-            currentMonth <= today
-              ? "text-Neutral-dark cursor-not-allowed"
-              : "text-Primary hover:bg-Primary-light"
-          } transition duration-200 ease-in-out`}
           disabled={currentMonth <= today}
+          className="p-2 rounded-full disabled:opacity-50 text-Primary hover:bg-Primary-light transition"
         >
           <ChevronLeft size={25} strokeWidth={3} />
         </button>
+
         <h2 className="text-xl font-bold text-Primary">
-          {format(firstDayOfMonth, "MMMM yyyy", { locale: es })}
+          {format(currentMonth, "MMMM yyyy", { locale: es })}
         </h2>
+
         <button
           onClick={nextMonth}
-          className="p-2 rounded-full text-Primary hover:bg-Primary-light transition duration-200 ease-in-out"
+          className="p-2 rounded-full text-Primary hover:bg-Primary-light transition"
         >
           <ChevronRight size={25} strokeWidth={3} />
         </button>
@@ -122,13 +117,32 @@ const Calendar = ({ scheduleDays, unavailableDays }: CalendarProps) => {
 
       {/* Días de la semana */}
       <div className="grid grid-cols-7 gap-2 text-sm font-semibold justify-items-center">
-        {weekdays}
+        {weekdays.map((day) => (
+          <div key={day} className="text-center w-10 text-Primary">
+            {day}
+          </div>
+        ))}
       </div>
 
       {/* Días del mes */}
-      <div className="grid grid-cols-7 gap-2 justify-items-center">{days}</div>
+      <div className="grid grid-cols-7 gap-2 justify-items-center">
+        {days.map((day, index) => (
+          <button
+            key={index}
+            onClick={() => !day.isDisabled && handleDateSelect(day.date)}
+            disabled={day.isDisabled}
+            className={`
+              w-10 h-10 flex items-center justify-center font-bold rounded-full transition
+              ${day.isSelected ? "bg-Accent-1 text-Primary border-2 border-Primary" : ""}
+              ${day.isDisabled ? "bg-Neutral-light text-Neutral-dark cursor-not-allowed" : "bg-white hover:bg-Primary-light hover:text-white"}
+            `}
+          >
+            {day.dayNumber}
+          </button>
+        ))}
+      </div>
     </div>
   );
 };
 
-export default Calendar;
+export default React.memo(Calendar);

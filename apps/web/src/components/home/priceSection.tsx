@@ -5,14 +5,10 @@ import { Sun, Moon } from "lucide-react";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import canchaImagen from "../../../public/canchasF5.jpg"; // Cambia esto por la ruta de tu imagen
+import { Rate } from "@/services/rate/rate";
 
 interface PriceSectionProps {
-  prices?: {
-    Nolights: number;
-    WithLights: number;
-    HolidayNoLights: number;
-    HolidayLights: number;
-  };
+  rates: Rate[];
 }
 
 interface PriceCardProps {
@@ -22,7 +18,11 @@ interface PriceCardProps {
   priceNight: number;
 }
 
-const PriceSection: React.FC<PriceSectionProps> = ({ prices }) => {
+const PriceSection: React.FC<PriceSectionProps> = ({ rates }) => {
+  const getRatePrice = (rateName: string): number => {
+    const rate = rates.find((r) => r.name === rateName);
+    return rate?.price || 0;
+  };
   return (
     <div className="py-16 text-center bg-black/80 relative" id="Precios">
       {/* Overlay para dar profundidad */}
@@ -38,14 +38,14 @@ const PriceSection: React.FC<PriceSectionProps> = ({ prices }) => {
             <PriceCard
               title="Dias de semana"
               description="Reserva una cancha de lunes a viernes y disfruta de nuestro precio."
-              priceDay={prices?.Nolights || 0}
-              priceNight={prices?.WithLights || 0}
+              priceDay={getRatePrice("Semana Diurna")}
+              priceNight={getRatePrice("Semana Nocturna")}
             />
             <PriceCard
               title="Fin de Semana"
               description="Reserva una cancha los sábados y domingos y obtén un descuento."
-              priceDay={prices?.HolidayNoLights || 0}
-              priceNight={prices?.HolidayLights || 0}
+              priceDay={getRatePrice("Fin de Semana Diurna")}
+              priceNight={getRatePrice("Fin de Semana Nocturna")}
             />
           </>
         </div>
@@ -54,12 +54,7 @@ const PriceSection: React.FC<PriceSectionProps> = ({ prices }) => {
   );
 };
 
-const PriceCard: React.FC<PriceCardProps> = ({
-  title,
-  description,
-  priceDay,
-  priceNight,
-}) => {
+const PriceCard: React.FC<PriceCardProps> = ({ title, description, priceDay, priceNight }) => {
   return (
     <motion.div
       initial={{ opacity: 0, y: 50 }}
@@ -71,12 +66,7 @@ const PriceCard: React.FC<PriceCardProps> = ({
         <CardHeader className="bg-clip-border mx-4 rounded-xl overflow-hidden bg-gradient-to-br from-Primary-dark/50 to-Primary-light/50 text-white shadow-lg -mt-6 relative h-44 md:h-56">
           <div className="absolute inset-0">
             <div className="opacity-80 absolute inset-0 bg-gradient-to-b from-Primary-dark/50 to-Primary-light/50">
-              <Image
-                src={canchaImagen}
-                alt="Imagen de fondo"
-                fill
-                className="object-cover"
-              />
+              <Image src={canchaImagen} alt="Imagen de fondo" fill className="object-cover" />
             </div>
           </div>
         </CardHeader>

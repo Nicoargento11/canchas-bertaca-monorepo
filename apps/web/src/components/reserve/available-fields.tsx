@@ -1,72 +1,113 @@
 import React, { useEffect, useState } from "react";
 import { SkeletonModal } from "@/components/skeletonModal";
-import { useReserve } from "@/contexts/reserveContext";
+import { useReserve } from "@/contexts/newReserveContext";
 import { format } from "date-fns";
+import { Complex } from "@/services/complex/complex";
+import { CheckCircle2, LayoutGrid } from "lucide-react";
+import { Icon } from "lucide-react";
+import { tennisRacket, soccerBall } from "@lucide/lab";
+import { SportType } from "@/services/sport-types/sport-types";
 
-const AvailableFields = () => {
-  const { reserveForm, handleReserveForm } = useReserve();
-  const { availableReservesByHour, getAvailableReservesByHour } = useReserve();
-  const [isLoading, setLoading] = useState(true);
+interface AvailableFieldsProps {
+  complex: Complex;
+  sportType: SportType;
+}
+const AvailableFields = ({ complex, sportType }: AvailableFieldsProps) => {
+  const { state, getCurrentReservation, updateReservationForm, fetchAvailability, goToNextStep } =
+    useReserve();
 
-  const formatedDay = format(reserveForm.day, "yyyy-MM-dd");
+  const currentReservation = getCurrentReservation();
+  const fields = currentReservation?.availability.byHour?.court || [];
+  // const formatedDay = format(reserveForm.day, "yyyy-MM-dd");
 
   useEffect(() => {
-    getAvailableReservesByHour(formatedDay, reserveForm.hour);
-    setLoading(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (currentReservation?.form.day && currentReservation?.form.hour) {
+      fetchAvailability(
+        "hour",
+        format(currentReservation.form.day, "yyyy-MM-dd"),
+        currentReservation.form.hour
+      );
+    }
+  }, [currentReservation?.form.day, currentReservation?.form.hour]);
 
+  if (currentReservation?.loading || !currentReservation) {
+    return <SkeletonModal />;
+  }
+
+  const getSportIcon = () => {
+    switch (sportType.name) {
+      case "FUTBOL_5":
+      case "FUTBOL_7":
+      case "FUTBOL_11":
+        return <Icon iconNode={soccerBall} size={20} />;
+      case "TENIS":
+        return <Icon iconNode={tennisRacket} size={20} />;
+      default:
+        return <LayoutGrid size={20} />;
+    }
+  };
+
+  const handleFieldSelect = (fieldId: string) => {
+    updateReservationForm("field", fieldId);
+    goToNextStep();
+  };
   return (
-    <div className="p-4 bg-Neutral-light rounded-lg shadow-md">
-      <p className="text-center font-bold text-2xl text-Primary mb-4">
-        Canchas disponibles
-      </p>
-      {isLoading ? (
-        <SkeletonModal />
-      ) : (
-        <div className="flex flex-col lg:flex-row gap-6">
-          {/* Lista de canchas disponibles */}
-          <div className="flex flex-col gap-3 w-full lg:w-1/2">
-            {availableReservesByHour?.court.map((field, index) => (
-              <div
-                key={index}
-                onClick={() => handleReserveForm("field", field)}
-                className={`${
-                  reserveForm.field === field
-                    ? "bg-Primary text-white shadow-lg"
-                    : "bg-white text-Primary hover:bg-Primary-light hover:text-white"
-                } border-2 border-Primary rounded-xl p-4 text-center cursor-pointer font-bold transition-all duration-200 ease-in-out transform hover:scale-105`}
-              >
-                Cancha {field}
-              </div>
-            ))}
-          </div>
+    <div className="p-6 bg-Neutral-light/20 rounded-xl shadow-lg border border-Neutral-light relative overflow-visible">
+      <h2 className="text-center font-bold text-2xl text-Primary mb-6">
+        Canchas disponibles - {sportType.name.toUpperCase()}
+      </h2>
 
-          {/* Mapa de la cancha */}
-          <div className="w-full lg:w-1/2 flex justify-center items-center">
-            <div className="relative w-full h-64 lg:h-96 rounded-xl overflow-hidden shadow-lg">
-              {/* Indicadores de canchas en el mapa */}
-              {availableReservesByHour?.court.map((field, index) => (
-                <div
-                  key={index}
-                  className={`absolute ${
-                    // Posiciones de las canchas en el mapa (ajusta según tu imagen)
-                    field === 1
-                      ? "top-10 left-10"
-                      : field === 2
-                        ? "top-10 right-10"
-                        : field === 3
-                          ? "bottom-10 left-10"
-                          : "bottom-10 right-10"
-                  } w-8 h-8 bg-Accent-1 rounded-full flex items-center justify-center text-white font-bold text-sm cursor-pointer transform hover:scale-110 transition duration-200`}
-                >
-                  {field}
-                </div>
-              ))}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative">
+        <div className="space-y-3 relative">
+          {fields.length <= 0 ? (
+            <div>
+              <CheckCircle2 className="mx-auto h-12 w-12 text-gray-400" />
+              <p className="mt-2 text-lg font-medium text-gray-900">No hay canchas disponibles</p>
+              <p className="mt-1 text-gray-500">
+                Todos los campos están ocupados para este horario
+              </p>
             </div>
-          </div>
+          ) : (
+            fields.map((field) => (
+              <div
+                key={field.id}
+                onClick={() => handleFieldSelect(field.id)}
+                className={`${
+                  currentReservation.form.field === field.id
+                    ? "ring-2 ring-Primary bg-Primary/5"
+                    : "hover:bg-gray-50"
+                } p-3 rounded-lg border border-gray-100 bg-white transition-all cursor-pointer shadow-xs`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-full bg-blue-50 text-blue-500">{getSportIcon()}</div>
+
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-800 truncate">
+                      {field.name || `Cancha ${field.courtNumber}`}
+                    </h3>
+                    {/* {field.type && (
+                      <p className="text-sm text-gray-500">{field.type}</p>
+                    )} */}
+                  </div>
+
+                  {currentReservation.form.field === field.id && (
+                    <div className="w-2 h-2 rounded-full bg-Primary ml-2" />
+                  )}
+                </div>
+              </div>
+            ))
+          )}
         </div>
-      )}
+
+        {/* Imagen que se muestra siempre */}
+        <div className="overflow-hidden rounded-xl">
+          <img
+            src="/background/Crokis.png"
+            alt="Cancha"
+            className="w-70 h-70 object-fit rounded-xl"
+          />
+        </div>
+      </div>
     </div>
   );
 };
