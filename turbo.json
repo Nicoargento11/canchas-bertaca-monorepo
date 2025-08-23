@@ -5,7 +5,31 @@
     "build": {
       "dependsOn": ["^build"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
-      "outputs": [".next/**", "!.next/cache/**"]
+      "outputs": [".next/**", "!.next/cache/**"],
+      "env": [
+        "NEXT_PUBLIC_BACKEND_URL",
+        "SESSION_SECRET_KEY",
+        "NEXT_PUBLIC_MP_PUBLIC_KEY",
+        "COOKIE_SECURE",
+        "MP_ACCESS_TOKEN",
+        "DATABASE_URL",
+        "JWT_SECRET",
+        "JWT_EXPIRES_IN",
+        "JWT_REFRESH_SECRET",
+        "JWT_REFRESH_EXPIRES_IN",
+        "GOOGLE_CLIENT_ID",
+        "GOOGLE_CLIENT_SECRET",
+        "GOOGLE_CALLBACK_URL",
+        "MP_ACCESS_TOKEN",
+        "MP_INTEGRATOR_ID",
+        "PAYMENT_BACK_URL",
+        "NOTIFICATION_URL",
+        "JWT_PAYMENT_SECRET",
+        "JWT_PAYMENT_EXPIRES_IN",
+        "FRONT_END_URL",
+        "EMAIL_USER",
+        "EMAIL_PASS"
+      ]
     },
     "lint": {
       "dependsOn": ["^lint"]
