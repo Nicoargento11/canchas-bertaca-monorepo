@@ -30,6 +30,7 @@ async function bootstrap() {
         'https://www.partidoya.com',
         'https://partidoya.com',
         'https://x1gj7r8c-3000.brs.devtunnels.ms',
+        'https://canchas-bertaca-monorepo-web.vercel.app',
         process.env.FRONT_END_URL,
       ].filter(Boolean); // Elimina valores undefined/null
 
