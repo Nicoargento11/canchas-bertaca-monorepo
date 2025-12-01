@@ -31,7 +31,7 @@ export default registerAs(
       // CRÍTICO: No especificar dominio para permitir cookies cross-site
       domain:
         process.env.NODE_ENV === 'production'
-          ? '.partidoya.com'
+          ? undefined
           : process.env.COOKIE_DOMAIN || 'localhost',
     },
   }),
