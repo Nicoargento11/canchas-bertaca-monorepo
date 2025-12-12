@@ -1,3 +1,19 @@
+import * as dotenv from 'dotenv';
+import { resolve, join } from 'path';
+
+// Cargar .env ANTES de cualquier otra cosa
+const envPaths = [
+  resolve(process.cwd(), '.env'),
+  resolve(process.cwd(), 'apps/api/.env'),
+  join(__dirname, '../.env'),
+  join(__dirname, '../../.env'),
+];
+
+for (const envPath of envPaths) {
+  const result = dotenv.config({ path: envPath });
+  if (!result.error) break;
+}
+
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
@@ -24,12 +40,8 @@ async function bootstrap() {
     origin: (origin, callback) => {
       // Lista de dominios permitidos
       const allowedOrigins = [
-        // 'http://localhost:3000',
-        'http://localhost:8000',
-
-        'https://www.partidoya.com',
-        'https://partidoya.com',
-        'https://x1gj7r8c-3000.brs.devtunnels.ms',
+        'http://localhost:3000',
+        'https://svgvr0cl-3000.brs.devtunnels.ms',
         'https://canchas-bertaca-monorepo-web.vercel.app',
         process.env.FRONT_END_URL,
       ].filter(Boolean); // Elimina valores undefined/null

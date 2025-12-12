@@ -23,6 +23,8 @@ import { ReviewsModule } from './reviews/reviews.module';
 import { CashRegisterModule } from './cash-register/cash-register.module';
 import { CashSessionModule } from './cash-session/cash-session.module';
 import { ReportsModule } from './reports/reports.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+import { SalesModule } from './sales/sales.module';
 
 @Module({
   imports: [
@@ -30,6 +32,7 @@ import { ReportsModule } from './reports/reports.module';
     UsersModule,
     ConfigModule.forRoot({ isGlobal: true }),
     ComplexModule,
+    OrganizationsModule,
     ReservesModule,
     PaymentsModule,
     ScheduleDaysModule,
@@ -42,6 +45,7 @@ import { ReportsModule } from './reports/reports.module';
     FixedReservesModule,
     ProductsModule,
     ProductSalesModule,
+    SalesModule,
     InventoryMovementsModule,
     ReviewsModule,
     CashRegisterModule,
