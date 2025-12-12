@@ -8,6 +8,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
 } from '@nestjs/common';
 import { PaymentsService } from './payments.service';
@@ -19,8 +20,6 @@ import {
 import { ReservesService } from 'src/reserves/reserves.service';
 import { Public } from 'src/auth/decorators/public.decorator';
 import { JwtService } from '@nestjs/jwt';
-import { Payment } from 'mercadopago';
-import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { PaymentMethod, SportName, Status } from '@prisma/client';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -29,6 +28,7 @@ import { CreateReserveDto } from 'src/reserves/dto/create-reserve.dto';
 import { CourtsService } from 'src/courts/courts.service';
 import { ComplexService } from 'src/complexs/complexs.service';
 import { MailService } from 'src/mail/mail.service';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @ApiTags('Payments')
 @Controller('payments')
@@ -40,8 +40,17 @@ export class PaymentsController {
     private readonly courtService: CourtsService,
     private readonly complexService: ComplexService,
     private readonly mailService: MailService,
+    private readonly prisma: PrismaService,
     private jwtService: JwtService,
   ) {}
+  @Get('search')
+  async searchPayments(@Query('complexId') complexId: string) {
+    if (!complexId) {
+      throw new HttpException('Complex ID is required', HttpStatus.BAD_REQUEST);
+    }
+    return await this.paymentsService.searchPayments(complexId);
+  }
+
   // TODO quitar public
   @Post('create')
   @ApiOperation({ summary: 'Crear pago online y reserva asociada' })
@@ -67,16 +76,10 @@ export class PaymentsController {
     // Crear DTO para la reserva
     const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 minutos
     const createReserveDto: CreateReserveDto = {
+      ...createPaymentDto,
       date: utcDate,
-      schedule: createPaymentDto.schedule,
-      courtId: createPaymentDto.courtId,
-      price: createPaymentDto.price,
-      reservationAmount: createPaymentDto.reservationAmount,
-      userId: createPaymentDto.userId,
       status: 'PENDIENTE',
-      phone: createPaymentDto.phone,
       clientName: createPaymentDto.clientName || '',
-      complexId: createPaymentDto.complexId,
       reserveType: createPaymentDto.reserveType,
       ...(createPaymentDto.fixedReserveId && {
         fixedReserveId: createPaymentDto.fixedReserveId,
@@ -119,7 +122,11 @@ export class PaymentsController {
   }
   @Public()
   @Post('mercadopago')
-  async handlePaymentNotification(@Req() req) {
+  async handlePaymentNotification(
+    @Req() req,
+    @Query('complexId') complexId: string,
+  ) {
+    console.log(req.body);
     const body = req.body;
 
     // Validación inicial de tipo de notificación
@@ -131,10 +138,18 @@ export class PaymentsController {
     }
     const paymentId = body.data.id;
 
+    if (!complexId) {
+      throw new HttpException(
+        { message: 'Missing complexId query parameter' },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
     try {
-      const searchedPayment = await new Payment(mercadoPagoConfig).get({
-        id: paymentId,
-      });
+      const searchedPayment = await this.paymentsService.getPaymentDetails(
+        paymentId,
+        complexId,
+      );
 
       const searchedReserve = await this.reserveService.findById(
         searchedPayment.external_reference,

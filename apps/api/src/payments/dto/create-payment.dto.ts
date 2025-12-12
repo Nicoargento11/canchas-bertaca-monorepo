@@ -110,6 +110,10 @@ export class CreatePaymentDto {
   @IsOptional()
   @IsNotEmpty()
   cashSessionId?: string;
+
+  @IsOptional()
+  @IsNotEmpty()
+  saleId?: string;
 }
 
 export class PaymentPreferenceResponseDto {
