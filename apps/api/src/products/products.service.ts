@@ -12,8 +12,9 @@ import { ProductCategory } from '@prisma/client';
 export class ProductService {
   constructor(private prisma: PrismaService) {}
 
-  async findAll() {
+  async findAll(complexId?: string) {
     return this.prisma.product.findMany({
+      where: complexId ? { complexId } : {},
       include: {
         complex: true,
       },
