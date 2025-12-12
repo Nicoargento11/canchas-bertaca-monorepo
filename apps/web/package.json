@@ -23,6 +23,7 @@
     "@radix-ui/react-label": "^2.1.1",
     "@radix-ui/react-popover": "^1.1.4",
     "@radix-ui/react-progress": "^1.1.1",
+    "@radix-ui/react-scroll-area": "^1.2.10",
     "@radix-ui/react-select": "^2.1.4",
     "@radix-ui/react-separator": "^1.1.7",
     "@radix-ui/react-slider": "^1.2.2",
@@ -70,6 +71,7 @@
     "eslint-config-prettier": "^10.1.2",
     "eslint-plugin-prettier": "^5.2.6",
     "postcss": "^8",
+    "react-scan": "^0.4.3",
     "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }

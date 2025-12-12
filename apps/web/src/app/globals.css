@@ -98,7 +98,9 @@ html {
   width: 100%;
   overflow: hidden;
   line-height: 0;
-  transform: rotate(180deg);
+  transform: rotate(180deg) translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
 }
 
 .custom-shape-divider-bottom-1741012740 svg {
