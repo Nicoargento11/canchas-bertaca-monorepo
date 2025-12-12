@@ -26,13 +26,16 @@ export default registerAs(
     // Opciones para cookies
     cookieOptions: {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // HTTPS en producción
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure:
+        process.env.NODE_ENV === 'production' ||
+        process.env.COOKIE_SECURE === 'true',
+      sameSite:
+        process.env.NODE_ENV === 'production' ||
+        process.env.COOKIE_SECURE === 'true'
+          ? 'none'
+          : 'lax',
       // CRÍTICO: No especificar dominio para permitir cookies cross-site
-      domain:
-        process.env.NODE_ENV === 'production'
-          ? undefined
-          : process.env.COOKIE_DOMAIN || 'localhost',
+      domain: undefined,
     },
   }),
 );
