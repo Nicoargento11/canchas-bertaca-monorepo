@@ -138,6 +138,33 @@ const BiTableDay: React.FC<TableReservesProps> = ({
     ));
   };
 
+  // Validar si hay canchas para este tipo de deporte
+  const courtsForSport = complex.courts.filter((court) => court.sportTypeId === sportType.id);
+  const hasCourts = courtsForSport.length > 0;
+
+  // Si no hay canchas, mostrar mensaje
+  if (!hasCourts) {
+    return (
+      <div className="flex flex-col w-full h-full">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+          <div className="max-w-md mx-auto">
+            <GiSoccerField className="mx-auto h-16 w-16 text-gray-400 mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No hay canchas configuradas
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Este complejo no tiene canchas configuradas para <strong>{sportType.name}</strong>.
+            </p>
+            <p className="text-sm text-gray-500">
+              Dirígete a <strong>Configuración → Canchas</strong> para crear canchas para este
+              deporte.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col w-full h-full">
       {/* Encabezado con selector de fecha y botón de sidebar */}
@@ -259,95 +286,132 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                     .sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0)) // Ordenar por número de cancha con fallback
                     .map((court) => {
                       const isReserved = scheduleReserve.court.find(
-                        (courtData) => courtData.court.courtNumber === court.courtNumber // Usar court.courtNumber en lugar de index + 1
+                        (courtData) => courtData.court.courtNumber === court.courtNumber
                       );
 
-                      return isReserved ? (
-                        <td
-                          key={`${scheduleReserve.schedule}-${court.courtNumber}`} // Usar court.courtNumber en lugar de index + 1                          className="w-[100px] h-[61.804px] gap-1 relative"
-                        >
-                          <div
-                            onClick={() => {
-                              if (isReserved.date) {
-                                if (isReserved.status === "COMPLETADO") {
-                                  getReserveById(isReserved.id);
-                                  handleOpenCompletedDetailsModal(isReserved);
-                                } else {
-                                  getReserveById(isReserved.id);
-                                  handleChangeDetails();
-                                }
-                              }
-                            }}
-                            className={`rounded-md w-full h-full flex flex-col p-2 font-bold text-xs relative transition-all ${
-                              isReserved.reserveType === "FIJO"
-                                ? `${isReserved.date ? "cursor-pointer" : "cursor-default"} bg-blue-100 border-2 border-dashed border-blue-400`
-                                : isReserved.status === "PENDIENTE"
-                                  ? "cursor-default bg-yellow-100 border-2 border-dashed border-yellow-400"
-                                  : isReserved.status === "APROBADO"
-                                    ? "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 cursor-pointer"
-                                    : isReserved.status === "COMPLETADO"
-                                      ? "cursor-pointer bg-emerald-100 border-2 border-solid border-emerald-600 hover:bg-emerald-200"
-                                      : "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 hover:cursor-pointer"
-                            }`}
+                      if (isReserved) {
+                        // Lógica de RowSpan basada en ID para mayor robustez
+                        // Verificar si la fila anterior tenía la misma reserva
+                        let isContinuation = false;
+                        if (index > 0) {
+                          const prevSchedule = state.reservationsByDay[index - 1];
+                          const prevReserved = prevSchedule.court.find(
+                            (c) => c.court.courtNumber === court.courtNumber
+                          );
+                          if (prevReserved && prevReserved.id === isReserved.id) {
+                            isContinuation = true;
+                          }
+                        }
+
+                        if (isContinuation) {
+                          return null; // No renderizar celda si es continuación
+                        }
+
+                        // Calcular rowSpan contando filas consecutivas con el mismo ID
+                        let span = 1;
+                        for (let i = index + 1; i < state.reservationsByDay.length; i++) {
+                          const nextSchedule = state.reservationsByDay[i];
+                          const nextReserved = nextSchedule.court.find(
+                            (c) => c.court.courtNumber === court.courtNumber
+                          );
+                          if (nextReserved && nextReserved.id === isReserved.id) {
+                            span++;
+                          } else {
+                            break;
+                          }
+                        }
+
+                        return (
+                          <td
+                            key={`${scheduleReserve.schedule}-${court.courtNumber}`}
+                            rowSpan={span}
+                            className="w-[100px] gap-1 relative p-0 border-b border-gray-200"
                           >
-                            <div className="flex gap-0.5 items-center text-gray-800">
-                              <UserRound className="hidden sm:block text-gray-900" size={14} />
-                              <p className="truncate text-xs">
-                                {isReserved.clientName.split(" ")[0] ||
-                                  isReserved.user?.name.split(" ")[0]}
-                              </p>
-                            </div>
-                            {isReserved.reserveType !== "FIJO" && (
-                              <div className="flex gap-0.5 items-center text-gray-700">
-                                <Coins className="hidden sm:block text-green-600" size={12} />
-                                <p className="text-xs">
-                                  {isReserved.reservationAmount?.toLocaleString("es-AR", {
-                                    style: "currency",
-                                    currency: "ARS",
-                                  })}
-                                </p>{" "}
-                              </div>
-                            )}
-                            {/* Botón de completar */}
-                            {isReserved.status === "APROBADO" && (
-                              <div className="flex gap-1 mt-1">
-                                <Button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleOpenCompleteModal(isReserved);
-                                  }}
-                                  size="sm"
-                                  className="bg-emerald-600 hover:bg-emerald-700 text-white p-1 h-6 text-xs"
-                                >
-                                  <CheckCircle2 size={12} />
-                                  <span className="hidden md:inline ml-1">Completar</span>
-                                </Button>
-                              </div>
-                            )}
-                            {/* Botón de ver detalles para reservas completadas */}
-                            {isReserved.status === "COMPLETADO" && (
-                              <div className="flex gap-1 mt-1">
-                                <Button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                            <div
+                              onClick={() => {
+                                if (isReserved.date) {
+                                  if (isReserved.status === "COMPLETADO") {
+                                    getReserveById(isReserved.id);
                                     handleOpenCompletedDetailsModal(isReserved);
-                                  }}
-                                  size="sm"
-                                  className="bg-blue-600 hover:bg-blue-700 text-white p-1 h-6 text-xs"
-                                >
-                                  <Eye size={12} />
-                                  <span className="hidden md:inline ml-1">Ver Detalles</span>
-                                </Button>
+                                  } else {
+                                    getReserveById(isReserved.id);
+                                    handleChangeDetails();
+                                  }
+                                }
+                              }}
+                              className={`rounded-md w-full h-full flex flex-col p-2 font-bold text-xs relative transition-all ${
+                                isReserved.reserveType === "FIJO"
+                                  ? `${isReserved.date ? "cursor-pointer" : "cursor-default"} bg-blue-100 border-2 border-dashed border-blue-400`
+                                  : isReserved.status === "PENDIENTE"
+                                    ? "cursor-default bg-yellow-100 border-2 border-dashed border-yellow-400"
+                                    : isReserved.status === "APROBADO"
+                                      ? "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 cursor-pointer"
+                                      : isReserved.status === "COMPLETADO"
+                                        ? "cursor-pointer bg-emerald-100 border-2 border-solid border-emerald-600 hover:bg-emerald-200"
+                                        : "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 hover:cursor-pointer"
+                              }`}
+                            >
+                              <div className="flex gap-0.5 items-center text-gray-800">
+                                <UserRound className="hidden sm:block text-gray-900" size={14} />
+                                <p className="truncate text-xs">
+                                  {isReserved.clientName.split(" ")[0] ||
+                                    isReserved.user?.name.split(" ")[0]}
+                                </p>
                               </div>
-                            )}
-                            {isReserved.reserveType !== "FIJO" && (
-                              <div className="absolute top-1 right-1">
-                                {renderStatusIcon(isReserved.status)}{" "}
-                              </div>
-                            )}
-                          </div>
-                        </td>
-                      ) : (
+                              {isReserved.reserveType !== "FIJO" && (
+                                <div className="flex gap-0.5 items-center text-gray-700">
+                                  <Coins className="hidden sm:block text-green-600" size={12} />
+                                  <p className="text-xs">
+                                    {isReserved.reservationAmount?.toLocaleString("es-AR", {
+                                      style: "currency",
+                                      currency: "ARS",
+                                    })}
+                                  </p>{" "}
+                                </div>
+                              )}
+                              {/* Botón de completar */}
+                              {isReserved.status === "APROBADO" && (
+                                <div className="flex gap-1 mt-1">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenCompleteModal(isReserved);
+                                    }}
+                                    size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white p-1 h-6 text-xs"
+                                  >
+                                    <CheckCircle2 size={12} />
+                                    <span className="hidden md:inline ml-1">Completar</span>
+                                  </Button>
+                                </div>
+                              )}
+                              {/* Botón de ver detalles para reservas completadas */}
+                              {isReserved.status === "COMPLETADO" && (
+                                <div className="flex gap-1 mt-1">
+                                  <Button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleOpenCompletedDetailsModal(isReserved);
+                                    }}
+                                    size="sm"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white p-1 h-6 text-xs"
+                                  >
+                                    <Eye size={12} />
+                                    <span className="hidden md:inline ml-1">Ver Detalles</span>
+                                  </Button>
+                                </div>
+                              )}
+                              {isReserved.reserveType !== "FIJO" && (
+                                <div className="absolute top-1 right-1">
+                                  {renderStatusIcon(isReserved.status)}{" "}
+                                </div>
+                              )}
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      return (
                         <td
                           key={`${scheduleReserve.schedule}-${court.courtNumber}`} // Usar court.courtNumber en lugar de index + 1
                           className="w-[100px] h-[61.804px]"
