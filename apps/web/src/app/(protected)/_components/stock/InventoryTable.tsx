@@ -71,6 +71,11 @@ interface InventoryTableProps {
 export function InventoryTable({ complex }: InventoryTableProps) {
   const { products, updateProduct, deleteProduct, initializeProducts } = useProductStore();
   const [searchTerm, setSearchTerm] = useState("");
+
+  useEffect(() => {
+    initializeProducts(complex.products || []);
+  }, [complex.products, initializeProducts]);
+
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);

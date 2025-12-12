@@ -43,7 +43,7 @@ export function ProfitMargin({ complex }: ProfitMarginProps) {
   >([]);
 
   useEffect(() => {
-    initializeProducts(complex.products);
+    initializeProducts(complex.products || []);
   }, [complex.products, initializeProducts]);
 
   useEffect(() => {

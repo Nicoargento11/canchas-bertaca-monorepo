@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Gift, Loader2 } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Gift, Loader2, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { useProductStore } from "@/store/stockManagementStore";
 import { useCartStore } from "@/store/cartStore";
@@ -21,7 +21,8 @@ import { Product } from "@/services/product/product";
 import { createProductSale } from "@/services/product-sale.ts/product-sale";
 import { Complex } from "@/services/complex/complex";
 import { createInventoryMovement } from "@/services/inventory-movement.ts/inventory-movement";
-import { createPayment, PaymentMethod } from "@/services/payment/payment";
+import { createPayment } from "@/services/payment/payment";
+import { createSale, PaymentMethod, SalePaymentDto } from "@/services/sale/sale";
 import { usePaymentsStore } from "@/store/paymentsStore";
 import { useSalesStore } from "@/store/productSaleStore";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -35,6 +36,14 @@ import { CashRegister } from "@/services/cash-register/cash-register";
 import { DailySummaryResponse } from "@/services/reports/reports";
 import { set } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 interface SaleSystemProps {
   complex: Complex;
@@ -87,8 +96,10 @@ export function SaleSystem({
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("EFECTIVO");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(PaymentMethod.EFECTIVO);
   const [customerName, setCustomerName] = useState("");
+  const [payments, setPayments] = useState<SalePaymentDto[]>([]);
+  const [paymentAmount, setPaymentAmount] = useState<string>("");
 
   useEffect(() => {
     initializeProducts(complex.products);
@@ -99,12 +110,19 @@ export function SaleSystem({
     if (cashRegisters) {
       setRegisters(cashRegisters);
     }
+
+    // Actualizar la sesión activa (sea null o un objeto)
+    setActiveSession(activeCashSession);
+
     if (activeCashSession) {
-      setActiveSession(activeCashSession);
       setActiveRegister(activeCashSession.cashRegister);
+    } else {
+      // Si no hay sesión activa, limpiamos el registro activo
+      setActiveRegister(null);
     }
+
     setIsLoading(false);
-  }, [activeCashSession, cashRegisters]);
+  }, [activeCashSession, cashRegisters, setRegisters, setActiveSession, setActiveRegister]);
 
   // Verificar si hay caja activa
   const canProcessSale = useMemo(() => {
@@ -199,74 +217,45 @@ export function SaleSystem({
       return;
     }
 
+    const totalPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+    if (Math.abs(totalPaid - subtotal) > 0.01) {
+      toast.error("El monto pagado no coincide con el total de la venta");
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      // 1. Crear el pago asociado a la sesión de caja
-      const paymentResponse = await createPayment({
-        amount: subtotal,
-        method: paymentMethod,
-        isPartial: false,
-        transactionType: "VENTA_PRODUCTO",
+      const saleResponse = await createSale({
         complexId: complex.id,
-        cashSessionId: activeSession.id, // Asociar a la sesión de caja
+        totalAmount: subtotal,
+        cashSessionId: activeSession.id,
+        createdById: userSession.user.id,
+        items: cart.map((item) => ({
+          productId: item.product.id,
+          quantity: item.quantity,
+          price: item.isGift ? 0 : item.price,
+          discount: item.isGift ? 0 : item.discount || 0,
+          isGift: item.isGift,
+        })),
+        payments: payments,
       });
 
-      if (!paymentResponse.success) {
-        throw new Error(paymentResponse.error || "Error al crear el pago");
+      if (!saleResponse.success) {
+        throw new Error("Error al crear la venta");
       }
 
-      addPayment(paymentResponse.data!);
-
-      // 2. Procesar cada producto
-      await Promise.all(
-        cart.map(async (item) => {
-          const finalPrice = item.isGift ? 0 : item.price * (1 - (item.discount || 0) / 100);
-
-          const saleResponse = await createProductSale({
-            productId: item.product.id,
-            quantity: item.quantity,
-            price: finalPrice,
-            discount: item.isGift ? 0 : item.discount || 0,
-            isGift: item.isGift,
-            paymentId: paymentResponse.data!.id,
-            complexId: complex.id,
-          });
-
-          if (!saleResponse.success) {
-            throw new Error(`Error al registrar venta para ${item.product.name}`);
-          }
-
-          addSale(saleResponse.data!);
-
-          // Actualizar pago con las ventas asociadas
-          updatePayment(paymentResponse.data!.id, {
-            productSales: paymentResponse.data!.productSales
-              ? [...paymentResponse.data!.productSales, saleResponse.data!]
-              : [saleResponse.data!],
-          });
-
-          // Actualizar stock localmente
-          updateProduct(item.product.id, {
-            stock: item.product.stock - item.quantity,
-          });
-
-          // Registrar movimiento de inventario
-          await createInventoryMovement({
-            type: item.isGift ? "REGALO" : "VENTA",
-            quantity: item.quantity,
-            productId: item.product.id,
-            complexId: complex.id,
-            reason: item.isGift
-              ? `Regalo (Venta ${saleResponse.data!.id})`
-              : `Venta ${saleResponse.data!.id}`,
-          });
-        })
-      );
+      // Actualizar stock localmente
+      cart.forEach((item) => {
+        updateProduct(item.product.id, {
+          stock: item.product.stock - item.quantity,
+        });
+      });
 
       // Limpiar carrito después de la venta
       clearCart();
-      setPaymentMethod("EFECTIVO");
+      setPayments([]);
+      setPaymentMethod(PaymentMethod.EFECTIVO);
       setCustomerName("");
       setSearchTerm("");
 
@@ -285,8 +274,10 @@ export function SaleSystem({
   }, [
     cart,
     subtotal,
-    paymentMethod,
+    payments,
     complex.id,
+    complex.organizationId,
+    userSession.user.id,
     updateProduct,
     clearCart,
     activeSession,
@@ -326,13 +317,37 @@ export function SaleSystem({
                   Sesión iniciada: {new Date(activeSession.startAt).toLocaleString()}
                 </p>
               </div>
-              <div className="text-left sm:text-right">
-                <p className="font-medium text-sm sm:text-base">
-                  Monto inicial: ${activeSession.initialAmount.toFixed(2)}
-                </p>
-                <p className="text-xs sm:text-sm text-muted-foreground">
-                  {activeSession.observations || "Sin observaciones"}
-                </p>
+              <div className="flex items-center gap-4 justify-between sm:justify-end w-full sm:w-auto">
+                <div className="text-left sm:text-right">
+                  <p className="font-medium text-sm sm:text-base">
+                    Monto inicial: ${activeSession.initialAmount.toFixed(2)}
+                  </p>
+                  <p className="text-xs sm:text-sm text-muted-foreground">
+                    {activeSession.observations || "Sin observaciones"}
+                  </p>
+                </div>
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button variant="outline" size="icon" title="Gestión de Caja">
+                      <Wallet className="h-4 w-4" />
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent className="w-full sm:max-w-xl overflow-y-auto">
+                    <SheetHeader>
+                      <SheetTitle>Gestión de Caja</SheetTitle>
+                      <SheetDescription>
+                        Administra el estado de la caja y visualiza el resumen diario.
+                      </SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-6 space-y-6">
+                      <CashRegisterStatus
+                        complexId={complex.id}
+                        userId={userSession?.user.id || ""}
+                      />
+                      <CashRegisterSummary dailySummaryData={dailySummaryData} />
+                    </div>
+                  </SheetContent>
+                </Sheet>
               </div>
             </div>{" "}
           </Card>
@@ -548,30 +563,104 @@ export function SaleSystem({
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="metodoPago" className="text-sm lg:text-base">
-                    Método de Pago *
-                  </Label>
-                  <Select
-                    value={paymentMethod}
-                    onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
-                  >
-                    <SelectTrigger className="text-sm lg:text-base">
-                      <SelectValue placeholder="Selecciona método de pago" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="EFECTIVO">Efectivo</SelectItem>
-                      <SelectItem value="TARJETA_CREDITO">Tarjeta</SelectItem>
-                      <SelectItem value="TRANSFERENCIA">Transferencia</SelectItem>
-                      <SelectItem value="MERCADOPAGO">Mercado Pago</SelectItem>
-                      <SelectItem value="OTRO">Otro</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label className="text-sm lg:text-base">Pagos</Label>
+                  <div className="flex gap-2">
+                    <Select
+                      value={paymentMethod}
+                      onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
+                    >
+                      <SelectTrigger className="flex-1 text-sm lg:text-base">
+                        <SelectValue placeholder="Método" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value={PaymentMethod.EFECTIVO}>Efectivo</SelectItem>
+                        <SelectItem value={PaymentMethod.TARJETA_CREDITO}>Tarjeta</SelectItem>
+                        <SelectItem value={PaymentMethod.TRANSFERENCIA}>Transferencia</SelectItem>
+                        <SelectItem value={PaymentMethod.MERCADOPAGO}>Mercado Pago</SelectItem>
+                        <SelectItem value={PaymentMethod.OTRO}>Otro</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      placeholder="Monto"
+                      className="w-24 lg:w-32"
+                      value={paymentAmount}
+                      onChange={(e) => setPaymentAmount(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const amount = parseFloat(paymentAmount);
+                          if (!amount || amount <= 0) return;
+                          setPayments([...payments, { method: paymentMethod, amount }]);
+                          setPaymentAmount("");
+                        }
+                      }}
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        const amount = parseFloat(paymentAmount);
+                        if (!amount || amount <= 0) return;
+                        setPayments([...payments, { method: paymentMethod, amount }]);
+                        setPaymentAmount("");
+                      }}
+                    >
+                      <Plus className="h-4 w-4" />
+                    </Button>
+                  </div>
+
+                  {/* Lista de pagos agregados */}
+                  {payments.length > 0 && (
+                    <div className="space-y-1 mt-2">
+                      {payments.map((p, i) => (
+                        <div key={i} className="flex justify-between text-sm bg-muted p-2 rounded">
+                          <span>{p.method}</span>
+                          <div className="flex items-center gap-2">
+                            <span>${p.amount.toFixed(2)}</span>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-4 w-4 p-0"
+                              onClick={() => setPayments(payments.filter((_, idx) => idx !== i))}
+                            >
+                              <Minus className="h-3 w-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex justify-between text-sm font-medium pt-2">
+                    <span>Total Pagado:</span>
+                    <span
+                      className={
+                        Math.abs(payments.reduce((sum, p) => sum + p.amount, 0) - subtotal) < 0.01
+                          ? "text-green-600"
+                          : "text-red-600"
+                      }
+                    >
+                      ${payments.reduce((sum, p) => sum + p.amount, 0).toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between text-sm text-muted-foreground">
+                    <span>Restante:</span>
+                    <span>
+                      $
+                      {Math.max(
+                        0,
+                        subtotal - payments.reduce((sum, p) => sum + p.amount, 0)
+                      ).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
 
                 <Button
                   className="w-full h-10 lg:h-11 text-sm lg:text-base"
                   onClick={processSale}
-                  disabled={!canProcessSale}
+                  disabled={
+                    !canProcessSale ||
+                    Math.abs(payments.reduce((sum, p) => sum + p.amount, 0) - subtotal) > 0.01
+                  }
                 >
                   {isProcessing ? (
                     <div className="flex items-center gap-2">
@@ -586,10 +675,6 @@ export function SaleSystem({
             </CardContent>{" "}
           </Card>
         </div>
-      </div>
-      <div className="w-full mt-4 lg:mt-6 space-y-3 lg:space-y-4">
-        <CashRegisterStatus complexId={complex.id} userId={userSession?.user.id || ""} />
-        <CashRegisterSummary dailySummaryData={dailySummaryData} />
       </div>
     </>
   );
