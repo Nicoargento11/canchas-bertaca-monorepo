@@ -27,10 +27,6 @@ export const useSalesStore = create<SalesState>((set) => ({
   deleteSale: (id) => set((state) => ({ sales: state.sales.filter((sale) => sale.id !== id) })),
   initializeProductSales: (productSales) =>
     set((state) => {
-      // Solo inicializa si no está ya inicializado
-      if (!state.initialized) {
-        return { sales: productSales, initialized: true };
-      }
-      return state;
+      return { sales: productSales, initialized: true };
     }),
 }));

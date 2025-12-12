@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   LayoutDashboard,
   BarChart4,
@@ -12,6 +12,8 @@ import {
   MapPin,
   Users,
   BarChart3,
+  Building,
+  Building2,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useSideBarContext } from "@/contexts/sideBarContext";
@@ -101,35 +103,65 @@ const sidebarItems = [
 ];
 
 const SideBar = ({ currentUser }: SideBarProps) => {
-  // const { setExpanded } = useSideBarContext();
   const pathname = usePathname();
-  // console.log(pathname);
-  // const complex = pathname.split("/")[1];
   const router = useRouter();
-  const [active, setActive] = useState<number>(pathToIndex[pathname.split("/")[2]] ?? 0);
   const { setOpenMobile } = useSidebar();
 
+  // Extraer el slug de la URL actual (ej: /bertaca/dashboard -> bertaca)
+  const pathParts = pathname.split("/").filter(Boolean);
+  const currentSlug = pathParts[0] || currentUser?.user.complexSlug || "bertaca";
+
+  // Determinar el índice activo basado en la ruta actual
+  const getActiveIndex = () => {
+    if (pathname.includes("/dashboard/reserves")) return 1;
+    if (pathname.includes("/dashboard/payments")) return 2;
+    if (pathname.includes("/dashboard/stock")) return 3;
+    if (pathname.includes("/dashboard/settings")) return 4;
+    if (pathname.includes("/dashboard/statistics")) return 5;
+    if (pathname.includes("/dashboard")) return 0;
+    return 0;
+  };
+
+  const [active, setActive] = useState<number>(getActiveIndex());
+
+  // Actualizar el índice activo cuando cambia la ruta
+  useEffect(() => {
+    setActive(getActiveIndex());
+  }, [pathname]);
+
   const filteredSidebarItems = sidebarItems.filter((item) => {
-    // Ejemplo: solo ADMIN puede ver Configuración y Estadísticas
-    if (
-      (item.path === "settings" || item.path === "statistics") &&
-      currentUser?.user.role !== "COMPLEJO_ADMIN"
-    ) {
-      return false;
+    const userRole = currentUser?.user.role;
+
+    // SUPER_ADMIN y ORGANIZACION_ADMIN ven todo
+    if (userRole === "SUPER_ADMIN" || userRole === "ORGANIZACION_ADMIN") {
+      return true;
     }
-    // Puedes agregar más reglas según el rol y el path
-    return true;
+
+    // COMPLEJO_ADMIN ve todo de su complejo
+    if (userRole === "COMPLEJO_ADMIN") {
+      return true;
+    }
+
+    // RECEPCION no ve Configuración ni Estadísticas
+    if (userRole === "RECEPCION") {
+      if (item.path === "settings" || item.path === "statistics") {
+        return false;
+      }
+      return true;
+    }
+
+    // USUARIO no debería estar aquí, pero por si acaso, no mostrar nada
+    return false;
   });
 
   const handleClick = (index: number, path: string) => {
     setActive(index);
     setOpenMobile(false);
     if (index === 0) {
-      router.push(`/dashboard`);
+      router.push(`/${currentSlug}/dashboard`);
       return;
     }
-    router.push(`/dashboard/${path}`);
-    // setExpanded((value) => (value ? !value : value));
+    router.push(`/${currentSlug}/dashboard/${path}`);
   };
 
   return (
@@ -142,7 +174,9 @@ const SideBar = ({ currentUser }: SideBarProps) => {
             </a>
           </div>
           <div className="flex flex-col">
-            <span className="text-base font-semibold text-gray-900">Cancha Bertaca</span>
+            <span className="text-base font-semibold text-gray-900 capitalize">
+              {currentSlug.replace(/-/g, " ")}
+            </span>
             <span className="text-xs text-gray-500">Administración</span>
           </div>
         </div>
@@ -175,6 +209,69 @@ const SideBar = ({ currentUser }: SideBarProps) => {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        {currentUser?.user.role === "SUPER_ADMIN" && (
+          <SidebarGroup>
+            <SidebarGroupLabel className="text-gray-500 text-xs font-medium uppercase tracking-wider">
+              Super Admin
+            </SidebarGroupLabel>
+            <SidebarGroupContent>
+              <SidebarMenu>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    <div
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/super-admin/users");
+                      }}
+                      className="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-md transition-colors"
+                    >
+                      <Users className="h-4 w-4" />
+                      <span>Usuarios</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    <div
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/super-admin/organizations");
+                      }}
+                      className="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-md transition-colors"
+                    >
+                      <Building2 className="h-4 w-4" />
+                      <span>Organizaciones</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                  >
+                    <div
+                      onClick={() => {
+                        setOpenMobile(false);
+                        router.push("/super-admin/complexes");
+                      }}
+                      className="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-md transition-colors"
+                    >
+                      <Building className="h-4 w-4" />
+                      <span>Complejos</span>
+                    </div>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </SidebarMenu>
+            </SidebarGroupContent>
+          </SidebarGroup>
+        )}
       </SidebarContent>
     </Sidebar>
   );

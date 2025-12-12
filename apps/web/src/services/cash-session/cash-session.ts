@@ -81,7 +81,7 @@ const handleCashSessionError = (error: unknown): CashSessionResult => {
 
 export const openCashSession = async (data: {
   cashRegisterId: string;
-  // userId: string;
+  userId: string;
   initialAmount: number;
 }): Promise<CashSessionResult<CashSession>> => {
   try {
@@ -116,10 +116,14 @@ export const getActiveCashSession = async (
 };
 
 export const getActiveCashSessionByUser = async (
-  userId: string
+  userId: string,
+  complexId?: string
 ): Promise<CashSessionResult<CashSession>> => {
   try {
-    const response = await api.get(`/cash-sessions/user/active?userId=${userId}`);
+    const url = complexId
+      ? `/cash-sessions/user/active?userId=${userId}&complexId=${complexId}`
+      : `/cash-sessions/user/active?userId=${userId}`;
+    const response = await api.get(url);
     return { success: true, data: response.data };
   } catch (error) {
     return handleCashSessionError(error);

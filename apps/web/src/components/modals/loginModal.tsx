@@ -10,8 +10,13 @@ const LoginModal = () => {
 
   const footerContent = (
     <div className="flex items-center w-full justify-center">
-      <p className="text-gray-600 text-center text-sm">¿no te has registrado?</p>
-      <Button size="default" variant="link" asChild className="font-normal">
+      <p className="text-white/60 text-center text-sm">¿no te has registrado?</p>
+      <Button
+        size="default"
+        variant="link"
+        asChild
+        className="font-normal text-Primary hover:text-Primary-light"
+      >
         <Link
           href=""
           onClick={() => {

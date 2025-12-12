@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -80,16 +81,71 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
   // Obtener la sesión seleccionada para mostrar detalles
   const selectedSession = cashSessions.find((s) => s.id === selectedSessionId);
 
+  // Helper para limpiar el monto
+  const parseAmount = (value: string) => {
+    console.log("parseAmount input:", value);
+    if (!value) return 0;
+    // Permitimos cualquier caracter, pero limpiamos para el parseo
+    let clean = value.replace(/[^\d.,]/g, "");
+
+    // Estrategia simplificada:
+    // 1. Si tiene coma, reemplazamos por punto (asumimos decimal o separador universal)
+    // 2. Si tiene puntos y comas, intentamos deducir.
+
+    if (clean.indexOf(",") !== -1 && clean.indexOf(".") !== -1) {
+      if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
+        // 1.000,50 -> 1000.50
+        clean = clean.replace(/\./g, "").replace(",", ".");
+      } else {
+        // 1,000.50 -> 1000.50
+        clean = clean.replace(/,/g, "");
+      }
+    } else if (clean.indexOf(",") !== -1) {
+      // Solo comas
+      if ((clean.match(/,/g) || []).length > 1) {
+        // 1,000,000 -> 1000000
+        clean = clean.replace(/,/g, "");
+      } else {
+        // 10,50 -> 10.50
+        clean = clean.replace(",", ".");
+      }
+    } else if (clean.indexOf(".") !== -1) {
+      // Solo puntos
+      if ((clean.match(/\./g) || []).length > 1) {
+        // 1.000.000 -> 1000000
+        clean = clean.replace(/\./g, "");
+      } else {
+        // Un solo punto. Aquí está la ambigüedad.
+        // Si el usuario escribe 1000.00, es 1000.
+        // Si escribe 1.000, puede ser 1000.
+        // Asumiremos que si es un solo punto, es decimal (estándar JS),
+        // A MENOS que tenga exactamente 3 decimales, que suele ser miles en ES.
+        // Pero para evitar errores con "1.000" (mil), vamos a ser permisivos.
+        // Si el usuario pone "100", funciona.
+        // Si pone "100.50", funciona.
+        // Si pone "1.000", será 1.
+        // Vamos a asumir comportamiento estándar de JS para un solo punto: es decimal.
+      }
+    }
+
+    const result = parseFloat(clean);
+    console.log("parseAmount result:", result, "from clean:", clean);
+    return isNaN(result) ? 0 : result;
+  };
+
   // Cierre de caja
   const handleCloseSession = async () => {
-    if (!amount || isNaN(Number(amount))) {
+    const finalAmount = parseAmount(amount);
+    console.log("handleCloseSession amount:", amount, "finalAmount:", finalAmount);
+
+    if (!amount || isNaN(finalAmount)) {
       toast.error("Debes ingresar un monto final válido para cerrar la caja.");
       return;
     }
     setIsLoading(true);
     try {
       const result = await closeCashSession(session.id, {
-        finalAmount: Number(amount),
+        finalAmount,
         observations,
       });
       if (result.success) {
@@ -175,6 +231,7 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
         if (!open && !sessionClosed) {
           setAmount("");
           setObservations("");
+          setShowConfirm(false); // Reset confirm state on close
         }
       }}
     >
@@ -183,41 +240,58 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
           Cerrar Caja
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md w-[95vw] sm:w-full">
         <DialogHeader>
-          <DialogTitle>{sessionClosed ? "Exportar Reportes" : "Cierre de Caja"}</DialogTitle>
+          <DialogTitle>
+            {sessionClosed
+              ? "Exportar Reportes"
+              : showConfirm
+                ? "Confirmar Cierre"
+                : "Cierre de Caja"}
+          </DialogTitle>
+          <DialogDescription>
+            {sessionClosed
+              ? "La caja ha sido cerrada correctamente. Puedes descargar los reportes."
+              : showConfirm
+                ? "Verifica los datos antes de confirmar el cierre definitivo."
+                : "Ingresa el monto final y observaciones para cerrar la sesión actual."}
+          </DialogDescription>
         </DialogHeader>
 
-        {/* Selector de sesión y fecha de reporte */}
-        <div className="flex flex-col gap-2 mb-4">
-          <Label>Sesión de caja</Label>
-          <Select
-            value={selectedSessionId}
-            onValueChange={setSelectedSessionId}
-            disabled={loadingSessions || cashSessions.length === 0}
-          >
-            <SelectTrigger className="max-w-full">
-              <SelectValue placeholder="Selecciona una sesión" />
-            </SelectTrigger>
-            <SelectContent>
-              {cashSessions.map((s) => (
-                <SelectItem key={s.id} value={s.id}>
-                  {`${s.cashRegister?.name || "Caja"} | ${new Date(s.startAt).toLocaleString()}${s.endAt ? " - " + new Date(s.endAt).toLocaleString() : ""} | ${s.status === "ACTIVE" ? "Abierta" : "Cerrada"}`}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Label>Fecha del reporte</Label>
-          <Input
-            type="date"
-            value={reportDate}
-            onChange={(e) => setReportDate(e.target.value)}
-            className="max-w-xs"
-          />
-        </div>
+        {/* Selector de sesión y fecha de reporte - Solo mostrar si no estamos confirmando */}
+        {!showConfirm && (
+          <div className="flex flex-col gap-2 mb-4">
+            <Label>Sesión de caja</Label>
+            <Select
+              value={selectedSessionId}
+              onValueChange={setSelectedSessionId}
+              disabled={loadingSessions || cashSessions.length === 0}
+            >
+              <SelectTrigger className="max-w-full">
+                <SelectValue placeholder="Selecciona una sesión" />
+              </SelectTrigger>
+              <SelectContent>
+                {cashSessions.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    <span className="truncate block max-w-[260px] sm:max-w-full">
+                      {`${s.cashRegister?.name || "Caja"} | ${new Date(s.startAt).toLocaleString()}${s.endAt ? " - " + new Date(s.endAt).toLocaleString() : ""} | ${s.status === "ACTIVE" ? "Abierta" : "Cerrada"}`}
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Label>Fecha del reporte</Label>
+            <Input
+              type="date"
+              value={reportDate}
+              onChange={(e) => setReportDate(e.target.value)}
+              className="max-w-xs"
+            />
+          </div>
+        )}
 
-        {/* Detalles de la sesión seleccionada */}
-        {selectedSession && (
+        {/* Detalles de la sesión seleccionada - Solo mostrar si no estamos confirmando */}
+        {!showConfirm && selectedSession && (
           <div className="mb-2 p-3 rounded bg-gray-50 border text-xs text-gray-700">
             <div>
               <b>Caja:</b> {selectedSession.cashRegister?.name || "-"}
@@ -242,25 +316,62 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
           </div>
         )}
 
-        {/* Acciones según estado de cierre */}
-        {!sessionClosed ? (
+        {/* Estado de Confirmación */}
+        {showConfirm && !sessionClosed ? (
+          <div className="space-y-4 py-4">
+            <div className="bg-amber-50 border border-amber-200 rounded-md p-4 text-amber-800 text-sm">
+              <p className="font-medium mb-1">¿Estás seguro que quieres cerrar la caja?</p>
+              <p>
+                Esta acción es importante. Una vez cerrada, no podrás registrar más ventas ni
+                movimientos en esta sesión.
+              </p>
+            </div>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-muted-foreground">Monto Final Declarado:</span>
+                <span className="font-medium">${parseAmount(amount).toFixed(2)}</span>
+              </div>
+              {observations && (
+                <div className="flex justify-between border-b pb-2">
+                  <span className="text-muted-foreground">Observaciones:</span>
+                  <span className="font-medium truncate max-w-[200px]">{observations}</span>
+                </div>
+              )}
+            </div>
+            <div className="flex justify-end gap-3 pt-2">
+              <Button variant="outline" onClick={() => setShowConfirm(false)}>
+                Volver
+              </Button>
+              <Button
+                onClick={handleCloseSession}
+                disabled={isLoading}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                {isLoading ? "Cerrando..." : "Confirmar Cierre"}
+              </Button>
+            </div>
+          </div>
+        ) : !sessionClosed ? (
+          /* Formulario de Cierre */
           <>
             <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">
+              <div className="flex flex-col gap-2 sm:grid sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="amount" className="text-left sm:text-right">
                   Monto Final
                 </Label>
                 <Input
                   id="amount"
-                  type="number"
+                  type="text"
+                  inputMode="decimal"
                   value={amount}
                   onChange={(e) => setAmount(e.target.value)}
-                  className="col-span-3"
+                  className="col-span-1 sm:col-span-3"
                   placeholder="Ingrese el monto final en efectivo"
                 />
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="observations" className="text-right">
+              <div className="flex flex-col gap-2 sm:grid sm:grid-cols-4 sm:items-center sm:gap-4">
+                <Label htmlFor="observations" className="text-left sm:text-right">
                   Observaciones
                 </Label>
                 <Input
@@ -304,7 +415,15 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
             <div className="flex justify-end">
               <Button
                 onClick={() => {
-                  if (!amount || isNaN(Number(amount))) {
+                  const finalAmount = parseAmount(amount);
+                  console.log(
+                    "Confirm button click - amount:",
+                    amount,
+                    "finalAmount:",
+                    finalAmount
+                  );
+                  // Validamos que haya un monto escrito (aunque sea 0)
+                  if (amount.trim() === "" || isNaN(finalAmount)) {
                     toast.error("Debes ingresar un monto final válido para cerrar la caja.");
                     return;
                   }
@@ -313,12 +432,12 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
                 disabled={isLoading}
                 variant="destructive"
               >
-                {isLoading ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
-                {isLoading ? "Cerrando..." : "Confirmar Cierre"}
+                Continuar
               </Button>
             </div>
           </>
         ) : (
+          /* Estado de Éxito */
           <div className="space-y-6">
             <div className="text-center py-2">
               <p className="text-green-600 font-medium">¡Caja cerrada exitosamente!</p>
@@ -362,30 +481,6 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
           </div>
         )}
       </DialogContent>
-      {/* Diálogo de confirmación importante */}
-      <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Estás seguro que quieres cerrar la caja?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción es importante. Antes de cerrar la caja, puedes exportar el reporte del
-              día. Una vez cerrada, no podrás registrar más ventas ni movimientos en esta sesión.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                setShowConfirm(false);
-                handleCloseSession();
-              }}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              Continuar con el cierre
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Dialog>
   );
 }

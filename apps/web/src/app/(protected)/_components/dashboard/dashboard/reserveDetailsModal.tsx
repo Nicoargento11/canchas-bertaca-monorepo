@@ -92,9 +92,9 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
     reserve && reserve.user ? (
       <div className="space-y-4">
         {/* Información del Cliente */}
-        <Card className="border border-Neutral">
-          <CardHeader className="p-4 border-b">
-            <CardTitle className="text-lg font-semibold text-Primary-darker">
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+            <CardTitle className="text-lg font-semibold text-white">
               Información del Cliente
             </CardTitle>
           </CardHeader>
@@ -102,37 +102,33 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
             <div className="flex items-center gap-4">
               <UserCircle2 className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Nombre</p>
-                <p className="font-medium text-Primary-darker">
-                  {reserve.clientName || reserve.user.name}
-                </p>
+                <p className="text-sm text-white/60 font-medium">Nombre</p>
+                <p className="font-medium text-white">{reserve.clientName || reserve.user.name}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Mail className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Email</p>
-                <p className="font-medium text-Primary-darker">{reserve.user.email}</p>
+                <p className="text-sm text-white/60 font-medium">Email</p>
+                <p className="font-medium text-white">{reserve.user.email}</p>
               </div>
             </div>
 
             <div className="flex items-center gap-4">
               <Phone className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Teléfono</p>
-                <p className="font-medium text-Primary-darker">
-                  {reserve.phone || "No especificado"}
-                </p>
+                <p className="text-sm text-white/60 font-medium">Teléfono</p>
+                <p className="font-medium text-white">{reserve.phone || "No especificado"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Detalles de la Reserva */}
-        <Card className="border border-Neutral">
-          <CardHeader className="p-4 border-b">
-            <CardTitle className="text-lg font-semibold text-Primary-darker">
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+            <CardTitle className="text-lg font-semibold text-white">
               Detalles de la Reserva
             </CardTitle>
           </CardHeader>
@@ -141,8 +137,8 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
             <div className="flex items-center gap-4">
               <CalendarDays className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Fecha</p>
-                <p className="font-medium text-Primary-darker">
+                <p className="text-sm text-white/60 font-medium">Fecha</p>
+                <p className="font-medium text-white">
                   {date ? format(new Date(date), "PPP") : "Fecha no disponible"}
                 </p>
               </div>
@@ -150,31 +146,29 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
             <div className="flex items-center gap-4">
               <Clock9 className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Horario</p>
-                <p className="font-medium text-Primary-darker">{reserve.schedule}</p>
+                <p className="text-sm text-white/60 font-medium">Horario</p>
+                <p className="font-medium text-white">{reserve.schedule}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <Icon iconNode={soccerPitch} className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Cancha</p>
-                <p className="font-medium text-Primary-darker">
-                  Cancha {reserve.court.courtNumber}
-                </p>
+                <p className="text-sm text-white/60 font-medium">Cancha</p>
+                <p className="font-medium text-white">Cancha {reserve.court.courtNumber}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <AlertCircle className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Estado</p>
+                <p className="text-sm text-white/60 font-medium">Estado</p>
                 {getStatusBadge(reserve.status)}
               </div>
             </div>
             <div className="flex items-center gap-4 md:col-span-2">
               <CalendarDays className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Fecha de Creación</p>
-                <p className="font-medium text-Primary-darker">
+                <p className="text-sm text-white/60 font-medium">Fecha de Creación</p>
+                <p className="font-medium text-white">
                   {new Date(reserve.createdAt).toLocaleString("es-AR", {
                     timeZone: "America/Argentina/Buenos_Aires",
                     day: "2-digit", // Día en 2 dígitos (ej: "05")
@@ -191,18 +185,16 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
         </Card>
 
         {/* Información de Pago */}
-        <Card className="border border-Neutral">
-          <CardHeader className="p-4 border-b">
-            <CardTitle className="text-lg font-semibold text-Primary-darker">
-              Información de Pago
-            </CardTitle>
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+            <CardTitle className="text-lg font-semibold text-white">Información de Pago</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 p-4">
             <div className="flex items-center gap-4">
               <Coins className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Seña/Reserva</p>
-                <p className="font-medium text-Primary-darker">
+                <p className="text-sm text-white/60 font-medium">Seña/Reserva</p>
+                <p className="font-medium text-white">
                   {(reserve.reservationAmount ?? 0).toLocaleString("es-AR", {
                     style: "currency",
                     currency: "ARS",
@@ -214,8 +206,8 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
             <div className="flex items-center gap-4">
               <Receipt className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Monto faltante</p>
-                <p className="font-medium text-Primary-darker">
+                <p className="text-sm text-white/60 font-medium">Monto faltante</p>
+                <p className="font-medium text-white">
                   {((reserve.price ?? 0) - (reserve.reservationAmount ?? 0)).toLocaleString(
                     "es-AR",
                     {
@@ -230,8 +222,8 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
             <div className="flex items-center gap-4">
               <Receipt className="text-Primary" size={20} />
               <div>
-                <p className="text-sm text-black font-medium">Total</p>
-                <p className="font-medium text-Primary-darker">
+                <p className="text-sm text-white/60 font-medium">Total</p>
+                <p className="font-medium text-white">
                   {(reserve.price ?? 0).toLocaleString("es-AR", {
                     style: "currency",
                     currency: "ARS",
@@ -251,7 +243,8 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
           </Button>
         )}
 
-        {userSession?.user.role === "COMPLEJO_ADMIN" && (
+        {(userSession?.user.role === "COMPLEJO_ADMIN" ||
+          userSession?.user.role === "SUPER_ADMIN") && (
           <Button
             onClick={() => handleDeleteReserve(reserve.id)}
             // disabled={}
@@ -263,7 +256,7 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
       </div>
     ) : (
       <div className="flex justify-center items-center h-32">
-        <p className="text-Neutral-dark">Cargando información...</p>
+        <p className="text-white/60">Cargando información...</p>
       </div>
     );
 

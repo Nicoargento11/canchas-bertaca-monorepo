@@ -70,8 +70,8 @@ export function SalesReport({ complex }: SalesReportProps) {
   }, [payments, initializePayments]);
 
   useEffect(() => {
-    initializePayments(complex.payments);
-  }, [complex.payments]);
+    initializePayments(complex.payments || []);
+  }, [complex.payments, initializePayments]);
   // Datos para gráfico de ventas por día (últimos 7 días)
   const ventasPorDia = useMemo(() => {
     const ultimosSieteDias = [];

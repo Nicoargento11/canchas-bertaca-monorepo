@@ -37,15 +37,16 @@ export function SalesHistory({ complex }: SalesHistoryProps) {
   // Filter sales based on search term
   const filteredSales = sales.filter((sale) => {
     const searchLower = searchTerm.toLowerCase();
+    const paymentMethods = sale.sale?.payments?.map((p) => p.method.toLowerCase()).join(" ") || "";
     return (
       sale.id.toLowerCase().includes(searchLower) ||
-      sale.payment.method.toLowerCase().includes(searchLower) ||
+      paymentMethods.includes(searchLower) ||
       sale.product.name.toLowerCase().includes(searchLower)
     );
   });
 
   useEffect(() => {
-    initializeProductSales(complex.productSales);
+    initializeProductSales(complex.productSales || []);
   }, [complex.productSales, initializeProductSales]);
 
   return (
@@ -84,7 +85,9 @@ export function SalesHistory({ complex }: SalesHistoryProps) {
                   <TableCell className="font-medium">#{sale.id.slice(-6)}</TableCell>
                   <TableCell>{new Date(sale.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>{sale.product.name}</TableCell>
-                  <TableCell className="capitalize">{sale.payment.method}</TableCell>
+                  <TableCell className="capitalize">
+                    {sale.sale?.payments?.map((p) => p.method).join(", ") || "-"}
+                  </TableCell>
                   <TableCell className="text-right font-medium">${sale.price.toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Dialog>
@@ -107,7 +110,9 @@ export function SalesHistory({ complex }: SalesHistoryProps) {
                                 <strong>Cliente:</strong> {"Cliente"}
                               </div>
                               <div>
-                                <strong>Método de Pago:</strong> {selectedSale.payment.method}
+                                <strong>Método de Pago:</strong>{" "}
+                                {selectedSale.sale?.payments?.map((p) => p.method).join(", ") ||
+                                  "-"}
                               </div>
                             </div>
                             <div>

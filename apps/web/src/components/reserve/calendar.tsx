@@ -1,27 +1,16 @@
-import React, { useMemo, useState } from "react";
-import {
-  eachDayOfInterval,
-  addDays,
-  format,
-  startOfMonth,
-  startOfWeek,
-  endOfMonth,
-  addMonths,
-  subMonths,
-  getDay,
-  isSameDay,
-} from "date-fns";
+import React from "react";
+import { addDays, getDay, isSameDay } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-
 import { useReserve } from "@/contexts/newReserveContext";
+import { Calendar as ShadcnCalendar } from "@/components/ui/calendar";
 
 interface CalendarProps {
-  complexId: string; // ID del complejo
-  sportType: string; // Tipo de deporte
-  disabledDates?: Date[]; // Fechas bloqueadas
-  disabledWeekdays?: number[]; // Días de semana no disponibles
-  maxSelectableDays: number; // Límite de días a futuro
+  complexId: string;
+  sportType: string;
+  disabledDates?: Date[];
+  disabledWeekdays?: number[];
+  maxSelectableDays: number;
+  onDateSelect?: (date: Date) => void;
 }
 
 const Calendar = ({
@@ -30,119 +19,68 @@ const Calendar = ({
   disabledDates,
   disabledWeekdays,
   maxSelectableDays,
+  onDateSelect,
 }: CalendarProps) => {
   const { updateReservationForm, getCurrentReservation, goToNextStep } = useReserve();
-  const today = new Date(); // Hora local del cliente CSR
-  const [currentMonth, setCurrentMonth] = useState<Date>(today);
-
+  const today = new Date();
   const currentReservation = getCurrentReservation();
   const selectedDate = currentReservation?.form.day || today;
 
-  const nextMonth = () => {
-    const nextMonthDate = addMonths(currentMonth, 1);
-    if (nextMonthDate <= addMonths(today, 2)) {
-      // Permitir ver 2 meses adelante
-      setCurrentMonth(nextMonthDate);
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      if (onDateSelect) {
+        onDateSelect(date);
+      } else {
+        updateReservationForm("day", date);
+        goToNextStep();
+      }
     }
   };
 
-  const prevMonth = () => {
-    if (currentMonth <= today) {
-      return;
-    }
-    setCurrentMonth(subMonths(currentMonth, 1));
-  };
+  // Función para determinar si una fecha está deshabilitada
+  const isDateDisabled = (date: Date) => {
+    // 1. Deshabilitar días pasados (antes de hoy)
+    // Usamos setHours(0,0,0,0) para comparar solo fechas sin horas
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+    if (date < todayStart) return true;
 
-  const { days, weekdays } = useMemo(() => {
-    const firstDayOfMonth = startOfMonth(currentMonth);
-    const startDay = startOfWeek(firstDayOfMonth);
-    const lastDayOfMonth = endOfMonth(currentMonth);
+    // 2. Deshabilitar días más allá del límite permitido
+    if (date > addDays(today, maxSelectableDays)) return true;
 
-    const daysOfWeek = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    // 3. Deshabilitar fechas específicas bloqueadas
+    if (disabledDates && disabledDates.some((d) => isSameDay(d, date))) return true;
 
-    const days = eachDayOfInterval({
-      start: startDay,
-      end: lastDayOfMonth,
-    }).map((date, index) => {
-      const isPastDay = date < addDays(today, -1);
-      const isFutureLimit = date > addDays(today, maxSelectableDays);
-      const isDisabledDate = disabledDates && disabledDates.some((d) => isSameDay(d, date));
-      const isDisabledWeekday = disabledWeekdays && disabledWeekdays.includes(getDay(date));
-      const isSelected = isSameDay(date, selectedDate);
+    // 4. Deshabilitar días de la semana específicos (0=Domingo, 1=Lunes, etc.)
+    if (disabledWeekdays && disabledWeekdays.includes(getDay(date))) return true;
 
-      const isDayDisabled = isPastDay || isFutureLimit || isDisabledDate || isDisabledWeekday;
-
-      return {
-        date,
-        isDisabled: isDayDisabled,
-        isSelected,
-        dayNumber: format(date, "d"),
-      };
-    });
-
-    return {
-      days,
-      weekdays: daysOfWeek,
-    };
-  }, [currentMonth, selectedDate, disabledDates, disabledWeekdays, maxSelectableDays]);
-
-  const handleDateSelect = async (date: Date) => {
-    updateReservationForm("day", date);
-    goToNextStep();
+    return false;
   };
 
   return (
-    <div className="flex flex-col gap-4 p-4 bg-Neutral-light rounded-lg shadow-md">
-      {/* Encabezado del calendario */}
-      <div className="flex justify-between items-center">
-        <button
-          onClick={prevMonth}
-          disabled={currentMonth <= today}
-          className="p-2 rounded-full disabled:opacity-50 text-Primary hover:bg-Primary-light transition"
-        >
-          <ChevronLeft size={25} strokeWidth={3} />
-        </button>
-
-        <h2 className="text-xl font-bold text-Primary">
-          {format(currentMonth, "MMMM yyyy", { locale: es })}
-        </h2>
-
-        <button
-          onClick={nextMonth}
-          className="p-2 rounded-full text-Primary hover:bg-Primary-light transition"
-        >
-          <ChevronRight size={25} strokeWidth={3} />
-        </button>
-      </div>
-
-      {/* Días de la semana */}
-      <div className="grid grid-cols-7 gap-2 text-sm font-semibold justify-items-center">
-        {weekdays.map((day) => (
-          <div key={day} className="text-center w-10 text-Primary">
-            {day}
-          </div>
-        ))}
-      </div>
-
-      {/* Días del mes */}
-      <div className="grid grid-cols-7 gap-2 justify-items-center">
-        {days.map((day, index) => (
-          <button
-            key={index}
-            onClick={() => !day.isDisabled && handleDateSelect(day.date)}
-            disabled={day.isDisabled}
-            className={`
-              w-10 h-10 flex items-center justify-center font-bold rounded-full transition
-              ${day.isSelected ? "bg-Accent-1 text-Primary border-2 border-Primary" : ""}
-              ${day.isDisabled ? "bg-Neutral-light text-Neutral-dark cursor-not-allowed" : "bg-white hover:bg-Primary-light hover:text-white"}
-            `}
-          >
-            {day.dayNumber}
-          </button>
-        ))}
-      </div>
+    <div className="flex justify-center p-4 bg-white/5 backdrop-blur-sm rounded-xl shadow-md border border-white/20">
+      <ShadcnCalendar
+        mode="single"
+        selected={selectedDate}
+        onSelect={handleDateSelect}
+        disabled={isDateDisabled}
+        locale={es}
+        className="rounded-md border-none text-white"
+        classNames={{
+          day_selected:
+            "bg-Primary text-white hover:bg-Primary hover:text-white focus:bg-Primary focus:text-white",
+          day_today: "bg-white/10 text-white font-bold",
+          day: "h-9 w-9 p-0 font-normal aria-selected:opacity-100 hover:bg-white/10 hover:text-white text-white/80",
+          day_disabled:
+            "text-white/20 opacity-30 hover:bg-transparent hover:text-white/20 cursor-not-allowed",
+          head_cell: "text-white/50 w-9 font-normal text-[0.8rem]",
+          caption: "flex justify-center pt-1 relative items-center text-white",
+          nav_button:
+            "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 text-white hover:bg-white/10 border-white/20",
+        }}
+      />
     </div>
   );
 };
 
-export default React.memo(Calendar);
+export default Calendar;

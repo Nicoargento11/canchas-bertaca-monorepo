@@ -55,7 +55,12 @@ interface ReserveContextType {
   initReservation: (complexId: string, sportType: SportTypeKey, sportTypeId: string) => void;
   preloadReservation: (data: PreloadReservationPayload) => void;
   updateReservationForm: (field: string, value: any) => void;
-  fetchAvailability: (type: "day" | "hour", date: string, schedule?: string) => Promise<void>;
+  fetchAvailability: (
+    type: "day" | "hour",
+    date: string,
+    schedule?: string,
+    overrides?: { complexId?: string; sportTypeId?: string; sportType?: SportTypeKey }
+  ) => Promise<void>;
   fetchReservationsByDay: (date: string) => Promise<void>; // Nueva función
   getCurrentReservation: () => ReservationData | undefined;
   goToNextStep: () => void;
@@ -223,8 +228,16 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
   };
 
   // Obtiene disponibilidad
-  const fetchAvailability = async (type: "day" | "hour", date: string, schedule?: string) => {
-    const { complexId, sportType, sportTypeId } = state.currentReservation;
+  const fetchAvailability = async (
+    type: "day" | "hour",
+    date: string,
+    schedule?: string,
+    overrides?: { complexId?: string; sportTypeId?: string; sportType?: SportTypeKey }
+  ) => {
+    const complexId = overrides?.complexId || state.currentReservation.complexId;
+    const sportTypeId = overrides?.sportTypeId || state.currentReservation.sportTypeId;
+    const sportType = overrides?.sportType || state.currentReservation.sportType;
+
     if (!complexId || !sportType || !sportTypeId) return;
 
     try {
@@ -235,7 +248,7 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
           [complexId]: {
             ...prev.reservations[complexId],
             [sportType]: {
-              ...prev.reservations[complexId][sportType],
+              ...prev.reservations[complexId]?.[sportType],
               loading: true,
             },
           },
@@ -246,7 +259,12 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
       if (type === "day") {
         data = await getDailyAvailability(date, complexId, sportTypeId);
       } else if (type === "hour" && schedule) {
+        console.log("--- FRONTEND: fetchAvailability (hour) ---");
+        console.log("Params:", { date, schedule, complexId, sportTypeId });
         data = await getAvailabilityForSchedule(date, schedule, complexId, sportTypeId);
+        console.log("Result:", data);
+      } else {
+        return;
       }
 
       setState((prev) => ({

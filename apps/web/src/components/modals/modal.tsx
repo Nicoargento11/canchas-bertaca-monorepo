@@ -70,12 +70,12 @@ export const Modal: React.FC<ModalProps> = ({
         className="justify-center items-center flex 
          fixed 
         inset-0 z-50 
-        outline-none focus:outline-none bg-neutral-800/70
+        outline-none focus:outline-none bg-black/80 backdrop-blur-sm
         "
       >
         <div
           className="relative w-full md:w-4/6 lg:w-3/6 xl:w-2/5
-          my-6 mx-auto  flex flex-col justify-center
+          my-6 mx-auto  flex flex-col justify-center p-4 sm:p-0
           "
         >
           {/*content*/}
@@ -87,36 +87,40 @@ export const Modal: React.FC<ModalProps> = ({
           >
             <div
               className="relative flex flex-col translate w-full max-h-screen min-h-screen sm:min-h-0 sm:h-auto overflow-y-auto
-              border-0 rounded-lg shadow-lg
-            bg-white outline-none focus:outline-none
+              border border-white/10 rounded-3xl shadow-2xl
+            bg-slate-950 outline-none focus:outline-none
             "
             >
               {/*header*/}
               <div
                 className="relative flex flex-col items-center justify-center
-                p-4 rounded-t border-b-[1px]
+                p-6 rounded-t border-b border-white/10
                 "
               >
                 <div className="flex justify-between items-center w-full">
+                  <div className="text-xl font-bold text-white">{title}</div>
                   <button
-                    className=" transition left-2 top-2
-                  border-0 p-1 
-                  hover:opacity-70
+                    className="
+                    p-1
+                    border-0 
+                    hover:bg-white/10
+                    rounded-full
+                    transition
+                    text-white/70
+                    hover:text-white
                   "
                     onClick={handleClose}
                   >
-                    <X size={25} />
+                    <X size={24} />
                   </button>
-                  <div className="text-lg font-semibold">{title}</div>
-                  <div></div>
                 </div>
                 <div className="w-full">{header}</div>
               </div>
               {/*body*/}
-              <div className=" relative py-2 px-4 flex-auto">{body}</div>
-              <hr />
+              <div className="relative p-6 flex-auto text-white">{body}</div>
+
               {/*footer*/}
-              <div className="flex flex-col gap-2 p-6">
+              <div className="flex flex-col gap-2 p-6 border-t border-white/10 bg-white/5">
                 <div
                   className="flex items-center w-full
                   gap-4 
@@ -127,7 +131,7 @@ export const Modal: React.FC<ModalProps> = ({
                       variant={"outline"}
                       disabled={disabled}
                       onClick={handleSecondaryAction}
-                      className="w-full"
+                      className="w-full border-white/20 text-white hover:bg-white/10"
                     >
                       {secondaryActionLabel}
                     </Button>
@@ -136,7 +140,7 @@ export const Modal: React.FC<ModalProps> = ({
                     <Button
                       disabled={disabled}
                       onClick={handleSubmit}
-                      className="w-full bg-Primary/80"
+                      className="w-full bg-Primary hover:bg-Primary-dark text-white"
                     >
                       {actionLabel}
                     </Button>

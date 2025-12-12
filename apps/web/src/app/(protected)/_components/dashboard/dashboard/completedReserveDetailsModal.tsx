@@ -56,15 +56,15 @@ const CompletedReserveDetailsModal = () => {
   const getPaymentMethodIcon = (method: PaymentMethod) => {
     switch (method) {
       case "EFECTIVO":
-        return <Banknote className="text-green-600" size={16} />;
+        return <Banknote className="text-green-400" size={16} />;
       case "TARJETA_CREDITO":
-        return <CreditCard className="text-blue-600" size={16} />;
+        return <CreditCard className="text-blue-400" size={16} />;
       case "TRANSFERENCIA":
-        return <ArrowRightLeft className="text-purple-600" size={16} />;
+        return <ArrowRightLeft className="text-purple-400" size={16} />;
       case "MERCADOPAGO":
-        return <DollarSign className="text-blue-500" size={16} />;
+        return <DollarSign className="text-blue-400" size={16} />;
       default:
-        return <Receipt className="text-gray-600" size={16} />;
+        return <Receipt className="text-white/60" size={16} />;
     }
   };
 
@@ -91,9 +91,9 @@ const CompletedReserveDetailsModal = () => {
   const reserveDetails = reserve ? (
     <div className="space-y-6 max-h-[80vh] overflow-y-auto">
       {/* Información del Cliente */}
-      <Card className="border border-Neutral">
-        <CardHeader className="p-4 border-b bg-gray-50">
-          <CardTitle className="text-lg font-semibold text-Primary-darker flex items-center gap-2">
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+          <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
             <UserCircle2 size={20} />
             Información del Cliente
           </CardTitle>
@@ -102,8 +102,8 @@ const CompletedReserveDetailsModal = () => {
           <div className="flex items-center gap-4">
             <UserCircle2 className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Nombre</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-sm text-white/60 font-medium">Nombre</p>
+              <p className="font-semibold text-white">
                 {reserve.clientName || reserve.user?.name || "No especificado"}
               </p>
             </div>
@@ -112,25 +112,23 @@ const CompletedReserveDetailsModal = () => {
           <div className="flex items-center gap-4">
             <Mail className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Email</p>
-              <p className="font-semibold text-gray-900">
-                {reserve.user?.email || "No especificado"}
-              </p>
+              <p className="text-sm text-white/60 font-medium">Email</p>
+              <p className="font-semibold text-white">{reserve.user?.email || "No especificado"}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <Phone className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Teléfono</p>
-              <p className="font-semibold text-gray-900">{reserve.phone || "No especificado"}</p>
+              <p className="text-sm text-white/60 font-medium">Teléfono</p>
+              <p className="font-semibold text-white">{reserve.phone || "No especificado"}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <AlertCircle className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Estado</p>
+              <p className="text-sm text-white/60 font-medium">Estado</p>
               {getStatusBadge(reserve.status)}
             </div>
           </div>
@@ -138,9 +136,9 @@ const CompletedReserveDetailsModal = () => {
       </Card>
 
       {/* Detalles de la Reserva */}
-      <Card className="border border-Neutral">
-        <CardHeader className="p-4 border-b bg-gray-50">
-          <CardTitle className="text-lg font-semibold text-Primary-darker flex items-center gap-2">
+      <Card className="bg-white/5 border-white/10">
+        <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+          <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
             <CalendarDays size={20} />
             Detalles de la Reserva
           </CardTitle>
@@ -149,8 +147,8 @@ const CompletedReserveDetailsModal = () => {
           <div className="flex items-center gap-4">
             <CalendarDays className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Fecha</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-sm text-white/60 font-medium">Fecha</p>
+              <p className="font-semibold text-white">
                 {format(new Date(reserve.date), "PPP", { locale: es })}
               </p>
             </div>
@@ -159,16 +157,16 @@ const CompletedReserveDetailsModal = () => {
           <div className="flex items-center gap-4">
             <Clock9 className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Horario</p>
-              <p className="font-semibold text-gray-900">{reserve.schedule}</p>
+              <p className="text-sm text-white/60 font-medium">Horario</p>
+              <p className="font-semibold text-white">{reserve.schedule}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <Icon iconNode={soccerPitch} className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Cancha</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-sm text-white/60 font-medium">Cancha</p>
+              <p className="font-semibold text-white">
                 {reserve.court?.name || `Cancha ${reserve.court?.courtNumber}` || "No especificado"}
               </p>
             </div>
@@ -177,8 +175,8 @@ const CompletedReserveDetailsModal = () => {
           <div className="flex items-center gap-4">
             <Receipt className="text-Primary" size={20} />
             <div>
-              <p className="text-sm text-gray-600 font-medium">Precio Total</p>
-              <p className="font-semibold text-gray-900">
+              <p className="text-sm text-white/60 font-medium">Precio Total</p>
+              <p className="font-semibold text-white">
                 {(reserve.price ?? 0).toLocaleString("es-AR", {
                   style: "currency",
                   currency: "ARS",
@@ -190,18 +188,18 @@ const CompletedReserveDetailsModal = () => {
       </Card>
 
       {/* Resumen de Pagos */}
-      <Card className="border border-green-200 bg-green-50">
-        <CardHeader className="p-4 border-b bg-green-100">
-          <CardTitle className="text-lg font-semibold text-green-800 flex items-center gap-2">
+      <Card className="border border-green-900/30 bg-green-900/20">
+        <CardHeader className="p-4 border-b border-green-900/30 bg-green-900/30">
+          <CardTitle className="text-lg font-semibold text-green-400 flex items-center gap-2">
             <CheckCircle2 size={20} />
             Resumen de Pagos
           </CardTitle>
         </CardHeader>
         <CardContent className="p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center p-3 bg-white rounded-lg border border-green-200">
-              <p className="text-sm text-gray-600 font-medium">Total Pagado</p>
-              <p className="text-2xl font-bold text-green-600">
+            <div className="text-center p-3 bg-white/5 rounded-lg border border-green-900/30">
+              <p className="text-sm text-white/60 font-medium">Total Pagado</p>
+              <p className="text-2xl font-bold text-green-400">
                 {getTotalPaid().toLocaleString("es-AR", {
                   style: "currency",
                   currency: "ARS",
@@ -209,14 +207,14 @@ const CompletedReserveDetailsModal = () => {
               </p>
             </div>
 
-            <div className="text-center p-3 bg-white rounded-lg border border-green-200">
-              <p className="text-sm text-gray-600 font-medium">Cantidad de Pagos</p>
-              <p className="text-2xl font-bold text-green-600">{reserve.payment?.length || 0}</p>
+            <div className="text-center p-3 bg-white/5 rounded-lg border border-green-900/30">
+              <p className="text-sm text-white/60 font-medium">Cantidad de Pagos</p>
+              <p className="text-2xl font-bold text-green-400">{reserve.payment?.length || 0}</p>
             </div>
 
-            <div className="text-center p-3 bg-white rounded-lg border border-green-200">
-              <p className="text-sm text-gray-600 font-medium">Estado</p>
-              <p className="text-lg font-bold text-green-600 flex items-center justify-center gap-2">
+            <div className="text-center p-3 bg-white/5 rounded-lg border border-green-900/30">
+              <p className="text-sm text-white/60 font-medium">Estado</p>
+              <p className="text-lg font-bold text-green-400 flex items-center justify-center gap-2">
                 <CheckCircle2 size={20} />
                 Completado
               </p>
@@ -227,9 +225,9 @@ const CompletedReserveDetailsModal = () => {
 
       {/* Historial de Pagos */}
       {reserve.payment && reserve.payment.length > 0 && (
-        <Card className="border border-Neutral">
-          <CardHeader className="p-4 border-b bg-gray-50">
-            <CardTitle className="text-lg font-semibold text-Primary-darker flex items-center gap-2">
+        <Card className="bg-white/5 border-white/10">
+          <CardHeader className="p-4 border-b border-white/10 bg-white/5">
+            <CardTitle className="text-lg font-semibold text-white flex items-center gap-2">
               <History size={20} />
               Historial de Pagos ({reserve.payment.length})
             </CardTitle>
@@ -239,20 +237,20 @@ const CompletedReserveDetailsModal = () => {
               {reserve.payment.map((payment, index) => (
                 <div
                   key={payment.id}
-                  className={`p-4 ${index !== reserve.payment!.length - 1 ? "border-b border-gray-100" : ""}`}
+                  className={`p-4 ${index !== reserve.payment!.length - 1 ? "border-b border-white/10" : ""}`}
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       {getPaymentMethodIcon(payment.method)}
                       <div>
-                        <p className="font-semibold text-gray-900">
+                        <p className="font-semibold text-white">
                           {getPaymentMethodLabel(payment.method)}
                         </p>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-white/60">
                           {format(new Date(payment.createdAt), "PPp", { locale: es })}
                         </p>
                         {payment.CashSession && (
-                          <p className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded mt-1 inline-block">
+                          <p className="text-xs text-blue-400 bg-blue-900/20 px-2 py-1 rounded mt-1 inline-block">
                             Sesión de Caja:{" "}
                             {format(new Date(payment.CashSession.startAt), "dd/MM/yyyy HH:mm")}
                           </p>
@@ -260,13 +258,13 @@ const CompletedReserveDetailsModal = () => {
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-lg font-bold text-green-600">
+                      <p className="text-lg font-bold text-green-400">
                         {payment.amount.toLocaleString("es-AR", {
                           style: "currency",
                           currency: "ARS",
                         })}
                       </p>
-                      <p className="text-xs text-gray-500">{payment.transactionType}</p>
+                      <p className="text-xs text-white/50">{payment.transactionType}</p>
                     </div>
                   </div>
                 </div>
@@ -277,9 +275,9 @@ const CompletedReserveDetailsModal = () => {
       )}
 
       {/* Información Adicional */}
-      <Card className="border border-gray-200 bg-gray-50">
+      <Card className="bg-white/5 border-white/10">
         <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-white/60">
             <div>
               <p className="font-medium">Reserva creada:</p>
               <p>{format(new Date(reserve.createdAt), "PPp", { locale: es })}</p>
@@ -291,7 +289,7 @@ const CompletedReserveDetailsModal = () => {
             {reserve.paymentIdExt && (
               <div className="md:col-span-2">
                 <p className="font-medium">ID de Pago Externo:</p>
-                <p className="font-mono text-xs bg-white px-2 py-1 rounded border">
+                <p className="font-mono text-xs bg-white/10 px-2 py-1 rounded border border-white/10 text-white">
                   {reserve.paymentIdExt}
                 </p>
               </div>
@@ -302,7 +300,7 @@ const CompletedReserveDetailsModal = () => {
     </div>
   ) : (
     <div className="flex justify-center items-center h-32">
-      <p className="text-Neutral-dark">Cargando información...</p>
+      <p className="text-white/60">Cargando información...</p>
     </div>
   );
 

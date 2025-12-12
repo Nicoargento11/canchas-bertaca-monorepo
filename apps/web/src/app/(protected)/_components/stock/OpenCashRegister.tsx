@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -19,11 +20,11 @@ import { toast } from "sonner";
 
 export function OpenCashRegister({
   complexId,
-  // userId,
+  userId,
   cashRegisterId,
 }: {
   complexId: string;
-  // userId: string;
+  userId: string;
   cashRegisterId: string;
 }) {
   const [amount, setAmount] = useState("");
@@ -32,9 +33,39 @@ export function OpenCashRegister({
   const [isLoading, setIsLoading] = useState(false);
   const { setActiveSession } = useCashRegisterStore();
 
+  const parseAmount = (value: string) => {
+    console.log("parseAmount input:", value);
+    if (!value) return 0;
+    let clean = value.replace(/[^\d.,]/g, "");
+
+    if (clean.indexOf(",") !== -1 && clean.indexOf(".") !== -1) {
+      if (clean.lastIndexOf(",") > clean.lastIndexOf(".")) {
+        clean = clean.replace(/\./g, "").replace(",", ".");
+      } else {
+        clean = clean.replace(/,/g, "");
+      }
+    } else if (clean.indexOf(",") !== -1) {
+      if ((clean.match(/,/g) || []).length > 1) {
+        clean = clean.replace(/,/g, "");
+      } else {
+        clean = clean.replace(",", ".");
+      }
+    } else if (clean.indexOf(".") !== -1) {
+      if ((clean.match(/\./g) || []).length > 1) {
+        clean = clean.replace(/\./g, "");
+      }
+    }
+
+    const result = parseFloat(clean);
+    console.log("parseAmount result:", result, "from clean:", clean);
+    return isNaN(result) ? 0 : result;
+  };
+
   const handleOpenSession = async () => {
-    if (!amount || isNaN(Number(amount))) {
-      toast.success("Ingrese un monto inicial válido");
+    const finalAmount = parseAmount(amount);
+    console.log("handleOpenSession amount:", amount, "finalAmount:", finalAmount);
+    if (amount.trim() === "" || isNaN(finalAmount)) {
+      toast.error("Ingrese un monto inicial válido");
 
       return;
     }
@@ -43,8 +74,8 @@ export function OpenCashRegister({
     try {
       const result = await openCashSession({
         cashRegisterId,
-        // userId,
-        initialAmount: Number(amount),
+        userId,
+        initialAmount: finalAmount,
         // observations: observations || undefined,
       });
 
@@ -74,18 +105,20 @@ export function OpenCashRegister({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Apertura de Caja</DialogTitle>
+          <DialogDescription>
+            Ingresa el monto inicial para comenzar una nueva sesión de caja.
+          </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
           <div className="space-y-2">
             <Label htmlFor="amount">Monto Inicial *</Label>
             <Input
               id="amount"
-              type="number"
+              type="text"
+              inputMode="decimal"
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
               placeholder="0.00"
-              min="0"
-              step="0.01"
             />
             <p className="text-sm text-muted-foreground">
               Efectivo inicial en caja al comenzar el turno

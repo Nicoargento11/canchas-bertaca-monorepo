@@ -184,15 +184,17 @@ export const CompleteReserveForm = () => {
   return (
     <div className="space-y-6">
       {/* Info de la reserva */}
-      <div className="bg-gray-50 p-4 rounded-lg">
+      <div className="bg-white/5 p-4 rounded-lg border border-white/10">
         <div className="flex items-center gap-2 mb-2">
-          <UserRound className="h-4 w-4 text-gray-600" />
-          <p className="font-semibold text-sm">{reserve.clientName || reserve.user?.name}</p>
+          <UserRound className="h-4 w-4 text-white/60" />
+          <p className="font-semibold text-sm text-white">
+            {reserve.clientName || reserve.user?.name}
+          </p>
         </div>
         <div className="grid grid-cols-2 gap-4 text-sm">
           <div>
-            <p className="text-gray-600">Precio total:</p>
-            <p className="font-semibold">
+            <p className="text-white/60">Precio total:</p>
+            <p className="font-semibold text-white">
               {reserve.price?.toLocaleString("es-AR", {
                 style: "currency",
                 currency: "ARS",
@@ -200,8 +202,8 @@ export const CompleteReserveForm = () => {
             </p>
           </div>
           <div>
-            <p className="text-gray-600">Ya pagado:</p>
-            <p className="font-semibold">
+            <p className="text-white/60">Ya pagado:</p>
+            <p className="font-semibold text-white">
               {reserve.reservationAmount?.toLocaleString("es-AR", {
                 style: "currency",
                 currency: "ARS",
@@ -209,11 +211,11 @@ export const CompleteReserveForm = () => {
             </p>
           </div>
         </div>
-        <div className="mt-3 pt-3 border-t border-gray-200">
+        <div className="mt-3 pt-3 border-t border-white/10">
           <div className="flex items-center gap-2">
-            <Coins className="h-4 w-4 text-emerald-600" />
-            <p className="text-sm text-gray-600">Monto restante:</p>
-            <p className="text-lg font-bold text-emerald-600">
+            <Coins className="h-4 w-4 text-emerald-400" />
+            <p className="text-sm text-white/60">Monto restante:</p>
+            <p className="text-lg font-bold text-emerald-400">
               {remainingAmount.toLocaleString("es-AR", {
                 style: "currency",
                 currency: "ARS",
@@ -225,13 +227,16 @@ export const CompleteReserveForm = () => {
 
       {/* Métodos de pago */}
       <div className="space-y-4">
-        <Label className="text-base font-semibold">Métodos de pago utilizados:</Label>{" "}
+        <Label className="text-base font-semibold text-white">Métodos de pago utilizados:</Label>{" "}
         <div className="grid grid-cols-2 gap-4">
           {PAYMENT_METHODS.map((method) => {
             const Icon = method.icon;
             return (
               <div key={method.key} className="space-y-2">
-                <Label htmlFor={method.key} className="text-sm flex items-center gap-2">
+                <Label
+                  htmlFor={method.key}
+                  className="text-sm flex items-center gap-2 text-white/80"
+                >
                   <Icon className={`h-4 w-4 ${method.color}`} />
                   {method.label}
                 </Label>
@@ -241,7 +246,7 @@ export const CompleteReserveForm = () => {
                   placeholder="0"
                   value={paymentData[method.key]}
                   onChange={(e) => handlePaymentChange(method.key, e.target.value)}
-                  className="text-sm"
+                  className="text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30"
                 />
               </div>
             );
@@ -250,11 +255,11 @@ export const CompleteReserveForm = () => {
         {/* Total */}
         <div
           className={`flex justify-between items-center p-3 rounded-lg border-2 ${
-            isValidTotal ? "bg-green-50 border-green-200" : "bg-red-50 border-red-200"
+            isValidTotal ? "bg-green-900/20 border-green-900/30" : "bg-red-900/20 border-red-900/30"
           }`}
         >
-          <span className="text-base font-semibold">Total pagos:</span>
-          <span className={`text-lg font-bold ${isValidTotal ? "text-green-600" : "text-red-600"}`}>
+          <span className="text-base font-semibold text-white">Total pagos:</span>
+          <span className={`text-lg font-bold ${isValidTotal ? "text-green-400" : "text-red-400"}`}>
             {totalPayments.toLocaleString("es-AR", {
               style: "currency",
               currency: "ARS",
@@ -262,7 +267,7 @@ export const CompleteReserveForm = () => {
           </span>
         </div>
         {!isValidTotal && (
-          <p className="text-sm text-red-600 text-center">
+          <p className="text-sm text-red-400 text-center">
             El total debe coincidir exactamente con el monto restante
           </p>
         )}
@@ -273,14 +278,14 @@ export const CompleteReserveForm = () => {
         <Button
           variant="outline"
           onClick={handleChangeCompleteReserve}
-          className="flex-1"
+          className="flex-1 border-white/10 text-white hover:bg-white/10 bg-transparent"
           disabled={isPending}
         >
           Cancelar
         </Button>
         <Button
           onClick={handleCompleteReservation}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
           disabled={!isValidTotal || isPending}
         >
           <CheckCircle2 className="h-4 w-4 mr-2" />

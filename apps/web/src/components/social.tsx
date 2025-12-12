@@ -7,7 +7,7 @@ import { BACKEND_URL } from "@/config/constants";
 export const Social = () => {
   return (
     <Button
-      className="flex gap-2 w-full border border-gray-400"
+      className="flex gap-2 w-full border border-white/10 text-white hover:bg-white/10 hover:text-white"
       variant={"ghost"}
     >
       <FcGoogle size={30} />

@@ -163,49 +163,61 @@ export const ReserveForm = () => {
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {/* Sección de Información de Reserva (solo lectura) */}
-        <Card>
+        <Card className="bg-white/5 border-white/10">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Información de la Reserva</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">
+              Información de la Reserva
+            </CardTitle>
           </CardHeader>
           <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <CalendarDays className="text-primary" size={18} />
+                <Label className="flex items-center gap-2 text-white/80">
+                  <CalendarDays className="text-Primary" size={18} />
                   Fecha
                 </Label>
                 <Input
                   value={reserveData?.date ? format(reserveData.date, "yyyy-MM-dd") : ""}
                   disabled
-                  className="bg-muted"
+                  className="bg-white/10 border-white/10 text-white disabled:opacity-100"
                 />
               </div>
 
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Clock9 className="text-primary" size={18} />
+                <Label className="flex items-center gap-2 text-white/80">
+                  <Clock9 className="text-Primary" size={18} />
                   Horario
                 </Label>
-                <Input value={reserveData?.schedule || ""} disabled className="bg-muted" />
+                <Input
+                  value={reserveData?.schedule || ""}
+                  disabled
+                  className="bg-white/10 border-white/10 text-white disabled:opacity-100"
+                />
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Receipt className="text-primary" size={18} />
+                <Label className="flex items-center gap-2 text-white/80">
+                  <Receipt className="text-Primary" size={18} />
                   Precio
                 </Label>
-                <Input value={reserveData?.price || ""} disabled className="bg-muted" />
+                <Input
+                  value={reserveData?.price || ""}
+                  disabled
+                  className="bg-white/10 border-white/10 text-white disabled:opacity-100"
+                />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Sección de Cliente (editable) */}
-        <Card>
+        <Card className="bg-white/5 border-white/10">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Información del Cliente</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">
+              Información del Cliente
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <FormField
@@ -213,12 +225,17 @@ export const ReserveForm = () => {
               name="clientName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <UserCircle2 className="text-primary" size={18} />
+                  <FormLabel className="flex items-center gap-2 text-white/80">
+                    <UserCircle2 className="text-Primary" size={18} />
                     Nombre Completo
                   </FormLabel>
                   <FormControl>
-                    <Input {...field} disabled={isPending} placeholder="Nombre del cliente" />
+                    <Input
+                      {...field}
+                      disabled={isPending}
+                      placeholder="Nombre del cliente"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-Primary"
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -230,8 +247,8 @@ export const ReserveForm = () => {
               name="phone"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Phone className="text-primary" size={18} />
+                  <FormLabel className="flex items-center gap-2 text-white/80">
+                    <Phone className="text-Primary" size={18} />
                     Teléfono
                   </FormLabel>
                   <FormControl>
@@ -241,7 +258,7 @@ export const ReserveForm = () => {
                       defaultCountry="AR"
                       disabled={isPending}
                       placeholder="Ingrese el teléfono"
-                      className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-10 w-full rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/30 focus-within:ring-2 focus-within:ring-Primary focus-within:ring-offset-2 focus-within:ring-offset-gray-900 disabled:cursor-not-allowed disabled:opacity-50 [&_.PhoneInputCountrySelect]:bg-gray-900 [&_.PhoneInputCountrySelect]:text-white [&_.PhoneInputInput]:bg-transparent [&_.PhoneInputInput]:text-white [&_.PhoneInputInput]:placeholder:text-white/30 [&_.PhoneInputInput]:outline-none"
                     />
                   </FormControl>
                   <FormMessage />
@@ -252,14 +269,14 @@ export const ReserveForm = () => {
         </Card>
 
         {/* Sección de Pago (editable) */}
-        <Card>
+        <Card className="bg-white/5 border-white/10">
           <CardHeader>
-            <CardTitle className="text-lg font-semibold">Información de Pago</CardTitle>
+            <CardTitle className="text-lg font-semibold text-white">Información de Pago</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label className="flex items-center gap-2">
-                <Coins className="text-primary" size={18} />
+              <Label className="flex items-center gap-2 text-white/80">
+                <Coins className="text-Primary" size={18} />
                 Método de Pago
               </Label>
               <Select
@@ -267,12 +284,16 @@ export const ReserveForm = () => {
                 onValueChange={(value) => setPaymentMethod(value as PaymentMethod)}
                 disabled={isPending}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white/5 border-white/10 text-white">
                   <SelectValue placeholder="Seleccione método" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="bg-gray-900 border-white/10 text-white">
                   {PAYMENT_METHODS.map((method) => (
-                    <SelectItem key={method.value} value={method.value}>
+                    <SelectItem
+                      key={method.value}
+                      value={method.value}
+                      className="focus:bg-white/10 focus:text-white"
+                    >
                       <span className="mr-2">{method.icon}</span>
                       {method.label}
                     </SelectItem>
@@ -285,13 +306,15 @@ export const ReserveForm = () => {
               name="reservationAmount"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2">
-                    <Coins className="text-primary" size={18} />
+                  <FormLabel className="flex items-center gap-2 text-white/80">
+                    <Coins className="text-Primary" size={18} />
                     Monto de Reserva/Seña
                   </FormLabel>
                   <FormControl>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2">$</span>
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/50">
+                        $
+                      </span>
                       <Input
                         {...field}
                         type="number"
@@ -301,7 +324,7 @@ export const ReserveForm = () => {
                           const value = e.target.value;
                           field.onChange(value === "" ? 0 : parseFloat(value) || 0);
                         }}
-                        className="pl-8"
+                        className="pl-8 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-Primary"
                       />
                     </div>
                   </FormControl>
@@ -312,7 +335,11 @@ export const ReserveForm = () => {
           </CardContent>
         </Card>
 
-        <Button type="submit" disabled={isPending} className="w-full py-6">
+        <Button
+          type="submit"
+          disabled={isPending}
+          className="w-full py-6 bg-Primary hover:bg-Primary/80 text-white font-bold text-lg"
+        >
           {isPending ? (
             <span className="flex items-center gap-2">
               <Spinner />

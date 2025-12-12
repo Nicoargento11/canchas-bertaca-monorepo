@@ -58,6 +58,16 @@ export const getScheduleDayById = async (id: string): Promise<ScheduleDayResult<
     return handleScheduleDayError(error);
   }
 };
+
+export const getScheduleDaysByComplex = async (complexId: string): Promise<ScheduleDay[]> => {
+  try {
+    const response = await api.get(`/schedule-days/complex/${complexId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching schedule days by complex:", error);
+    throw error;
+  }
+};
 // data: Omit<ScheduleDay, "id" | "schedules">
 export const createScheduleDay = async (
   data: Omit<ScheduleDay, "id" | "schedules" | "fixedReserves" | "createdAt" | "updatedAt">

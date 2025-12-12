@@ -102,7 +102,7 @@ export const EditReserveForm = () => {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-        <Card className="border border-Neutral">
+        <Card className="bg-white/5 border-white/10">
           <CardContent className="space-y-4 pt-4">
             {/* Campo Fecha */}
             <FormField
@@ -110,7 +110,7 @@ export const EditReserveForm = () => {
               name="date"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                  <FormLabel className="flex items-center gap-2 text-white/80">
                     <CalendarDays className="text-Primary" size={20} />
                     Fecha
                   </FormLabel>
@@ -120,8 +120,8 @@ export const EditReserveForm = () => {
                         <Button
                           variant="outline"
                           className={cn(
-                            "w-full border-Neutral justify-start pl-3 font-normal text-lg",
-                            !field.value && "text-muted-foreground"
+                            "w-full bg-white/5 border-white/10 justify-start pl-3 font-normal text-lg text-white hover:bg-white/10 hover:text-white",
+                            !field.value && "text-white/50"
                           )}
                         >
                           {field.value ? (
@@ -132,12 +132,16 @@ export const EditReserveForm = () => {
                         </Button>
                       </FormControl>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
+                    <PopoverContent
+                      className="w-auto p-0 bg-gray-900 border-white/10 text-white"
+                      align="start"
+                    >
                       <Calendar
                         mode="single"
                         selected={field.value}
                         onSelect={field.onChange}
                         initialFocus
+                        className="bg-gray-900 text-white"
                       />
                     </PopoverContent>
                   </Popover>
@@ -152,7 +156,7 @@ export const EditReserveForm = () => {
               name="schedule"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                  <FormLabel className="flex items-center gap-2 text-white/80">
                     <Clock9 className="text-Primary" size={20} />
                     Horario
                   </FormLabel>
@@ -162,20 +166,24 @@ export const EditReserveForm = () => {
                     disabled={!schedules || isPending}
                   >
                     <FormControl>
-                      <SelectTrigger className="border-Neutral text-lg">
+                      <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
                         {/* Mostrar el horario actual si existe */}
                         <SelectValue placeholder={field.value || "Selecciona un horario"} />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-900 border-white/10 text-white">
                       {schedules && reserve ? (
                         dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => (
-                          <SelectItem key={hour.timeRange} value={hour.timeRange}>
+                          <SelectItem
+                            key={hour.timeRange}
+                            value={hour.timeRange}
+                            className="focus:bg-white/10 focus:text-white"
+                          >
                             {hour.timeRange}
                           </SelectItem>
                         ))
                       ) : (
-                        <SelectItem value="cargando..." disabled>
+                        <SelectItem value="cargando..." disabled className="text-white/50">
                           Cargando horarios...
                         </SelectItem>
                       )}
@@ -192,7 +200,7 @@ export const EditReserveForm = () => {
               name="courtId"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                  <FormLabel className="flex items-center gap-2 text-white/80">
                     <Icon iconNode={soccerPitch} className="text-Primary" size={20} />
                     Cancha
                   </FormLabel>
@@ -202,13 +210,17 @@ export const EditReserveForm = () => {
                     disabled={isPending || courts.length === 0}
                   >
                     <FormControl>
-                      <SelectTrigger className="border-Neutral text-lg">
+                      <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
                         <SelectValue placeholder="Selecciona una cancha" />
                       </SelectTrigger>
                     </FormControl>
-                    <SelectContent>
+                    <SelectContent className="bg-gray-900 border-white/10 text-white">
                       {courts.map((court) => (
-                        <SelectItem key={court.id} value={court.id.toString()}>
+                        <SelectItem
+                          key={court.id}
+                          value={court.id.toString()}
+                          className="focus:bg-white/10 focus:text-white"
+                        >
                           Cancha {court.courtNumber}
                         </SelectItem>
                       ))}
@@ -225,7 +237,7 @@ export const EditReserveForm = () => {
               name="clientName"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel className="flex items-center gap-2 text-Neutral-dark">
+                  <FormLabel className="flex items-center gap-2 text-white/80">
                     <CircleUserRound className="text-Primary" size={20} />
                     Nombre del Cliente
                   </FormLabel>
@@ -234,7 +246,7 @@ export const EditReserveForm = () => {
                       {...field}
                       disabled={isPending}
                       placeholder="Nombre completo"
-                      className="border-Neutral text-lg"
+                      className="bg-white/5 border-white/10 text-lg text-white placeholder:text-white/30"
                     />
                   </FormControl>
                   <FormMessage />

@@ -77,11 +77,14 @@ export const createUser = async (data: any): Promise<UserResult<User>> => {
 };
 
 export const getUsers = async (): Promise<UserResult<User[]>> => {
+  console.log("holaaaaaaaaaaaaaaaaaaaaaaa");
   try {
     const response = await api.get(`/users`);
 
+    console.log(response);
     return { success: true, data: response.data };
   } catch (error) {
+    console.log(error);
     return handleUserError(error);
   }
 };
@@ -184,6 +187,15 @@ export const getUserByComplex = async (
 ): Promise<UserResult<User[]>> => {
   try {
     const response = await api.get(`/users/complex/${complexId}?page=${page}&limit=${limit}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleUserError(error);
+  }
+};
+
+export const searchUsers = async (query: string): Promise<UserResult<User[]>> => {
+  try {
+    const response = await api.get(`/users?search=${encodeURIComponent(query)}`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleUserError(error);

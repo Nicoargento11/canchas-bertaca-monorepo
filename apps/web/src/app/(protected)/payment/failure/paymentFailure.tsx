@@ -49,7 +49,7 @@ export default function PaymentFailure() {
               </Link>
             )}
             <Link
-              href={`/${complexSlug}`}
+              href={`/`}
               className="inline-flex w-full items-center justify-center px-2 py-1 bg-white text-red-500 rounded-md shadow-sm hover:shadow-lg  border  focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 "
               prefetch={false}
             >

@@ -7,8 +7,10 @@ import { getDailyAvailability, TurnByDay } from "@/services/reserve/reserve";
 import { format } from "date-fns";
 import { Court } from "@/services/court/court";
 import NavBar from "@/components/navbar/navBar";
-import { Home } from "@/components/home/home";
 import ModalManager from "@/components/modals/modalManager";
+import { MainSectionImproved } from "@/components/home/mainSectionImproved";
+
+import { ClientLayout } from "@/components/home/ClientLayout";
 
 export interface SportData {
   reserves: TurnByDay | undefined;
@@ -17,6 +19,7 @@ export interface SportData {
 
 export default async function HomePage() {
   const { success, data: complejo } = await getComplexBySlug("bertaca");
+  const { data: sevenComplex } = await getComplexBySlug("seven");
   const session = await getSession();
 
   const today = new Date();
@@ -34,6 +37,15 @@ export default async function HomePage() {
     },
     {} as Record<SportTypeKey, SportType>
   );
+
+  const sevenSportTypes =
+    sevenComplex?.sportTypes.reduce(
+      (acc: Record<SportTypeKey, SportType>, sport: SportType) => {
+        acc[sport.name] = sport;
+        return acc;
+      },
+      {} as Record<SportTypeKey, SportType>
+    ) || ({} as Record<SportTypeKey, SportType>);
 
   const sportAvailability = await Promise.all(
     Object.entries(sportTypes).map(async ([key, sportType]) => {
@@ -58,12 +70,48 @@ export default async function HomePage() {
     {} as Record<SportTypeKey, SportData>
   );
 
-  return (
-    <div className="">
-      <NavBar currentUser={session} complex={complejo} />
+  const sevenSportAvailability = sevenComplex
+    ? await Promise.all(
+        Object.entries(sevenSportTypes).map(async ([key, sportType]) => {
+          const reserves = await getDailyAvailability(
+            format(today, "yyyy-MM-dd"),
+            sevenComplex.id,
+            sportType.id
+          );
 
-      <Home sportsData={sportsData} complex={complejo} sportTypes={sportTypes} />
-      <ModalManager session={session} complex={complejo} sportTypes={sportTypes} />
-    </div>
+          return {
+            sportKey: key as SportTypeKey,
+            reserves: reserves.data,
+            allCourts: sevenComplex.courts.filter((court) => court.sportTypeId === sportType.id),
+          };
+        })
+      )
+    : [];
+
+  const sevenSportsData: Record<SportTypeKey, SportData> = sevenSportAvailability.reduce(
+    (acc, { sportKey, reserves, allCourts }) => {
+      acc[sportKey as SportTypeKey] = { reserves, courts: allCourts };
+      return acc;
+    },
+    {} as Record<SportTypeKey, SportData>
+  );
+
+  return (
+    <ClientLayout>
+      <div className="">
+        <NavBar currentUser={session} complex={complejo} />
+        {/* <Home sportsData={sportsData} complex={complejo} sportTypes={sportTypes} /> */}
+        <MainSectionImproved
+          complex={complejo}
+          sportTypes={sportTypes}
+          sevenComplex={sevenComplex}
+          sevenSportTypes={sevenSportTypes}
+          currentUser={session}
+          bertacaSportsData={sportsData}
+          sevenSportsData={sevenSportsData}
+        />
+        <ModalManager session={session} complex={complejo} sportTypes={sportTypes} />
+      </div>
+    </ClientLayout>
   );
 }

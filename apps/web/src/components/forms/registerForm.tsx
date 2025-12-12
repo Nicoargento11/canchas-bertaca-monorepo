@@ -69,14 +69,14 @@ export const RegisterForm = () => {
               name="name"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Nombre</FormLabel>
+                  <FormLabel className="text-white">Nombre</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="nombre ejemplo"
                       type="text"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -88,14 +88,14 @@ export const RegisterForm = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Correo Electronico</FormLabel>
+                  <FormLabel className="text-white">Correo Electronico</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="ejemplo@ejemplo.com"
                       type="email"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -107,14 +107,14 @@ export const RegisterForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contraseña</FormLabel>
+                  <FormLabel className="text-white">Contraseña</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="********"
                       type="password"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -126,14 +126,14 @@ export const RegisterForm = () => {
               name="confirmPassword"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Confirmar contraseña</FormLabel>
+                  <FormLabel className="text-white">Confirmar contraseña</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="********"
                       type="password"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <Button size="sm" variant="link" asChild className="px-0 font-normal">

@@ -42,11 +42,7 @@ export const useProductStore = create<ProductStore>((set) => ({
 
   initializeProducts: (products) =>
     set((state) => {
-      // Solo inicializa si no está ya inicializado
-      if (!state.initialized) {
-        return { products, initialized: true };
-      }
-      return state;
+      return { products, initialized: true };
     }),
   updateProduct: (id, updates) =>
     set((state) => ({

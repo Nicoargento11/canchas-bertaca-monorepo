@@ -53,30 +53,51 @@ const priceCalculator = (
     }
 
     const dayOfWeek = day.getDay();
-    const [startTime, endTime] = timeRange.split(" - ");
+    const [startTime, endTime] = timeRange.split(" - ").map((t) => t.trim());
     const selectedStartMinutes = timeToMinutes(startTime);
     const selectedEndMinutes = timeToMinutes(endTime);
 
-    // Buscar TODOS los schedules que coincidan (no solo el primero)
-    const matchingSchedules = schedules.filter((s) => {
-      const scheduleStartMinutes = timeToMinutes(s.startTime);
-      const scheduleEndMinutes = timeToMinutes(s.endTime);
+    // Helper para filtrar schedules
+    const getMatchingSchedules = (requireSpecificCourt: boolean) => {
+      return schedules.filter((s) => {
+        const scheduleStartMinutes = timeToMinutes(s.startTime);
+        const scheduleEndMinutes = timeToMinutes(s.endTime);
 
-      return (
-        s.scheduleDay?.dayOfWeek === dayOfWeek &&
-        s.scheduleDay.isActive &&
-        (courtId ? s.courtId === courtId : true) &&
-        isTimeRangeWithin(
+        const matchesDay = s.scheduleDay?.dayOfWeek === dayOfWeek && s.scheduleDay.isActive;
+        const matchesTime = isTimeRangeWithin(
           selectedStartMinutes,
           selectedEndMinutes,
           scheduleStartMinutes,
           scheduleEndMinutes
-        )
-      );
-    });
+        );
+
+        if (!matchesDay || !matchesTime) return false;
+
+        if (courtId) {
+          // Si buscamos para una cancha específica:
+          if (requireSpecificCourt) {
+            return s.courtId === courtId; // Debe coincidir ID
+          } else {
+            return !s.courtId; // Debe ser genérico (null)
+          }
+        }
+
+        return true; // Si no hay courtId, traemos todo
+      });
+    };
+
+    // 1. Intentar buscar schedules específicos para la cancha
+    let matchingSchedules = getMatchingSchedules(true);
+
+    // 2. Si no hay específicos y se pidió una cancha, buscar genéricos
+    if (matchingSchedules.length === 0 && courtId) {
+      matchingSchedules = getMatchingSchedules(false);
+    }
 
     if (matchingSchedules.length === 0) {
-      console.warn(`No se encontraron horarios activos para ${timeRange} en día ${dayOfWeek}`);
+      console.warn(
+        `No se encontraron horarios activos para ${timeRange} en día ${dayOfWeek} (Cancha: ${courtId || "Cualquiera"})`
+      );
       return null;
     }
 

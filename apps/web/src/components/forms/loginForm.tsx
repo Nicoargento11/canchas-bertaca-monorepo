@@ -71,14 +71,14 @@ export const LoginForm = () => {
               name="email"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Correo Electronico</FormLabel>
+                  <FormLabel className="text-white">Correo Electronico</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="ejemplo@ejemplo.com"
                       type="email"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <FormMessage />
@@ -90,14 +90,14 @@ export const LoginForm = () => {
               name="password"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Contraseña</FormLabel>
+                  <FormLabel className="text-white">Contraseña</FormLabel>
                   <FormControl>
                     <Input
                       {...field}
                       disabled={isPending}
                       placeholder="********"
                       type="password"
-                      className="border-gray-400"
+                      className="bg-white/5 border-white/10 text-white placeholder:text-white/50 focus-visible:ring-Primary"
                     />
                   </FormControl>
                   <Button size="sm" variant="link" asChild className="px-0 font-normal">

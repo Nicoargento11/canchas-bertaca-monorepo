@@ -34,7 +34,7 @@ export type Payment = {
   complex?: Complex;
   cashSessionId?: string;
   CashSession?: CashSession;
-
+  saleId?: string | null;
   // tournamentRegistration?: TournamentRegistration | null;
   // tournamentRegistrationId?: string | null;
   productSales?: ProductSale[];
@@ -85,7 +85,7 @@ const handlePaymentError = (error: unknown): PaymentResult => {
 export const createPaymentOnline = async (
   values: z.infer<typeof reserveTurnSchema>,
   complexId: string
-): Promise<PaymentResult<{ id: string; success: string }>> => {
+): Promise<PaymentResult<{ id: string; init_point: string; success: string }>> => {
   try {
     const validationFields = reserveTurnSchema.safeParse(values);
     if (!validationFields.success) {
@@ -148,6 +148,15 @@ export const deletePayment = async (id: string): Promise<PaymentResult> => {
   try {
     await api.delete(`/payments/${id}`);
     return { success: true };
+  } catch (error) {
+    return handlePaymentError(error);
+  }
+};
+
+export const searchPayments = async (complexId: string): Promise<PaymentResult<any>> => {
+  try {
+    const response = await api.get(`/payments/search?complexId=${complexId}`);
+    return { success: true, data: response.data };
   } catch (error) {
     return handlePaymentError(error);
   }

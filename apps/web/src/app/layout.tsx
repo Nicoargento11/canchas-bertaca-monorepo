@@ -4,6 +4,7 @@ import "./globals.css";
 import { ModalProvider } from "@/contexts/modalContext";
 import { ReserveProvider } from "@/contexts/newReserveContext";
 import { Toaster } from "sonner";
+import { ReactScanProvider } from "../components/ReactScanProvider";
 
 // const geistSans = localFont({
 //   src: "./fonts/GeistVF.woff",
@@ -33,14 +34,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      {/* <head>
-        <link rel="icon" type="image/png" href="/public/images/bertaca_logo.png" />
-      </head> */}
+      <head>
+        <link rel="icon" type="image/png" href="/images/bertaca_logo.png" />
+      </head>
       <ModalProvider>
         <ReserveProvider>
           <body className={`${sansCaption.className} `}>
+            {process.env.NODE_ENV === "development" && <ReactScanProvider />}
             <Toaster expand={true} richColors position="bottom-right" />
-
             {children}
           </body>
         </ReserveProvider>

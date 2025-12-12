@@ -33,7 +33,7 @@ export function InventorySummary({ complex }: InventorySummaryProps) {
   const [categoriaData, setCategoriaData] = useState<{ name: string; value: number }[]>([]);
 
   useEffect(() => {
-    initializeProducts(complex.products);
+    initializeProducts(complex.products || []);
   }, [complex.products, initializeProducts]);
 
   useEffect(() => {
@@ -125,26 +125,20 @@ export function InventorySummary({ complex }: InventorySummaryProps) {
             <CardDescription>Distribución de productos por estado de inventario</CardDescription>
           </CardHeader>
           <CardContent className="h-[400px]">
-            {stats.total > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={stockData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="name" />
-                  <YAxis />
-                  <Tooltip formatter={(value) => [value, "Cantidad de productos"]} />
-                  <Bar dataKey="cantidad" name="Cantidad">
-                    {stockData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
-                  <Legend />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-gray-500">
-                No hay datos de inventario disponibles
-              </div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={stockData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip formatter={(value) => [value, "Cantidad de productos"]} />
+                <Bar dataKey="cantidad" name="Cantidad">
+                  {stockData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Bar>
+                <Legend />
+              </BarChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
 
@@ -155,31 +149,25 @@ export function InventorySummary({ complex }: InventorySummaryProps) {
             <CardDescription>Proporción de productos por categoría</CardDescription>
           </CardHeader>
           <CardContent className="h-[400px]">
-            {categoriaData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={categoriaData}
-                    cx="50%"
-                    cy="50%"
-                    labelLine={true}
-                    outerRadius={80}
-                    dataKey="value"
-                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {categoriaData.map((_, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value, name) => [value, `Productos en ${name}`]} />
-                  <Legend />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-full items-center justify-center text-gray-500">
-                No hay datos de categorías disponibles
-              </div>
-            )}
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoriaData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={true}
+                  outerRadius={80}
+                  dataKey="value"
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                >
+                  {categoriaData.map((_, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value, name) => [value, `Productos en ${name}`]} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>

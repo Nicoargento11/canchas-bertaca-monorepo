@@ -30,10 +30,6 @@ export const usePaymentsStore = create<PaymentsState>((set) => ({
     set((state) => ({ payments: state.payments.filter((payment) => payment.id !== id) })),
   initializePayments: (payments) =>
     set((state) => {
-      // Solo inicializa si no está ya inicializado
-      if (!state.initialized) {
-        return { payments, initialized: true };
-      }
-      return state;
+      return { payments, initialized: true };
     }),
 }));

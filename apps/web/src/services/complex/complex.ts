@@ -132,3 +132,80 @@ export const toggleComplexStatus = async (id: string): Promise<ComplexResult> =>
     return handleComplexError(error);
   }
 };
+
+// ==================== MERCADOPAGO ====================
+
+export type MercadoPagoConfig = {
+  accessToken: string;
+  publicKey: string;
+  clientId?: string;
+  clientSecret?: string;
+};
+
+export type MercadoPagoConfigResponse = {
+  id: string;
+  publicKey: string;
+  clientId: string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export const exchangeMercadoPagoOAuth = async (
+  complexId: string,
+  code: string,
+  redirectUri: string
+): Promise<ComplexResult> => {
+  try {
+    const response = await api.post(`/complexes/${complexId}/mercadopago/oauth`, {
+      code,
+      redirectUri,
+    });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
+
+export const saveMercadoPagoConfig = async (
+  complexId: string,
+  config: MercadoPagoConfig
+): Promise<ComplexResult<MercadoPagoConfigResponse>> => {
+  try {
+    const response = await api.post(`/complexes/${complexId}/mercadopago`, config);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
+
+export const getMercadoPagoConfig = async (
+  complexId: string
+): Promise<ComplexResult<MercadoPagoConfigResponse>> => {
+  try {
+    const response = await api.get(`/complexes/${complexId}/mercadopago`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
+
+export const checkMercadoPagoStatus = async (
+  complexId: string
+): Promise<ComplexResult<{ hasConfig: boolean }>> => {
+  try {
+    const response = await api.get(`/complexes/${complexId}/mercadopago/status`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
+
+export const deactivateMercadoPagoConfig = async (complexId: string): Promise<ComplexResult> => {
+  try {
+    const response = await api.delete(`/complexes/${complexId}/mercadopago`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
