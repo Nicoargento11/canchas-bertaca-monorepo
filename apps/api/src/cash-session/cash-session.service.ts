@@ -85,12 +85,19 @@ export class CashSessionService {
     });
   }
 
-  async getActiveSessionByUser(userId: string) {
+  async getActiveSessionByUser(userId: string, complexId?: string) {
+    const whereClause: any = {
+      userId,
+      status: 'ACTIVE',
+    };
+
+    // Si se proporciona complexId, filtrar por cashRegister.complexId
+    if (complexId) {
+      whereClause.cashRegister = { complexId };
+    }
+
     return this.prisma.cashSession.findFirst({
-      where: {
-        // userId,
-        status: 'ACTIVE',
-      },
+      where: whereClause,
       include: { cashRegister: true },
     });
   }
@@ -99,7 +106,15 @@ export class CashSessionService {
     const session = await this.prisma.cashSession.findUnique({
       where: { id },
       include: {
-        payments: { include: { productSales: { include: { product: true } } } },
+        payments: {
+          include: {
+            sale: {
+              include: {
+                productSales: { include: { product: true } },
+              },
+            },
+          },
+        },
       },
     });
 
