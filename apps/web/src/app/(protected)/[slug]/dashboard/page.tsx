@@ -17,7 +17,7 @@ import { getAvailableComplexes } from "@/lib/getAvailableComplexes";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, MapPin, Trophy, Clock, Info, CalendarRange, Calendar } from "lucide-react";
-import { FijosGridView } from "./fijos/components/FijosGridView";
+import { FijosGridView } from "../../_components/FijosGridView";
 
 const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const sessionUser = await getSession();
