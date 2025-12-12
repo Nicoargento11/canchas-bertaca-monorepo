@@ -6,7 +6,6 @@
 
 generator client {
   provider = "prisma-client-js"
-  output   = "../../../node_modules/.prisma/client"
 }
 
 datasource db {
@@ -131,9 +130,9 @@ enum MatchRound {
 model User {
   id                 String    @id @default(cuid())
   name               String
-  email              String    @unique
+  email              String?   @unique
   emailVerified      DateTime?
-  password           String
+  password           String?
   hashedRefreshToken String?
   image              String?
   phone              String?
@@ -153,7 +152,8 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // CashSession CashSession[]
+  CashSession CashSession[]
+  sales       Sale[]
 
   @@index([organizationId])
   @@index([complexId])
@@ -175,6 +175,7 @@ model Organization {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  sales     Sale[]
 
   @@index([name])
   @@index([createdAt])
@@ -216,6 +217,7 @@ model Complex {
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   CashRegister CashRegister[]
+  sales        Sale[]
 
   @@index([organizationId])
   @@index([slug])
@@ -316,7 +318,7 @@ model Schedule {
 
 model ScheduleDay {
   id        String  @id @default(cuid())
-  dayOfWeek Int     @unique
+  dayOfWeek Int
   isActive  Boolean @default(false)
 
   complex   Complex? @relation(fields: [complexId], references: [id])
@@ -327,6 +329,8 @@ model ScheduleDay {
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@unique([dayOfWeek, complexId])
 }
 
 model Rate {
@@ -478,7 +482,8 @@ model Payment {
   tournamentRegistration   TournamentRegistration? @relation(fields: [tournamentRegistrationId], references: [id])
   tournamentRegistrationId String?
 
-  productSales ProductSale[]
+  sale   Sale?   @relation(fields: [saleId], references: [id])
+  saleId String?
 
   createdAt     DateTime     @default(now())
   CashSession   CashSession? @relation(fields: [cashSessionId], references: [id])
@@ -486,6 +491,7 @@ model Payment {
 
   @@index([reserveId])
   @@index([tournamentRegistrationId])
+  @@index([saleId])
 }
 
 // Inhabilitación de días
@@ -573,8 +579,8 @@ model ProductSale {
   product   Product @relation(fields: [productId], references: [id])
   productId String
 
-  paymentId String
-  payment   Payment @relation(fields: [paymentId], references: [id])
+  sale   Sale   @relation(fields: [saleId], references: [id])
+  saleId String
 
   complex   Complex @relation(fields: [complexId], references: [id]) // Relación añadida
   complexId String
@@ -584,7 +590,29 @@ model ProductSale {
 
   @@index([productId])
   @@index([complexId])
-  @@index([paymentId])
+  @@index([saleId])
+}
+
+model Sale {
+  id          String @id @default(cuid())
+  totalAmount Float
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+
+  productSales ProductSale[]
+  payments     Payment[]
+
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  organizationId String?
+
+  @@index([complexId])
+  @@index([createdById])
 }
 
 model InventoryMovement {
@@ -623,8 +651,8 @@ model CashSession {
   id             String        @id @default(cuid())
   cashRegister   CashRegister  @relation(fields: [cashRegisterId], references: [id])
   cashRegisterId String
-  // user           User          @relation(fields: [userId], references: [id])
-  // userId         String
+  user           User          @relation(fields: [userId], references: [id])
+  userId         String
   startAt        DateTime      @default(now())
   endAt          DateTime?
   initialAmount  Float
@@ -637,7 +665,7 @@ model CashSession {
   observations   String?
 
   @@index([cashRegisterId])
-  // @@index([userId])
+  @@index([userId])
   @@index([status])
 }
 
