@@ -117,14 +117,16 @@ export default function PaymentSuccess() {
         {/* Acciones */}
         <div className="w-full flex flex-col mt-6 gap-3">
           <Link
-            href={`/${reserve?.complex?.slug}/profile`}
+            // href={`/${reserve?.complex?.slug}/profile`}
+            href={`/profile`}
             className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-green-600 to-emerald-500 text-white font-medium rounded-lg hover:shadow-lg transition-all hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
             prefetch={false}
           >
             Ver mis reservas
           </Link>
           <Link
-            href={`/${reserve?.complex?.slug}/`}
+            // href={`/${reserve?.complex?.slug}/`}
+            href={`/`}
             className="inline-flex items-center justify-center px-6 py-3 bg-white text-gray-800 font-medium rounded-lg border border-gray-300 hover:shadow-lg transition-all hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 dark:bg-gray-700 dark:text-white dark:border-gray-600 dark:hover:bg-gray-600"
             prefetch={false}
           >
