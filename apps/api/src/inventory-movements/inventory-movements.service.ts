@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  ConflictException,
+} from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { MovementType } from '@prisma/client';
 import { CreateInventoryMovementDto } from './dto/create-inventory-movement.dto';
@@ -9,6 +13,22 @@ export class InventoryMovementService {
   constructor(private prisma: PrismaService) {}
 
   async create(createInventoryMovementDto: CreateInventoryMovementDto) {
+    const product = await this.prisma.product.findUnique({
+      where: { id: createInventoryMovementDto.productId },
+    });
+
+    if (!product) {
+      throw new NotFoundException(
+        `Product with ID ${createInventoryMovementDto.productId} not found`,
+      );
+    }
+
+    if (product.complexId !== createInventoryMovementDto.complexId) {
+      throw new ConflictException(
+        'El producto no pertenece al complejo indicado en el movimiento',
+      );
+    }
+
     return this.prisma.inventoryMovement.create({
       data: createInventoryMovementDto,
     });
