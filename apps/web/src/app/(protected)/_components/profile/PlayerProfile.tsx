@@ -1,0 +1,186 @@
+"use client";
+
+import { User } from "@/services/user/user";
+import { useState, useMemo } from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CalendarDays, User as UserIcon, Clock, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useRouter } from "next/navigation";
+import dateLocal from "@/utils/dateLocal";
+import { deleteReserve } from "@/services/reserve/reserve";
+import { toast } from "sonner";
+
+// Import new components
+import { PlayerHeader } from "./components/PlayerHeader";
+import { UpcomingBookings } from "./components/UpcomingBookings";
+import { BookingHistory } from "./components/BookingHistory";
+import { ProfileForm } from "./components/ProfileForm";
+import { FixedSchedules } from "./components/FixedSchedules";
+
+interface PlayerProfileProps {
+  userData: User;
+  slug: string;
+}
+
+export default function PlayerProfile({ userData, slug }: PlayerProfileProps) {
+  const router = useRouter();
+  const [reserves, setReserves] = useState(userData?.reserves || []);
+
+  // Calculate dates
+  const today = dateLocal();
+  today.setUTCHours(0, 0, 0, 0);
+
+  // Split reserves into active and history
+  const { activeReserves, historyReserves } = useMemo(() => {
+    const active = reserves.filter(
+      (reserve) => new Date(reserve.date) >= today && reserve.status !== "RECHAZADO"
+    );
+    const history = reserves.filter(
+      (reserve) => new Date(reserve.date) < today || reserve.status === "RECHAZADO"
+    );
+    return { activeReserves: active, historyReserves: history };
+  }, [reserves, today]);
+
+  // Calculate stats
+  const stats = useMemo(() => {
+    const totalReserves = reserves.length;
+    const completedReserves = historyReserves.filter((res) => res.status === "COMPLETADO").length;
+    const activeReservesCount = activeReserves.length;
+
+    // Calculate reliability score (ejemplo simple)
+    const reliabilityScore =
+      totalReserves > 0 ? Math.round((completedReserves / totalReserves) * 100) : 0;
+
+    return {
+      totalReserves,
+      completedReserves,
+      activeReserves: activeReservesCount,
+      reliabilityScore,
+    };
+  }, [reserves, activeReserves, historyReserves]);
+
+  const handleCancelBooking = async (id: string) => {
+    try {
+      const result = await deleteReserve(id);
+      if (result.success) {
+        toast.success("Reserva cancelada exitosamente");
+        setReserves(reserves.filter((reserve) => reserve.id !== id));
+      } else {
+        toast.error(result.error || "Error al cancelar la reserva");
+      }
+    } catch (error) {
+      toast.error("Ocurrió un error al cancelar la reserva");
+    }
+  };
+
+  const handleUpdateProfile = async (data: any) => {
+    // TODO: Implementar actualización con API
+    console.log("Actualizar perfil:", data);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-950 text-white">
+      {/* Back Button - Fixed Top Left on Mobile */}
+      <div className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-lg border-b border-white/10 md:hidden">
+        <div className="container mx-auto px-4 py-3">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.push(`/`)}
+            className="text-white hover:bg-white/10 -ml-2"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Volver
+          </Button>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-4 sm:py-6 md:py-8 max-w-7xl">
+        {/* Desktop Back Button */}
+        <div className="hidden md:block mb-6">
+          <Button
+            variant="ghost"
+            onClick={() => router.push(`/`)}
+            className="text-white hover:bg-white/10"
+          >
+            <ArrowLeft className="w-5 h-5 mr-2" />
+            Volver al inicio
+          </Button>
+        </div>
+
+        {/* Player Header */}
+        <div className="mb-6 sm:mb-8">
+          <PlayerHeader user={userData} stats={stats} />
+        </div>
+
+        {/* Mobile-First Tabs Navigation */}
+        <Tabs defaultValue="upcoming" className="space-y-4 sm:space-y-6">
+          {/* Tabs List - Full Width on Mobile, Sticky */}
+          <div className="sticky top-14 md:top-4 z-10 bg-Primary-darker/95 backdrop-blur-lg -mx-4 px-4 py-3 border-y border-Primary/30 md:mx-0 md:px-0 md:border-0 md:bg-transparent md:backdrop-blur-none">
+            <TabsList className="grid w-full grid-cols-4 bg-white/5 border border-white/10 p-1 h-auto">
+              <TabsTrigger
+                value="upcoming"
+                className="data-[state=active]:bg-Primary data-[state=active]:text-white text-white/70 hover:text-white text-xs sm:text-sm py-2 sm:py-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2"
+              >
+                <CalendarDays className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Próximos</span>
+                <span className="sm:hidden">Próx.</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="history"
+                className="data-[state=active]:bg-Primary data-[state=active]:text-white text-white/70 hover:text-white text-xs sm:text-sm py-2 sm:py-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2"
+              >
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Historial</span>
+                <span className="sm:hidden">Hist.</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="fixed"
+                className="data-[state=active]:bg-Primary data-[state=active]:text-white text-white/70 hover:text-white text-xs sm:text-sm py-2 sm:py-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2"
+              >
+                <Clock className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Fijos</span>
+                <span className="sm:hidden">Fijos</span>
+              </TabsTrigger>
+
+              <TabsTrigger
+                value="profile"
+                className="data-[state=active]:bg-Primary data-[state=active]:text-white text-white/70 hover:text-white text-xs sm:text-sm py-2 sm:py-3 flex flex-col sm:flex-row items-center gap-1 sm:gap-2"
+              >
+                <UserIcon className="w-4 h-4 sm:w-5 sm:h-5" />
+                <span className="hidden sm:inline">Perfil</span>
+                <span className="sm:hidden">Perfil</span>
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          {/* Tab Contents */}
+          <div className="pb-20 md:pb-8">
+            {/* Upcoming Bookings */}
+            <TabsContent value="upcoming" className="mt-0">
+              <UpcomingBookings reserves={activeReserves} onCancelBooking={handleCancelBooking} />
+            </TabsContent>
+
+            {/* Booking History */}
+            <TabsContent value="history" className="mt-0">
+              <BookingHistory reserves={historyReserves} />
+            </TabsContent>
+
+            {/* Fixed Schedules */}
+            <TabsContent value="fixed" className="mt-0">
+              <FixedSchedules schedules={userData.fixedSchedules} />
+            </TabsContent>
+
+            {/* Profile Form */}
+            <TabsContent value="profile" className="mt-0">
+              <ProfileForm user={userData} onUpdate={handleUpdateProfile} />
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+    </div>
+  );
+}
