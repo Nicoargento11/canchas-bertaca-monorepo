@@ -86,8 +86,8 @@ export class ReservesService implements OnModuleInit {
     return this.createReservation(createReserveDto);
   }
 
-  async paginate(page: number, limit: number) {
-    return this.paginateReserves(page, limit);
+  async paginate(page: number, limit: number, complexId?: string) {
+    return this.paginateReserves(page, limit, complexId);
   }
 
   async update(id: string, data: UpdateReserveDto) {
@@ -102,6 +102,7 @@ export class ReservesService implements OnModuleInit {
   private async validateCreateReserve(dto: CreateReserveDto) {
     await this.validateUser(dto.userId);
     await this.validateUserHasNoPendingReserves(dto.userId);
+    await this.validateUnavailableDay(dto.date, dto.complexId, dto.courtId);
     await this.validateReservationConflict(dto);
   }
 
@@ -112,10 +113,64 @@ export class ReservesService implements OnModuleInit {
     }
 
     if (dto.date || dto.schedule || dto.courtId || dto.complexId) {
+      // Si se actualiza la fecha, validar que no sea un día inhabilitado
+      if (dto.date) {
+        // Necesitamos complexId y courtId. Si no vienen en el DTO, hay que buscarlos de la reserva actual.
+        // Por simplicidad y rendimiento, asumimos que si cambia la fecha, el frontend envía el contexto necesario o validamos con lo que hay.
+        // Para hacerlo bien, deberíamos buscar la reserva si faltan datos.
+        let complexId = dto.complexId;
+        let courtId = dto.courtId;
+
+        if (!complexId || !courtId) {
+          const currentReserve = await this.prisma.reserve.findUnique({
+            where: { id },
+          });
+          if (currentReserve) {
+            complexId = complexId || currentReserve.complexId;
+            courtId = courtId || currentReserve.courtId;
+          }
+        }
+
+        if (complexId && courtId) {
+          await this.validateUnavailableDay(dto.date, complexId, courtId);
+        }
+      }
+
       await this.validateReservationConflict({
         ...dto,
         id, // Pasamos el ID para excluirlo de la validación
       } as UpdateReserveDto & { id: string });
+    }
+  }
+
+  private async validateUnavailableDay(
+    date: Date | string,
+    complexId: string,
+    courtId: string,
+  ) {
+    const targetDate = new Date(date);
+    // Crear rango del día completo en UTC para asegurar coincidencia
+    const startOfDay = new Date(targetDate);
+    startOfDay.setUTCHours(0, 0, 0, 0);
+
+    const endOfDay = new Date(targetDate);
+    endOfDay.setUTCHours(23, 59, 59, 999);
+
+    const unavailable = await this.prisma.unavailableDay.findFirst({
+      where: {
+        date: {
+          gte: startOfDay,
+          lte: endOfDay,
+        },
+        complexId,
+        OR: [{ courtId: null }, { courtId: courtId }],
+      },
+    });
+
+    if (unavailable) {
+      throw new UnprocessableEntityException(
+        `El día seleccionado no está disponible: ${unavailable.reason || 'Mantenimiento'}`,
+      );
     }
   }
 
@@ -185,11 +240,19 @@ export class ReservesService implements OnModuleInit {
     });
   }
 
-  private async paginateReserves(page: number, limit: number) {
+  private async paginateReserves(
+    page: number,
+    limit: number,
+    complexId?: string,
+  ) {
     const skip = (page - 1) * limit;
+
+    const whereClause = complexId ? { complexId } : {};
+
     const [total, reserves] = await Promise.all([
-      this.prisma.reserve.count(),
+      this.prisma.reserve.count({ where: whereClause }),
       this.prisma.reserve.findMany({
+        where: whereClause,
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
