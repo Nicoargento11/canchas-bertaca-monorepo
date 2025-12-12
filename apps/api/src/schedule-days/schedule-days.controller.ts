@@ -25,6 +25,12 @@ export class ScheduleDayController {
     return this.scheduleDayService.findAll();
   }
 
+  @Get('complex/:complexId')
+  async getScheduleDaysByComplex(@Param('complexId') complexId: string) {
+    // Automáticamente crea los días si no existen
+    return this.scheduleDayService.getScheduleDays(complexId);
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.scheduleDayService.findOne(id);
@@ -41,5 +47,11 @@ export class ScheduleDayController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.scheduleDayService.remove(id);
+  }
+
+  @Post('days/initialize/:complexId')
+  async initializeScheduleDays(@Param('complexId') complexId: string) {
+    await this.scheduleDayService.ensureScheduleDaysExist(complexId);
+    return { message: 'Días de la semana inicializados correctamente' };
   }
 }
