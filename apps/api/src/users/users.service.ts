@@ -22,16 +22,21 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto): Promise<UserEntity> {
-    // Verificar si el email ya existe
-    const existingUser = await this.prisma.user.findUnique({
-      where: { email: createUserDto.email },
-    });
+    // Verificar si el email ya existe (solo si se proporciona)
+    if (createUserDto.email) {
+      const existingUser = await this.prisma.user.findUnique({
+        where: { email: createUserDto.email },
+      });
 
-    if (existingUser) {
-      throw new ForbiddenException('El email ya está registrado');
+      if (existingUser) {
+        throw new ForbiddenException('El email ya está registrado');
+      }
     }
 
-    const hashedPassword = await this.hashPassword(createUserDto.password);
+    let hashedPassword = null;
+    if (createUserDto.password) {
+      hashedPassword = await this.hashPassword(createUserDto.password);
+    }
 
     const user = await this.prisma.user.create({
       data: {
@@ -47,19 +52,61 @@ export class UsersService {
   async findAll(filters?: {
     role?: Role;
     organizationId?: string;
+    complexId?: string;
+    search?: string;
   }): Promise<UserEntity[]> {
+    const { search, ...whereFilters } = filters || {};
+
+    const where: any = { ...whereFilters };
+
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: 'insensitive' } },
+        { phone: { contains: search, mode: 'insensitive' } },
+        { email: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
     const users = await this.prisma.user.findMany({
-      where: filters,
+      where,
+      include: {
+        Organization: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        Complex: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
     });
-    return users;
+    return users.map((user) => new UserEntity(user));
   }
 
   async findOne(id: string): Promise<UserEntity> {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
-        fixedSchedules: true,
-        reserves: { include: { court: true } },
+        fixedSchedules: {
+          include: {
+            court: true,
+            scheduleDay: true,
+            complex: { select: { id: true, name: true } },
+          },
+        },
+        reserves: {
+          include: {
+            court: true,
+            complex: { select: { id: true, name: true } },
+          },
+        },
       },
     });
 
@@ -105,9 +152,18 @@ export class UsersService {
       updateUserDto.password = await this.hashPassword(updateUserDto.password);
     }
 
+    // Limpiar campos vacíos para evitar errores de foreign key
+    const dataToUpdate = { ...updateUserDto };
+    if (dataToUpdate.organizationId === '') {
+      dataToUpdate.organizationId = null;
+    }
+    if (dataToUpdate.complexId === '') {
+      dataToUpdate.complexId = null;
+    }
+
     const user = await this.prisma.user.update({
       where: { id },
-      data: updateUserDto,
+      data: dataToUpdate,
     });
 
     return new UserEntity(user);

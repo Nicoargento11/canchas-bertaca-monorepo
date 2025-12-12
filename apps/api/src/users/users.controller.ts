@@ -8,6 +8,7 @@ import {
   ForbiddenException,
   Param,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -65,16 +66,42 @@ export class UsersController {
   }
 
   // READ
-  @ApiOperation({ summary: 'Obtener lista de usuarios (solo admin)' })
+  @ApiOperation({ summary: 'Obtener todos los usuarios' })
   @ApiResponse({
     status: 200,
     description: 'Lista de usuarios',
     type: [UserEntity],
   })
   @ApiResponse({ status: 403, description: 'No autorizado' })
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
   @Get()
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(
+    @CurrentUser() currentUser: UserEntity,
+    @Query('search') search?: string,
+  ) {
+    // SUPER_ADMIN ve todos los usuarios
+    if (currentUser.role === Role.SUPER_ADMIN) {
+      return this.usersService.findAll({ search });
+    }
+
+    // ORGANIZACION_ADMIN ve usuarios de su organización
+    if (currentUser.role === Role.ORGANIZACION_ADMIN) {
+      return this.usersService.findAll({
+        organizationId: currentUser.organizationId,
+        search,
+      });
+    }
+
+    // COMPLEJO_ADMIN ve usuarios de su complejo
+    if (currentUser.role === Role.COMPLEJO_ADMIN) {
+      return this.usersService.findAll({
+        complexId: currentUser.complexId,
+        search,
+      });
+    }
+
+    return [];
   }
 
   @ApiOperation({ summary: 'Obtener perfil del usuario actual' })
@@ -84,6 +111,7 @@ export class UsersController {
     type: UserEntity,
   })
   @ApiResponse({ status: 401, description: 'No autorizado' })
+  @UseGuards(JwtAuthGuard)
   @Get('me')
   getProfile(@CurrentUser() user: UserEntity) {
     return user;
@@ -96,6 +124,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 403, description: 'No autorizado' })
+  // @UseGuards(JwtAuthGuard)
   // @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)
   @Get(':id')
   async findOne(@Param('id') id: string) {
@@ -116,6 +145,7 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 401, description: 'No autorizado' })
   @ApiBody({ type: UpdateUserDto })
+  @UseGuards(JwtAuthGuard)
   @Patch('me')
   updateMe(
     @CurrentUser() currentUser: UserEntity,
@@ -148,6 +178,7 @@ export class UsersController {
     description: 'Contraseña actual incorrecta o no autorizado',
   })
   @ApiBody({ type: ChangePasswordDto })
+  @UseGuards(JwtAuthGuard)
   @Patch('me/password')
   async changePassword(
     @CurrentUser() currentUser: UserEntity,
@@ -170,6 +201,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 403, description: 'No tienes permisos' })
   @ApiBody({ type: UpdateUserDto })
+  @UseGuards(JwtAuthGuard)
   @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)
   @Patch(':id')
   async updateUser(
