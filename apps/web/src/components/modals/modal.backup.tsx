@@ -70,57 +70,54 @@ export const Modal: React.FC<ModalProps> = ({
         className="justify-center items-center flex 
          fixed 
         inset-0 z-50 
-        outline-none focus:outline-none bg-black/80 backdrop-blur-sm
+        outline-none focus:outline-none bg-neutral-800/70
+        overflow-y-auto
         "
       >
         <div
           className="relative w-full md:w-4/6 lg:w-3/6 xl:w-2/5
-          my-6 mx-auto  flex flex-col justify-center p-4 sm:p-0
+          h-full md:h-auto md:my-auto mx-auto p-0 md:p-6 flex flex-col justify-center
           "
         >
           {/*content*/}
           <div
-            className={`translate duration-300 h-full
+            className={`translate duration-300
           ${showModal ? "translate-y-0" : "translate-y-full"}
           ${showModal ? "opacity-100" : "opacity-0"}
         `}
           >
             <div
-              className="relative flex flex-col translate w-full max-h-screen min-h-screen sm:min-h-0 sm:h-auto overflow-y-auto
-              border border-white/10 rounded-3xl shadow-2xl
-            bg-slate-950 outline-none focus:outline-none
+              className="relative flex flex-col translate w-full h-full md:h-auto md:max-h-[85vh]
+              border-0 md:rounded-lg shadow-lg
+            bg-white outline-none focus:outline-none
             "
             >
               {/*header*/}
               <div
-                className="relative flex flex-col items-center justify-center
-                p-6 rounded-t border-b border-white/10
+                className="sticky top-0 z-10 flex flex-col items-center justify-center
+                p-3 sm:p-4 md:rounded-t border-b-[1px] bg-white
                 "
               >
                 <div className="flex justify-between items-center w-full">
-                  <div className="text-xl font-bold text-white">{title}</div>
                   <button
-                    className="
-                    p-1
-                    border-0 
-                    hover:bg-white/10
-                    rounded-full
-                    transition
-                    text-white/70
-                    hover:text-white
+                    className=" transition left-2 top-2
+                  border-0 p-1 
+                  hover:opacity-70
                   "
                     onClick={handleClose}
                   >
-                    <X size={24} />
+                    <X size={25} />
                   </button>
+                  <div className="text-lg font-semibold">{title}</div>
+                  <div></div>
                 </div>
                 <div className="w-full">{header}</div>
               </div>
               {/*body*/}
-              <div className="relative p-6 flex-auto text-white">{body}</div>
-
+              <div className="relative py-2 px-3 sm:px-4 overflow-y-auto flex-1">{body}</div>
+              <hr />
               {/*footer*/}
-              <div className="flex flex-col gap-2 p-6 border-t border-white/10 bg-white/5">
+              <div className="sticky bottom-0 flex flex-col gap-2 p-3 sm:p-4 md:p-6 bg-white border-t">
                 <div
                   className="flex items-center w-full
                   gap-4 
@@ -131,7 +128,7 @@ export const Modal: React.FC<ModalProps> = ({
                       variant={"outline"}
                       disabled={disabled}
                       onClick={handleSecondaryAction}
-                      className="w-full border-white/20 text-white hover:bg-white/10"
+                      className="w-full"
                     >
                       {secondaryActionLabel}
                     </Button>
@@ -140,7 +137,7 @@ export const Modal: React.FC<ModalProps> = ({
                     <Button
                       disabled={disabled}
                       onClick={handleSubmit}
-                      className="w-full bg-Primary hover:bg-Primary-dark text-white"
+                      className="w-full bg-Primary/80"
                     >
                       {actionLabel}
                     </Button>
