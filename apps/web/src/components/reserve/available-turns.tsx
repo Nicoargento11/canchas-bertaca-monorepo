@@ -76,8 +76,8 @@ const AvailableTurns = ({ complex, sportType }: AvailableTurnsProps) => {
     <div className="pt-2">
       <div>
         <div className="text-center mb-6">
-          <p className="font-bold text-2xl text-Primary">Turnos disponibles</p>
-          <p className="text-lg text-Neutral-dark">
+          <p className="font-bold text-2xl text-white">Turnos disponibles</p>
+          <p className="text-lg text-white/70">
             {format(selectedDate, "d' de 'MMMM", { locale: es })}
           </p>
         </div>
@@ -85,10 +85,10 @@ const AvailableTurns = ({ complex, sportType }: AvailableTurnsProps) => {
         <ul className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredAvailability.length === 0 ? (
             <li className="col-span-full py-10 text-center">
-              <div className="max-w-md mx-auto p-6 bg-white rounded-xl shadow-md border border-Neutral-light">
+              <div className="max-w-md mx-auto p-6 bg-white/5 rounded-xl shadow-md border border-white/20">
                 <CalendarX className="w-12 h-12 mx-auto text-Primary mb-4" />
-                <h3 className="text-lg font-bold text-Primary mb-2">No hay turnos disponibles</h3>
-                <p className="text-Neutral-dark mb-4">
+                <h3 className="text-lg font-bold text-white mb-2">No hay turnos disponibles</h3>
+                <p className="text-white/70 mb-4">
                   {format(selectedDate, "yyyy-MM-dd") === format(new Date(), "yyyy-MM-dd")
                     ? "Los turnos para hoy ya han pasado o no hay disponibilidad."
                     : "Lo sentimos, no hay horarios libres para este día."}
@@ -102,8 +102,8 @@ const AvailableTurns = ({ complex, sportType }: AvailableTurnsProps) => {
                   key={index}
                   className={`${
                     currentReservation.form.hour === horario.schedule
-                      ? "border-Primary bg-Primary text-white shadow-lg"
-                      : "border-Neutral-light bg-white text-Primary hover:bg-Primary-light hover:text-white"
+                      ? "border-Primary bg-Primary text-white shadow-lg scale-105"
+                      : "border-white/20 bg-white/10 text-white hover:bg-Primary/80 hover:border-Primary/50"
                   } border-2 rounded-xl p-4 text-center cursor-pointer font-bold transition-all duration-200`}
                   onClick={() => handleTimeSelect(horario.schedule)}
                 >

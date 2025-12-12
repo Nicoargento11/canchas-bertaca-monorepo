@@ -13,6 +13,7 @@ import {
   AlertCircle,
   ArrowDown,
   Timer,
+  Building2,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { es } from "date-fns/locale";
@@ -57,6 +58,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
   const [isLoading, setLoading] = useState(true);
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [preferenceId, setPreferenceId] = useState<string | null>();
+  const [initPoint, setInitPoint] = useState<string | null>(null);
   const [user, setUser] = useState<User | undefined>(undefined);
 
   const courtData = complex.courts.find((court) => court.id === reservationData?.form.field);
@@ -86,6 +88,22 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
         const { data: userData } = await getUserById(currentUser.user.id);
         setUser(userData);
 
+        console.log("--- ReserveTurn: Calculating Price ---");
+        console.log("Complex:", complex.name);
+        console.log("Field ID:", field);
+        console.log("Day:", day);
+        console.log("Hour:", hour);
+        console.log("Schedules Count:", complex.schedules?.length);
+        console.log(
+          "Schedules Summary:",
+          complex.schedules?.map((s) => ({
+            id: s.id,
+            courtId: s.courtId,
+            day: s.scheduleDay?.dayOfWeek,
+            time: `${s.startTime}-${s.endTime}`,
+          }))
+        );
+
         const pricing = priceCalculator(day, hour, complex.schedules, field);
         if (!pricing) throw new Error("Price calculation failed");
 
@@ -102,9 +120,33 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
         // Solo resetear si los valores son diferentes
 
         form.reset(newValues);
-      } catch (error) {
-        console.error("Error:", error);
-        setError("Error loading data");
+      } catch (error: any) {
+        console.error("Error loading reservation data:", error);
+        if (error.message === "Price calculation failed") {
+          console.warn("Price Calc Failed Details:", {
+            day: format(day, "yyyy-MM-dd"),
+            hour,
+            field,
+            schedulesCount: complex.schedules?.length,
+          });
+          // No mostramos error bloqueante, permitimos que el usuario intente (el backend validará)
+          // O mostramos un mensaje más suave
+          setError(
+            "No se pudo calcular la tarifa exacta. Verifique la disponibilidad al confirmar."
+          );
+          // Seteamos valores por defecto para permitir la UI
+          form.reset({
+            courtId: field,
+            date: day,
+            schedule: hour,
+            userId: currentUser.user.id,
+            reservationAmount: 0,
+            price: 0,
+            phone: user?.phone || localStorage.getItem("phone") || "",
+          });
+        } else {
+          setError("Error al cargar los datos de la reserva.");
+        }
       } finally {
         setLoading(false);
       }
@@ -121,14 +163,14 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
 
   if (!currentUser) {
     return (
-      <div className="text-center p-6 bg-Primary-light/10 rounded-lg border border-Primary-light">
+      <div className="text-center p-6 bg-white/5 backdrop-blur-sm rounded-xl border border-white/20">
         <div className="flex flex-col items-center gap-4">
-          <AlertCircle className="h-10 w-10 text-Primary" />
-          <h3 className="text-xl font-semibold text-Primary-dark">Registro Requerido</h3>
-          <p className="text-gray-700">
+          <AlertCircle className="h-10 w-10 text-white" />
+          <h3 className="text-xl font-semibold text-white">Registro Requerido</h3>
+          <p className="text-white/70">
             Para completar tu reserva necesitas una cuenta. Es rápido y sencillo.
           </p>
-          <div className="flex gap-3 mt-4">
+          <div className="flex flex-col sm:flex-row gap-3 mt-4 w-full sm:w-auto">
             <Button
               onClick={() => {
                 // Guarda los datos temporales antes de cerrar
@@ -148,7 +190,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                 // onCloseFutbolReserve();
               }}
               variant="outline"
-              className="border-Primary text-Primary hover:bg-Primary/10"
+              className="border-white/20 text-black hover:bg-white/10 w-full sm:w-auto"
             >
               Iniciar Sesión
             </Button>
@@ -170,7 +212,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                 // onCloseFutbolReserve();
                 // handleChangeRegister();
               }}
-              className="bg-Primary hover:bg-Primary-dark"
+              className="bg-white text-black hover:bg-white/90 w-full sm:w-auto"
             >
               Crear Cuenta
             </Button>
@@ -179,6 +221,12 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
       </div>
     );
   }
+
+  const isSeven = complex.name.toLowerCase().includes("seven");
+  const complexColor = isSeven ? "text-green-400" : "text-blue-400";
+  const complexBg = isSeven ? "bg-green-500/10" : "bg-blue-500/10";
+  const complexBorder = isSeven ? "border-green-500/20" : "border-blue-500/20";
+
   const handleReserve = async (values: z.infer<typeof reserveTurnSchema>) => {
     if (!currentUser) return;
 
@@ -205,6 +253,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
       if (data?.success) {
         setSuccess(""); // Limpiar el mensaje de success del FormSucces
         setPreferenceId(data?.data?.id);
+        setInitPoint(data?.data?.init_point || null);
       }
     } catch (error) {
       setError("Error al procesar el pago. Intenta nuevamente.");
@@ -214,14 +263,27 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
   };
 
   return (
-    <section className="font-medium text-black bg-Neutral-light rounded-lg p-6 shadow-lg">
+    <section className="font-medium text-white bg-white/5 backdrop-blur-sm rounded-xl p-4 sm:p-6 shadow-lg border border-white/20">
       {isLoading ? (
         <SkeletonModal />
       ) : (
         <>
-          <h1 className="text-center text-3xl font-bold text-Primary mb-6">
+          <h1 className="text-center text-3xl font-bold text-white mb-6">
             Información de la reserva
           </h1>
+
+          {/* Complex Indicator */}
+          <div
+            className={`mb-6 p-4 rounded-xl border ${complexBorder} ${complexBg} flex items-center justify-center gap-3`}
+          >
+            <Building2 className={`w-6 h-6 ${complexColor}`} />
+            <div className="text-center">
+              <p className={`text-sm font-medium ${complexColor} uppercase tracking-wider`}>
+                Estás reservando en
+              </p>
+              <p className={`text-xl font-bold ${complexColor}`}>Sede {complex.name}</p>
+            </div>
+          </div>
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleReserve)} className="space-y-6">
@@ -233,7 +295,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-4">
                       <CalendarDays className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-black">
+                      <span className="text-lg font-semibold text-white">
                         {format(field.value, "EEEE d 'de' MMMM", {
                           locale: es,
                         })}
@@ -247,7 +309,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-4">
                       <Clock9 className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-black">{field.value}</span>
+                      <span className="text-lg font-semibold text-white">{field.value}</span>
                     </FormItem>
                   )}
                 />
@@ -257,7 +319,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-4">
                       <GiSoccerField className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-black">
+                      <span className="text-lg font-semibold text-white">
                         Cancha {courtData?.courtNumber || courtData?.name}
                       </span>
                     </FormItem>
@@ -269,7 +331,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-4">
                       <Coins className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-black">
+                      <span className="text-lg font-semibold text-white">
                         Reserva/seña $
                         {field.value.toLocaleString("es-AR", {
                           currency: "ARS",
@@ -284,7 +346,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   render={({ field }) => (
                     <FormItem className="flex items-center gap-4">
                       <Receipt className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-black">
+                      <span className="text-lg font-semibold text-white">
                         Precio &nbsp;
                         <span className="">
                           $
@@ -299,7 +361,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                 {/* {beerService(reservationData.form.hour) && (
                   <div className="flex items-center gap-4">
                     <Gift className="text-Complementary" size={25} />
-                    <span className="text-lg font-semibold text-black">
+                    <span className="text-lg font-semibold text-white">
                       1 gaseosa 1.5l o 1 quilmes bajo cero
                     </span>
                   </div>
@@ -321,7 +383,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                           <div className="w-full">
                             <InputOTP {...field} disabled={isProcessingPayment} maxLength={10}>
                               <div className="flex items-center gap-2">
-                                <p className="text-sm font-semibold text-black">+54 9</p>
+                                <p className="text-sm font-semibold text-white">+54 9</p>
                                 <InputOTPGroup className="gap-1">
                                   {[...Array(10)].map((_, index) => (
                                     <InputOTPSlot
@@ -339,7 +401,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                         {/* Versión móvil (Input normal) - visible solo en móviles */}
                         <FormControl className="sm:hidden w-full">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                            <p className="text-sm font-medium text-white/70 whitespace-nowrap">
                               +54 9
                             </p>
                             <Input
@@ -362,7 +424,12 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
 
               {/* Mensajes de error y éxito */}
               <div className="flex flex-col gap-2">
-                <FormError message={error} link={`/${complex.slug}/profile`} />
+                <FormError
+                  message={error}
+                  link={
+                    error && error.toLowerCase().includes("pendientes") ? "/profile" : undefined
+                  }
+                />
                 <FormSucces message={success} />
               </div>
 
@@ -414,10 +481,24 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   onReady={() => {}}
                   onError={(error) => {
                     console.error("❌ [MP] Error en widget:", error);
-                    setError("Error al cargar MercadoPago. Recarga la página.");
+                    setError("Error al cargar MercadoPago. Usa el botón alternativo.");
                     setIsProcessingPayment(false);
                   }}
                 />
+
+                {/* Botón de respaldo por si falla el widget */}
+                {/* {initPoint && (
+                  <div className="text-center">
+                    <p className="text-white/70 text-sm mb-2">¿No carga el botón de pago?</p>
+                    <Button
+                      type="button"
+                      onClick={() => (window.location.href = initPoint)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
+                    >
+                      Pagar en Mercado Pago
+                    </Button>
+                  </div>
+                )} */}
 
                 <div className="bg-red-50 border border-red-200 rounded-lg p-3">
                   <div className="text-center">
