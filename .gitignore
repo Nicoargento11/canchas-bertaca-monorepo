@@ -24,3 +24,7 @@ Thumbs.db
 logs/
 *.log
 .cache/
+.turbo/
+
+apps/api/src/modules
+apps/api/src/shared
