@@ -23,7 +23,7 @@ export class CreateProductSaleDto {
   productId: string;
 
   @IsString()
-  paymentId: string;
+  saleId: string;
 
   @IsString()
   complexId: string;

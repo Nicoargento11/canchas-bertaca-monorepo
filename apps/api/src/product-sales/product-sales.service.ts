@@ -26,6 +26,13 @@ export class ProductSaleService {
         );
       }
 
+      // Validar que el producto pertenezca al complejo de la venta
+      if (product.complexId !== createProductSaleDto.complexId) {
+        throw new ConflictException(
+          'El producto no pertenece al complejo indicado en la venta',
+        );
+      }
+
       if (product.stock < createProductSaleDto.quantity) {
         throw new ConflictException('Not enough stock available');
       }
@@ -33,7 +40,7 @@ export class ProductSaleService {
       // Crear la venta
       const productSale = await this.prisma.productSale.create({
         data: { ...createProductSaleDto },
-        include: { product: true, payment: true, complex: true },
+        include: { product: true, sale: true, complex: true },
       });
 
       // Actualizar el stock
@@ -46,11 +53,12 @@ export class ProductSaleService {
     });
   }
 
-  async findAll(): Promise<ProductSale[]> {
+  async findAll(complexId?: string): Promise<ProductSale[]> {
     return this.prisma.productSale.findMany({
+      where: complexId ? { complexId } : {},
       include: {
         product: true,
-        payment: true,
+        sale: true,
         complex: true,
       },
     });
@@ -61,7 +69,7 @@ export class ProductSaleService {
       where: { id },
       include: {
         product: true,
-        payment: true,
+        sale: true,
         complex: true,
       },
     });
@@ -71,9 +79,9 @@ export class ProductSaleService {
     return productSale;
   }
 
-  async findByPayment(paymentId: string): Promise<ProductSale[]> {
+  async findBySale(saleId: string): Promise<ProductSale[]> {
     return this.prisma.productSale.findMany({
-      where: { paymentId },
+      where: { saleId },
       include: {
         product: true,
         complex: true,
@@ -109,18 +117,6 @@ export class ProductSaleService {
       updateData.product = { connect: { id: product.id } };
     }
 
-    if (updateProductSaleDto.paymentId) {
-      const payment = await this.prisma.payment.findUnique({
-        where: { id: updateProductSaleDto.paymentId },
-      });
-      if (!payment) {
-        throw new NotFoundException(
-          `Payment with ID ${updateProductSaleDto.paymentId} not found`,
-        );
-      }
-      updateData.payment = { connect: { id: payment.id } };
-    }
-
     if (updateProductSaleDto.complexId) {
       const complex = await this.prisma.complex.findUnique({
         where: { id: updateProductSaleDto.complexId },
@@ -138,7 +134,7 @@ export class ProductSaleService {
       data: updateData,
       include: {
         product: true,
-        payment: true,
+        sale: true,
         complex: true,
       },
     });

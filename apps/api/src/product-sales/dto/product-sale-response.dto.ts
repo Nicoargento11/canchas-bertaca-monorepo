@@ -6,7 +6,7 @@ export class ProductSaleResponseDto {
   discount?: number;
   isGift: boolean;
   productId: string;
-  paymentId: string;
+  saleId: string;
   complexId: string;
   createdAt: Date;
   updatedAt: Date;
