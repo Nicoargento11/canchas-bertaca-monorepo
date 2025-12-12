@@ -240,39 +240,62 @@ export class ReportsService {
       },
       include: {
         product: true,
-        payment: true,
+        sale: {
+          include: {
+            payments: true,
+          },
+        },
       },
       orderBy: [{ product: { name: 'asc' } }, { createdAt: 'asc' }],
     });
 
     // Agrupar por producto
     const productMap = new Map<string, DailyProductSales>();
-    for (const sale of productSales) {
-      const productId = sale.product.id;
-      if (!productMap.has(productId)) {
-        productMap.set(productId, {
-          productId,
-          productName: sale.product.name,
-          category: sale.product.category,
+    for (const productSale of productSales) {
+      const { product, sale } = productSale;
+
+      // Determine payment method
+      let paymentMethod: PaymentMethod = PaymentMethod.EFECTIVO; // Default
+      if (sale && sale.payments && sale.payments.length > 0) {
+        const methods = new Set(sale.payments.map((p) => p.method));
+        if (methods.size === 1) {
+          paymentMethod = sale.payments[0].method;
+        } else {
+          paymentMethod = PaymentMethod.OTRO; // Mixed payments
+        }
+      }
+
+      if (!productMap.has(product.id)) {
+        productMap.set(product.id, {
+          productId: product.id,
+          productName: product.name,
+          category: product.category,
           totalQuantity: 0,
           totalRevenue: 0,
           sales: [],
         });
       }
-      const productData = productMap.get(productId)!;
-      // Sumar datos de la venta
-      productData.totalQuantity += sale.quantity;
-      const saleRevenue = sale.price * sale.quantity - (sale.discount || 0);
-      productData.totalRevenue += saleRevenue;
-      // Agregar detalle de la venta
+
+      const productData = productMap.get(product.id)!;
+      productData.totalQuantity += productSale.quantity;
+
+      // Calculate revenue (considering discount and gift)
+      const revenue = productSale.isGift
+        ? 0
+        : productSale.price *
+          productSale.quantity *
+          (1 - (productSale.discount || 0) / 100);
+
+      productData.totalRevenue += revenue;
+
       productData.sales.push({
-        id: sale.id,
-        quantity: sale.quantity,
-        price: sale.price,
-        discount: sale.discount,
-        isGift: sale.isGift,
-        soldAt: sale.createdAt,
-        paymentMethod: sale.payment.method,
+        id: productSale.id,
+        quantity: productSale.quantity,
+        price: productSale.price,
+        discount: productSale.discount,
+        isGift: productSale.isGift,
+        soldAt: productSale.createdAt,
+        paymentMethod: paymentMethod,
       });
     }
     return Array.from(productMap.values());
@@ -561,7 +584,7 @@ export class ReportsService {
   }
 
   /**
-   * Obtiene datos diarios (últimos 7 días)
+   * Obtiene datos diarios (rango dinámico)
    */
   private async getDailyData(
     complexId: string,
@@ -572,55 +595,80 @@ export class ReportsService {
     const dailyData: DailyData[] = [];
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
-    // Calcular los últimos 7 días
+    // Parsear fechas de inicio y fin (asegurando mediodía para evitar saltos de día por zona horaria)
+    const start = new Date(startDate + 'T12:00:00Z');
+    const end = new Date(endDate + 'T12:00:00Z');
 
-    const today = new Date();
-    console.log(today);
-    today.setHours(today.getHours() - 3);
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(today.getDate() - i);
-      date.setHours(0, 0, 0, 0);
+    // Iterar día por día
+    const current = new Date(start);
+    while (current <= end) {
+      const targetDate = new Date(current);
 
-      const nextDay = new Date(date);
-      nextDay.setDate(date.getDate() + 1);
+      // Rango ajustado a Argentina (03:00 UTC a 03:00 UTC+1)
+      // Ideal para: Pagos, Creación de usuarios, Cancelaciones (eventos con hora exacta)
+      const { start: startAr, end: endAr } = this.getDayRangeUTC3(targetDate);
 
-      const dayOfWeek = days[date.getDay() === 0 ? 6 : date.getDay() - 1]; // Ajustar domingo
+      // Rango UTC puro (00:00 UTC a 00:00 UTC+1)
+      // Ideal para: Reservas (donde 'date' suele guardarse como 00:00 UTC)
+      const startUtc = new Date(
+        Date.UTC(
+          targetDate.getUTCFullYear(),
+          targetDate.getUTCMonth(),
+          targetDate.getUTCDate(),
+          0,
+          0,
+          0,
+        ),
+      );
+      const endUtc = new Date(startUtc);
+      endUtc.setDate(endUtc.getDate() + 1);
+
+      // Calcular día de la semana basado en la fecha ajustada a AR
+      const dayIndex = targetDate.getUTCDay();
+      const dayOfWeek = days[dayIndex === 0 ? 6 : dayIndex - 1];
 
       // Obtener datos del día actual
       const [reservasHoy, ingresos, cancelaciones, clientesNuevos] =
         await Promise.all([
-          this.getReservasPorDia(complexId, date, nextDay),
-          this.getIngresosPorDia(complexId, date, nextDay, cashSessionId),
-          this.getCancelacionesPorDia(complexId, date, nextDay),
-          this.getClientesNuevosPorDia(complexId, date, nextDay),
+          this.getReservasPorDia(complexId, startUtc, endUtc), // Usar rango UTC puro para reservas
+          this.getIngresosPorDia(complexId, startAr, endAr, cashSessionId), // Usar rango AR para dinero
+          this.getCancelacionesPorDia(complexId, startAr, endAr),
+          this.getClientesNuevosPorDia(complexId, startAr, endAr),
         ]);
 
       // Obtener datos del día anterior
-      const dayBefore = new Date(date);
-      dayBefore.setDate(date.getDate() - 1);
-      const nextDayBefore = new Date(dayBefore);
-      nextDayBefore.setDate(dayBefore.getDate() + 1);
+      const targetDateBefore = new Date(targetDate);
+      targetDateBefore.setDate(targetDateBefore.getDate() - 1);
+
+      // Rango UTC puro para reservas del día anterior
+      const startUtcBefore = new Date(startUtc);
+      startUtcBefore.setDate(startUtcBefore.getDate() - 1);
+      const endUtcBefore = new Date(startUtc); // Termina donde empieza el de hoy
 
       const diaAnterior = await this.getReservasPorDia(
         complexId,
-        dayBefore,
-        nextDayBefore,
+        startUtcBefore,
+        endUtcBefore,
       );
 
       // Calcular ocupación
+      // Usamos 'startUtc' que es el inicio del día (00:00 UTC).
       const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
-        date,
+        startUtc,
         complexId,
       );
-      const totalSlots = scheduleInfo.schedules.reduce((sum, schedule) => {
-        return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
-      }, 0);
+      const totalSlots = scheduleInfo?.schedules
+        ? scheduleInfo.schedules.reduce((sum, schedule) => {
+            return (
+              sum + this.calculateSlots(schedule.startTime, schedule.endTime)
+            );
+          }, 0)
+        : 0;
 
       const ocupacion =
         totalSlots > 0
           ? Math.min(Math.round((reservasHoy / totalSlots) * 100), 100)
-          : 0; // Evitar división por cero
+          : 0; // Evitar división por cero o sin schedules
 
       dailyData.push({
         day: dayOfWeek,
@@ -631,13 +679,16 @@ export class ReportsService {
         ocupacion,
         clientesNuevos,
       });
+
+      // Avanzar al siguiente día
+      current.setDate(current.getDate() + 1);
     }
 
     return dailyData;
   }
 
   /**
-   * Obtiene datos semanales (últimas 4 semanas)
+   * Obtiene datos semanales (rango dinámico)
    */
   private async getWeeklyData(
     complexId: string,
@@ -646,19 +697,28 @@ export class ReportsService {
     cashSessionId?: string,
   ): Promise<WeeklyData[]> {
     const weeklyData: WeeklyData[] = [];
-    const today = new Date();
-
     const allSchedules = await this.schedules.findByComplex(complexId);
-    for (let i = 3; i >= 0; i--) {
-      // Calcular el final de la semana (domingo actual - i semanas)
-      const weekEnd = new Date(today);
-      weekEnd.setDate(today.getDate() - i * 7);
-      weekEnd.setHours(23, 59, 59, 999);
 
-      // Calcular el inicio de la semana (lunes = 6 días antes del domingo)
-      const weekStart = new Date(weekEnd);
-      weekStart.setDate(weekEnd.getDate() - 6);
-      weekStart.setHours(0, 0, 0, 0);
+    // Parsear fechas
+    const start = new Date(startDate + 'T12:00:00Z');
+    const end = new Date(endDate + 'T12:00:00Z');
+
+    // Encontrar el lunes de la semana de inicio
+    const current = new Date(start);
+    const day = current.getUTCDay();
+    const diff = current.getUTCDate() - day + (day === 0 ? -6 : 1);
+    current.setUTCDate(diff);
+
+    let weekCounter = 1;
+
+    while (current <= end) {
+      // Calcular fin de semana (Domingo)
+      const weekEndTarget = new Date(current);
+      weekEndTarget.setUTCDate(current.getUTCDate() + 6);
+
+      // Obtener rangos UTC-3
+      const { start: weekStart } = this.getDayRangeUTC3(current);
+      const { end: weekEnd } = this.getDayRangeUTC3(weekEndTarget);
 
       // Datos de la semana actual
       const [reservas, ingresos, clientesNuevos] = await Promise.all([
@@ -667,14 +727,15 @@ export class ReportsService {
         this.getClientesNuevosPorDia(complexId, weekStart, weekEnd),
       ]);
 
-      // Datos de la semana anterior (7 días antes)
-      const prevWeekStart = new Date(weekStart);
-      prevWeekStart.setDate(weekStart.getDate() - 7);
-      prevWeekStart.setHours(0, 0, 0, 0);
+      // Datos de la semana anterior
+      const prevWeekStartTarget = new Date(current);
+      prevWeekStartTarget.setUTCDate(current.getUTCDate() - 7);
+      const { start: prevWeekStart } =
+        this.getDayRangeUTC3(prevWeekStartTarget);
 
-      const prevWeekEnd = new Date(weekEnd);
-      prevWeekEnd.setDate(weekEnd.getDate() - 7);
-      prevWeekEnd.setHours(23, 59, 59, 999);
+      const prevWeekEndTarget = new Date(weekEndTarget);
+      prevWeekEndTarget.setUTCDate(weekEndTarget.getUTCDate() - 7);
+      const { end: prevWeekEnd } = this.getDayRangeUTC3(prevWeekEndTarget);
 
       const semanaAnterior = await this.getReservasPorDia(
         complexId,
@@ -686,26 +747,33 @@ export class ReportsService {
         return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
       }, 0);
 
+      // Multiplicar slots por 7 días
+      const totalSlotsWeek = totalSlots * 7;
+
       const ocupacion =
-        totalSlots > 0
-          ? Math.min(Math.round((reservas / totalSlots) * 100), 100)
+        totalSlotsWeek > 0
+          ? Math.min(Math.round((reservas / totalSlotsWeek) * 100), 100)
           : 0; // Evitar división por cero
 
       weeklyData.push({
-        week: `Sem ${4 - i}`,
+        week: `Sem ${weekCounter}`,
         reservas,
         ingresos,
         semanaAnterior,
         ocupacion,
         clientesNuevos,
       });
+
+      // Siguiente semana
+      current.setUTCDate(current.getUTCDate() + 7);
+      weekCounter++;
     }
 
     return weeklyData;
   }
 
   /**
-   * Obtiene datos mensuales (últimos 6 meses)
+   * Obtiene datos mensuales (rango dinámico)
    */
   private async getMonthlyData(
     complexId: string,
@@ -728,7 +796,15 @@ export class ReportsService {
       'Nov',
       'Dic',
     ];
-    const today = new Date();
+
+    // Parsear fechas
+    const start = new Date(startDate + 'T12:00:00Z');
+    const end = new Date(endDate + 'T12:00:00Z');
+
+    // Iniciar en el primer día del mes de inicio
+    const current = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth(), 1),
+    );
 
     // Obtener todos los horarios del complejo (una sola consulta)
     const allSchedules = await this.schedules.findByComplex(complexId);
@@ -736,17 +812,18 @@ export class ReportsService {
       return sum + this.calculateSlots(schedule.startTime, schedule.endTime);
     }, 0);
 
-    for (let i = 5; i >= 0; i--) {
-      const monthStart = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthEnd = new Date(
-        today.getFullYear(),
-        today.getMonth() - i + 1,
-        0,
+    while (current <= end) {
+      // Calcular fin de mes
+      const monthEndTarget = new Date(
+        Date.UTC(current.getUTCFullYear(), current.getUTCMonth() + 1, 0),
       );
-      monthEnd.setHours(23, 59, 59, 999);
+
+      // Obtener rangos UTC-3
+      const { start: monthStart } = this.getDayRangeUTC3(current);
+      const { end: monthEnd } = this.getDayRangeUTC3(monthEndTarget);
 
       // Calcular días en el mes
-      const daysInMonth = monthEnd.getDate();
+      const daysInMonth = monthEndTarget.getUTCDate();
 
       // Obtener datos del mes
       const [reservas, ingresos, clientesNuevos] = await Promise.all([
@@ -756,17 +833,17 @@ export class ReportsService {
       ]);
 
       // Datos del mes anterior
-      const prevMonthStart = new Date(
-        monthStart.getFullYear(),
-        monthStart.getMonth() - 1,
-        1,
+      const prevMonthStartTarget = new Date(
+        Date.UTC(current.getUTCFullYear(), current.getUTCMonth() - 1, 1),
       );
-      const prevMonthEnd = new Date(
-        monthStart.getFullYear(),
-        monthStart.getMonth(),
-        0,
+      const { start: prevMonthStart } =
+        this.getDayRangeUTC3(prevMonthStartTarget);
+
+      const prevMonthEndTarget = new Date(
+        Date.UTC(current.getUTCFullYear(), current.getUTCMonth(), 0),
       );
-      prevMonthEnd.setHours(23, 59, 59, 999);
+      const { end: prevMonthEnd } = this.getDayRangeUTC3(prevMonthEndTarget);
+
       const mesAnterior = await this.getReservasPorDia(
         complexId,
         prevMonthStart,
@@ -783,13 +860,16 @@ export class ReportsService {
           : 0;
 
       monthlyData.push({
-        month: months[monthStart.getMonth()],
+        month: months[current.getUTCMonth()],
         reservas,
         ingresos,
         mesAnterior,
         ocupacion,
         clientesNuevos,
       });
+
+      // Siguiente mes
+      current.setUTCMonth(current.getUTCMonth() + 1);
     }
 
     return monthlyData;
@@ -891,13 +971,12 @@ export class ReportsService {
     const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
     endOfPeriod.setDate(endOfPeriod.getDate() + 1);
 
-    // Obtener pagos de reservas
+    // Obtener pagos (tanto de reservas como de productos) filtrados por complexId
     const reservePayments = await this.prisma.payment.groupBy({
       by: ['method'],
       where: {
-        reserve: {
-          complexId,
-        },
+        complexId,
+        cashSessionId: cashSessionId || undefined,
         createdAt: {
           gte: startOfPeriod,
           lte: endOfPeriod,
@@ -1012,15 +1091,39 @@ export class ReportsService {
       take: 10, // Top 10 horarios
     });
 
-    return schedulesData.map((scheduleData) => ({
-      hora: scheduleData.schedule.replace(' - ', '-'),
-      reservas: scheduleData._count.id || 0,
-    }));
+    return schedulesData
+      .filter((scheduleData) => scheduleData.schedule) // Filtrar schedules nulos
+      .map((scheduleData) => ({
+        hora: scheduleData.schedule.replace(' - ', '-'),
+        reservas: scheduleData._count.id || 0,
+      }));
   }
 
   // ===================================
   // MÉTODOS AUXILIARES
   // ===================================
+
+  /**
+   * Calcula el rango de fechas (inicio y fin) para un día específico en Argentina (UTC-3)
+   * @param date Fecha de referencia
+   */
+  private getDayRangeUTC3(date: Date): { start: Date; end: Date } {
+    // Ajustar a la zona horaria de Argentina (UTC-3)
+    const arTime = new Date(date.getTime() - 3 * 60 * 60 * 1000);
+
+    // Extraer componentes YMD
+    const year = arTime.getUTCFullYear();
+    const month = arTime.getUTCMonth();
+    const day = arTime.getUTCDate();
+
+    // Construir el inicio del día en UTC (00:00 AR = 03:00 UTC)
+    const start = new Date(Date.UTC(year, month, day, 3, 0, 0, 0));
+
+    // Fin del día (03:00 UTC del día siguiente)
+    const end = new Date(start.getTime() + 24 * 60 * 60 * 1000);
+
+    return { start, end };
+  }
 
   private async getReservasPorDia(
     complexId: string,
@@ -1030,7 +1133,7 @@ export class ReportsService {
     const count = await this.prisma.reserve.count({
       where: {
         complexId,
-        createdAt: {
+        date: {
           gte: startDate,
           lt: endDate,
         },
@@ -1046,17 +1149,25 @@ export class ReportsService {
     endDate: Date,
     cashSessionId?: string,
   ): Promise<number> {
+    // Construir filtro dinámico
+    const paymentWhere: any = {
+      complexId,
+      reserveId: { not: null },
+    };
+
+    // Si hay sesión específica, priorizar su ID sobre las fechas genéricas
+    if (cashSessionId) {
+      paymentWhere.cashSessionId = cashSessionId;
+    } else {
+      paymentWhere.createdAt = {
+        gte: startDate,
+        lt: endDate,
+      };
+    }
+
     // Ingresos de reservas
     const reserveIncome = await this.prisma.payment.aggregate({
-      where: {
-        reserve: {
-          complexId,
-        },
-        createdAt: {
-          gte: startDate,
-          lt: endDate,
-        },
-      },
+      where: paymentWhere,
       _sum: {
         amount: true,
       },
