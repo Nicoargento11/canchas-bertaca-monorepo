@@ -3,6 +3,7 @@ import axios, { AxiosError } from "axios";
 import { Payment } from "../payment/payment";
 import { Complex } from "../complex/complex";
 import { Product } from "../product/product";
+import { Sale } from "../sale/sale";
 
 export type ProductSale = {
   id: string;
@@ -13,8 +14,8 @@ export type ProductSale = {
   isGift: boolean;
   product: Product;
   productId: string;
-  payment: Payment;
-  paymentId: string;
+  sale: Sale;
+  saleId: string;
   complex: Complex;
   complexId: string;
   createdAt: string;
@@ -77,9 +78,12 @@ export const createProductSale = async (data: any): Promise<ProductSaleResult<Pr
   }
 };
 
-export const getAllProductSales = async (): Promise<ProductSaleResult<ProductSale[]>> => {
+export const getAllProductSales = async (
+  complexId?: string
+): Promise<ProductSaleResult<ProductSale[]>> => {
   try {
-    const response = await api.get("/product-sales");
+    const url = complexId ? `/product-sales?complexId=${complexId}` : "/product-sales";
+    const response = await api.get(url);
     return { success: true, data: response.data };
   } catch (error) {
     return handleProductSaleError(error);

@@ -77,9 +77,10 @@ export const createProduct = async (data: any): Promise<ProductResult<Product>> 
   }
 };
 
-export const getAllProducts = async (): Promise<ProductResult<Product[]>> => {
+export const getAllProducts = async (complexId?: string): Promise<ProductResult<Product[]>> => {
   try {
-    const response = await api.get("/products");
+    const url = complexId ? `/products?complexId=${complexId}` : "/products";
+    const response = await api.get(url);
     return { success: true, data: response.data };
   } catch (error) {
     return handleProductError(error);

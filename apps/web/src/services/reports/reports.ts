@@ -2,7 +2,7 @@ import api from "../api";
 import { AxiosError } from "axios";
 import { PaymentMethod } from "../payment/payment";
 import { SportTypeKey } from "../sport-types/sport-types";
-import { DashboardData } from "@/app/(protected)/dashboard/statistics/page";
+import { DashboardData } from "@/app/(protected)/[slug]/dashboard/statistics/page";
 
 export interface DailySummaryByCourt {
   courtId: string;

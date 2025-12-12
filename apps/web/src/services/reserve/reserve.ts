@@ -7,7 +7,7 @@ import { Complex } from "../complex/complex";
 import { Payment } from "../payment/payment";
 import { Rate } from "../rate/rate";
 
-export type ReserveType = "NORMAL" | "ONLINE" | "MANUAL" | "FIJO" | "TORNEO" | "ESCUELA" | "EVENTO";
+export type ReserveType = "MANUAL" | "FIJO" | "ONLINE" | "TORNEO" | "ESCUELA" | "EVENTO" | "OTRO";
 
 export type Status = "APROBADO" | "PENDIENTE" | "RECHAZADO" | "CANCELADO" | "COMPLETADO";
 
@@ -104,10 +104,12 @@ export const getAllReserves = async (): Promise<ReserveResult<Reserve[]>> => {
 
 export const getPaginatedReserves = async (
   page = 1,
-  limit = 10
+  limit = 10,
+  complexId?: string
 ): Promise<ReserveResult<{ total: number; reserves: Reserve[] }>> => {
   try {
-    const response = await api.get(`/reserves/paginate?page=${page}&limit=${limit}`);
+    const complexParam = complexId ? `&complexId=${complexId}` : "";
+    const response = await api.get(`/reserves/paginate?page=${page}&limit=${limit}${complexParam}`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleReserveError(error);

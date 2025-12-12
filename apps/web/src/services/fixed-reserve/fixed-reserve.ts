@@ -62,9 +62,16 @@ const handleFixedReserveError = (error: unknown): FixedReserveResult => {
   return { success: false, error: "Error desconocido" };
 };
 
-export const getFixedReserves = async (): Promise<FixedReserveResult<FixedReserve[]>> => {
+export const getFixedReserves = async (
+  complexId?: string,
+  dayOfWeek?: number
+): Promise<FixedReserveResult<FixedReserve[]>> => {
   try {
-    const response = await api.get("/fixed-reserves");
+    const params: any = {};
+    if (complexId) params.complexId = complexId;
+    if (dayOfWeek !== undefined) params.dayOfWeek = dayOfWeek;
+
+    const response = await api.get("/fixed-reserves", { params });
     return { success: true, data: response.data };
   } catch (error) {
     return handleFixedReserveError(error);
