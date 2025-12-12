@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateFixedReserveDto } from './dto/create-fixed-reserve.dto';
 import { UpdateFixedReserveDto } from './dto/update-fixed-reserve.dto';
-import { FixedReserve } from '@prisma/client';
+import { FixedReserve, Status } from '@prisma/client';
 
 @Injectable()
 export class FixedReservesService {
@@ -42,6 +42,15 @@ export class FixedReservesService {
         'Ya existe un turno fijo solapado para esa cancha, día y horario.',
       );
     }
+
+    // Validar si coincide con hoy y hay reservas existentes
+    const today = new Date();
+    const todayDayOfWeek = today.getDay();
+
+    if (scheduleDay.dayOfWeek === todayDayOfWeek) {
+      await this.validateNoOverlap(courtId, today, startTime, endTime);
+    }
+
     const fixedReserve = await this.prisma.fixedReserve.create({
       data: createFixedReserveDto,
       include: {
@@ -56,9 +65,6 @@ export class FixedReservesService {
     this.logger.log(`Reserva fija creada: ${fixedReserve.id}`);
 
     // 2. Verificar si coincide con el día de hoy
-    const today = new Date();
-    const todayDayOfWeek = today.getDay();
-
     if (
       fixedReserve.scheduleDay.dayOfWeek === todayDayOfWeek &&
       fixedReserve.isActive
@@ -80,8 +86,34 @@ export class FixedReservesService {
     return fixedReserve;
   }
 
-  async findAll(): Promise<FixedReserve[]> {
-    return await this.prisma.fixedReserve.findMany();
+  async findAll(
+    complexId?: string,
+    dayOfWeek?: number,
+  ): Promise<FixedReserve[]> {
+    const where: any = {};
+
+    if (complexId) {
+      where.scheduleDay = {
+        complexId,
+      };
+    }
+
+    if (dayOfWeek !== undefined) {
+      where.scheduleDay = {
+        ...where.scheduleDay,
+        dayOfWeek,
+      };
+    }
+
+    return await this.prisma.fixedReserve.findMany({
+      where,
+      include: {
+        scheduleDay: true,
+        user: true,
+        court: true,
+        rate: true,
+      },
+    });
   }
 
   async findOne(id: string): Promise<FixedReserve> {
@@ -101,10 +133,57 @@ export class FixedReservesService {
     updateFixedReserveDto: UpdateFixedReserveDto,
   ): Promise<FixedReserve> {
     try {
-      return await this.prisma.fixedReserve.update({
+      // 1. Actualizar la reserva fija
+      const updatedFixedReserve = await this.prisma.fixedReserve.update({
         where: { id },
         data: updateFixedReserveDto,
+        include: { rate: true },
       });
+
+      // 2. Actualizar instancias futuras (incluyendo hoy) que no se hayan jugado
+      const today = new Date();
+      const targetDate = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      );
+
+      const pendingReserves = await this.prisma.reserve.findMany({
+        where: {
+          fixedReserveId: id,
+          date: { gte: targetDate },
+          status: { notIn: ['COMPLETADO', 'CANCELADO'] },
+        },
+      });
+
+      for (const reserve of pendingReserves) {
+        // Recalcular precio
+        const duration = this.calculateHoursDuration(
+          updatedFixedReserve.startTime,
+          updatedFixedReserve.endTime,
+        );
+        const newPrice = updatedFixedReserve.rate.price * duration;
+
+        await this.prisma.reserve.update({
+          where: { id: reserve.id },
+          data: {
+            schedule: `${updatedFixedReserve.startTime} - ${updatedFixedReserve.endTime}`,
+            courtId: updatedFixedReserve.courtId,
+            price: newPrice,
+            // Si cambió el usuario en el fijo, también deberíamos actualizarlo en la reserva?
+            // updateFixedReserveDto.userId ? { userId: ... } : undefined
+            userId: updatedFixedReserve.userId,
+            clientName: (
+              await this.prisma.user.findUnique({
+                where: { id: updatedFixedReserve.userId },
+              })
+            ).name,
+          },
+        });
+        this.logger.log(
+          `Instancia de reserva ${reserve.id} actualizada por cambios en el fijo ${id}`,
+        );
+      }
+
+      return updatedFixedReserve;
     } catch (error) {
       if (error.code === 'P2025') {
         throw new NotFoundException(`FixedReserve with ID ${id} not found`);
@@ -127,14 +206,70 @@ export class FixedReservesService {
   }
 
   async toggleStatus(id: string): Promise<FixedReserve> {
-    const fixedReserve = await this.findOne(id);
+    const fixedReserve = await this.prisma.fixedReserve.findUnique({
+      where: { id },
+      include: {
+        scheduleDay: true,
+        user: true,
+        court: true,
+        rate: true,
+        complex: true,
+      },
+    });
+
     if (!fixedReserve) {
       throw new NotFoundException(`FixedReserve with ID ${id} not found`);
     }
-    return await this.prisma.fixedReserve.update({
+
+    const newStatus = !fixedReserve.isActive;
+
+    const updated = await this.prisma.fixedReserve.update({
       where: { id },
-      data: { isActive: !fixedReserve.isActive },
+      data: { isActive: newStatus },
     });
+
+    const today = new Date();
+    const todayDayOfWeek = today.getDay();
+
+    if (newStatus) {
+      // Activating
+      if (fixedReserve.scheduleDay.dayOfWeek === todayDayOfWeek) {
+        this.logger.log(
+          `Reserva fija ${id} activada y coincide con hoy. Creando instancia...`,
+        );
+        try {
+          await this.createTodayReserveInstance(fixedReserve, today);
+        } catch (error) {
+          this.logger.warn(
+            `No se pudo crear la instancia al activar: ${error.message}`,
+          );
+        }
+      }
+    } else {
+      // Deactivating
+      this.logger.log(
+        `Reserva fija ${id} desactivada. Eliminando instancias futuras/hoy...`,
+      );
+      // Eliminar la instancia de hoy si existe (y quizás futuras si se generaron)
+      // Asumimos que solo se genera la de hoy por el cron o creación
+      const targetDate = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      );
+
+      await this.prisma.reserve.deleteMany({
+        where: {
+          fixedReserveId: id,
+          date: {
+            gte: targetDate, // Hoy o futuro
+          },
+          status: {
+            not: 'COMPLETADO', // Opcional: no borrar si ya se jugó?
+          },
+        },
+      });
+    }
+
+    return updated;
   }
 
   /**
@@ -215,5 +350,55 @@ export class FixedReservesService {
 
     const durationMinutes = endMinutes - startMinutes;
     return durationMinutes / 60; // Convertir a horas
+  }
+
+  private async validateNoOverlap(
+    courtId: string,
+    date: Date,
+    startTime: string,
+    endTime: string,
+  ): Promise<void> {
+    const targetDate = new Date(
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+    );
+
+    const reserves = await this.prisma.reserve.findMany({
+      where: {
+        courtId,
+        date: targetDate,
+        status: {
+          notIn: [Status.CANCELADO, Status.RECHAZADO],
+        },
+      },
+    });
+
+    const newStart = this.timeToMinutes(startTime);
+    let newEnd = this.timeToMinutes(endTime);
+
+    if (newEnd <= newStart) {
+      newEnd += 24 * 60;
+    }
+
+    for (const reserve of reserves) {
+      const [rStartStr, rEndStr] = reserve.schedule.split(' - ');
+      const rStart = this.timeToMinutes(rStartStr);
+      let rEnd = this.timeToMinutes(rEndStr);
+
+      if (rEnd <= rStart) {
+        rEnd += 24 * 60;
+      }
+
+      // Check overlap: (StartA < EndB) and (EndA > StartB)
+      if (newStart < rEnd && newEnd > rStart) {
+        throw new ConflictException(
+          `Ya existe una reserva (${reserve.status}) en el horario ${reserve.schedule} para el día de hoy.`,
+        );
+      }
+    }
+  }
+
+  private timeToMinutes(timeStr: string): number {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
   }
 }

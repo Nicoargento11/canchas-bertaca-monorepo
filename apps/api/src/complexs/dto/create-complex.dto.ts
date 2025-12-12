@@ -1,5 +1,11 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsArray, IsOptional } from 'class-validator';
+import {
+  IsString,
+  IsArray,
+  IsOptional,
+  IsNotEmpty,
+  IsEmail,
+} from 'class-validator';
 
 export class CreateComplexDto {
   @ApiProperty({
@@ -7,6 +13,7 @@ export class CreateComplexDto {
     example: 'Complejo Deportivo Central',
   })
   @IsString()
+  @IsNotEmpty()
   name: string;
 
   @ApiProperty({
@@ -14,14 +21,26 @@ export class CreateComplexDto {
     example: 'Av. Siempreviva 123',
   })
   @IsString()
+  @IsNotEmpty()
   address: string;
 
   @ApiProperty({
     description: 'ruta del complejo',
     example: 'complejo-deportivo-central',
+    required: false,
   })
   @IsString()
-  slug: string;
+  @IsOptional()
+  slug?: string;
+
+  @ApiProperty({
+    description: 'Email del complejo',
+    example: 'contacto@complejo.com',
+    required: false,
+  })
+  @IsEmail()
+  @IsOptional()
+  email?: string;
 
   @ApiProperty({
     description: 'Servicios disponibles',

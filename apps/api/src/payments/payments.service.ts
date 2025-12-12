@@ -1,10 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { Preference } from 'mercadopago';
+import MercadoPagoConfig, { Preference, Payment } from 'mercadopago';
 import { mercadoPagoConfig } from './config/mercadoPago.config';
 import { CreatePreferenceDto } from './dto/create-preference.dto';
 import { ReservesService } from 'src/reserves/reserves.service';
 import { JwtService } from '@nestjs/jwt';
-import { Payment } from 'mercadopago';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
@@ -40,6 +39,32 @@ export class PaymentsService {
   //     }),
   //   );
   // }
+  async searchPayments(complexId: string) {
+    const paymentConfig = await this.prisma.paymentConfig.findUnique({
+      where: { complexId },
+    });
+
+    if (!paymentConfig || !paymentConfig.accessToken) {
+      throw new Error('El complejo no tiene configurado MercadoPago');
+    }
+
+    const client = new MercadoPagoConfig({
+      accessToken: paymentConfig.accessToken,
+    });
+
+    const payment = new Payment(client);
+
+    return await payment.search({
+      options: {
+        limit: 100,
+        sort: 'date_created',
+        criteria: 'desc',
+        begin_date: 'NOW-30DAYS',
+        end_date: 'NOW',
+      },
+    });
+  }
+
   async createPreference({
     courtId,
     date,
@@ -53,6 +78,22 @@ export class PaymentsService {
     if (!process.env.PAYMENT_BACK_URL || !process.env.NOTIFICATION_URL) {
       throw new Error('Payment URLs are not properly configured');
     }
+
+    // Obtener configuración de pago del complejo
+    const paymentConfig = await this.prisma.paymentConfig.findUnique({
+      where: { complexId: complex.id },
+    });
+
+    if (!paymentConfig || !paymentConfig.accessToken) {
+      throw new Error(
+        `El complejo ${complex.name} no tiene configurado MercadoPago`,
+      );
+    }
+
+    // Configurar cliente de MercadoPago con el token del complejo
+    const client = new MercadoPagoConfig({
+      accessToken: paymentConfig.accessToken,
+    });
 
     const currentDateTime = new Date().toISOString();
     const expirationDateTime = new Date(
@@ -68,7 +109,7 @@ export class PaymentsService {
       })
       .replace(/\//g, '-');
     try {
-      const payment = await new Preference(mercadoPagoConfig).create({
+      const payment = await new Preference(client).create({
         body: {
           items: [
             {
@@ -84,17 +125,14 @@ export class PaymentsService {
             },
           ],
 
-          auto_return: 'all',
+          auto_return: 'approved',
           back_urls: {
-            // success: `${process.env.FRONT_END_URL}/${complex.slug}/payment/success`,
-            // failure: `${process.env.FRONT_END_URL}/${complex.slug}/payment/failure`,
-            // pending: `${process.env.FRONT_END_URL}/${complex.slug}/payment/pending`,
-            success: `https://${complex.slug}/payment/success`,
-            failure: `https://${complex.slug}/payment/failure`,
-            pending: `https://${complex.slug}/payment/pending`,
+            success: `${process.env.FRONT_END_URL}/payment/success`,
+            failure: `${process.env.FRONT_END_URL}/payment/failure`,
+            pending: `${process.env.FRONT_END_URL}/payment/pending`,
           },
 
-          notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago`,
+          notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago?complexId=${complex.id}`,
           statement_descriptor: 'Reserva F5 Dimas',
           expires: true,
           expiration_date_from: currentDateTime,
@@ -102,8 +140,8 @@ export class PaymentsService {
           binary_mode: true,
           external_reference: reserveId,
           payment_methods: {
-            excluded_payment_methods: [{ id: 'visa' }], // ✅ si el examen lo pide
-            installments: 6, // ✅ máximo de cuotas permitido
+            // excluded_payment_methods: [{ id: 'visa' }], // Temporalmente deshabilitado - puede causar rechazo de políticas
+            // installments: 6,
           },
         },
       });
@@ -113,6 +151,23 @@ export class PaymentsService {
       console.error('Error creating MercadoPago preference:', error);
       throw new Error('Failed to create payment preference');
     }
+  }
+
+  async getPaymentDetails(paymentId: string, complexId: string) {
+    const paymentConfig = await this.prisma.paymentConfig.findUnique({
+      where: { complexId },
+    });
+
+    if (!paymentConfig || !paymentConfig.accessToken) {
+      throw new Error('Payment configuration not found');
+    }
+
+    const client = new MercadoPagoConfig({
+      accessToken: paymentConfig.accessToken,
+    });
+
+    const payment = new Payment(client);
+    return await payment.get({ id: paymentId });
   }
 
   cancelPayment(paymentId: string) {
@@ -142,12 +197,13 @@ export class PaymentsService {
         reserveId: createDto.reserveId, // Usando el campo directo
         complexId: createDto.complexId || undefined,
         cashSessionId: createDto.cashSessionId || undefined,
+        saleId: createDto.saleId || undefined,
         transactionType: createDto.transactionType || 'RESERVA', // TODO arreglar harcodeada
       },
 
       include: {
         reserve: createDto.reserveId ? true : false,
-        productSales: { include: { product: true } },
+        sale: { include: { productSales: { include: { product: true } } } },
       },
     });
   }

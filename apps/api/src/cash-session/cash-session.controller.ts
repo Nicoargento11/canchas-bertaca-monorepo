@@ -38,11 +38,14 @@ export class CashSessionController {
   }
 
   @Get('user/active')
-  getActiveSessionByUser(@Query('userId') userId: string) {
+  getActiveSessionByUser(
+    @Query('userId') userId: string,
+    @Query('complexId') complexId?: string,
+  ) {
     if (!userId) {
       throw new NotFoundException('userId es requerido');
     }
-    return this.cashSessionService.getActiveSessionByUser(userId);
+    return this.cashSessionService.getActiveSessionByUser(userId, complexId);
   }
 
   @Get(':id/summary')

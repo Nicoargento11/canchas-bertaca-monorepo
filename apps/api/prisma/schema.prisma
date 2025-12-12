@@ -6,11 +6,11 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../../../node_modules/.prisma/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum SportName {
@@ -137,19 +137,17 @@ model User {
   image              String?
   phone              String?
   role               Role      @default(USUARIO)
+  complexId          String?
+  organizationId     String?
 
   // Relaciones
+  Complex                 Complex?                 @relation(fields: [complexId], references: [id])
+  Organization            Organization?            @relation(fields: [organizationId], references: [id])
   reserves                Reserve[]
   fixedSchedules          FixedReserve[]
   Notification            Notification[]
   Post                    Post[]
   tournamentRegistrations TournamentRegistration[]
-
-  Organization   Organization? @relation(fields: [organizationId], references: [id])
-  organizationId String?
-
-  Complex   Complex? @relation(fields: [complexId], references: [id])
-  complexId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -212,12 +210,32 @@ model Complex {
   Organization   Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
 
+  paymentConfig PaymentConfig?
+
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
   CashRegister CashRegister[]
 
   @@index([organizationId])
   @@index([slug])
+}
+
+model PaymentConfig {
+  id String @id @default(cuid())
+
+  // Credenciales de MercadoPago
+  accessToken  String // El "Access Token" de producción del complejo (Vital para el Backend)
+  refreshToken String? // Token para renovar credenciales cada 180 días
+  publicKey    String // La "Public Key" (A veces necesaria para el Frontend)
+  clientId     String? // Opcional, dependiendo de la integración
+  clientSecret String? // Opcional
+
+  isActive  Boolean @default(true)
+  complexId String  @unique
+  complex   Complex @relation(fields: [complexId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model SportType {
@@ -285,7 +303,7 @@ model Schedule {
   court   Court?  @relation(fields: [courtId], references: [id])
   courtId String?
 
-  rates Rate[]
+  rates Rate[] // arreglar
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

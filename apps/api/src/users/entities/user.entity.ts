@@ -1,4 +1,4 @@
-import { Complex, Role } from '@prisma/client';
+import { Complex, Role, Organization } from '@prisma/client';
 import { Exclude } from 'class-transformer';
 
 export class UserEntity {
@@ -18,7 +18,8 @@ export class UserEntity {
   updatedAt: Date;
   organizationId?: string;
   complexId?: string;
-  Complex?: Complex;
+  Complex?: Partial<Complex>;
+  Organization?: Partial<Organization>;
 
   constructor(partial: Partial<UserEntity>) {
     Object.assign(this, partial);

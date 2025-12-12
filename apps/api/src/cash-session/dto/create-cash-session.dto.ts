@@ -6,9 +6,9 @@ export class CreateCashSessionDto {
   @IsNotEmpty()
   cashRegisterId: string;
 
-  // @IsString()
-  // @IsNotEmpty()
-  // userId: string;
+  @IsString()
+  @IsNotEmpty()
+  userId: string;
 
   @IsNumber()
   @IsNotEmpty()

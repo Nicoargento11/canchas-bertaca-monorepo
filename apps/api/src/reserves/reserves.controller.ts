@@ -48,8 +48,16 @@ export class ReservesController {
 
   @Public()
   @Get('paginate')
-  async paginate(@Query('page') page: number, @Query('limit') limit: number) {
-    return this.reservesService.paginate(Number(page), Number(limit));
+  async paginate(
+    @Query('page') page: number,
+    @Query('limit') limit: number,
+    @Query('complexId') complexId?: string,
+  ) {
+    return this.reservesService.paginate(
+      Number(page),
+      Number(limit),
+      complexId,
+    );
   }
 
   @Public()
@@ -100,6 +108,11 @@ export class ReservesController {
       parsedDate,
       complexId,
     );
+
+    if (!scheduleInfo) {
+      return [];
+    }
+
     const reservations = await this.reservesService.findByDay(
       date,
       complexId,
@@ -129,6 +142,10 @@ export class ReservesController {
       sportTypeId,
     );
 
+    if (!scheduleInfo) {
+      return [];
+    }
+
     const reservations = await this.reservesService.findByDay(
       date,
       complexId,
@@ -148,6 +165,8 @@ export class ReservesController {
     @Query('complexId') complexId: string,
     @Query('sportTypeId') sportTypeId: string,
   ) {
+    console.log('--- BACKEND: getAvailabilityForSchedule ---');
+    console.log('Params:', { date, schedule, complexId, sportTypeId });
     this.validateDateAndScheduleParams(date, schedule);
     const parsedDate = this.parseDate(date);
 
@@ -155,19 +174,29 @@ export class ReservesController {
       parsedDate,
       complexId,
     );
+
+    if (!scheduleInfo) {
+      console.log('No schedule info found');
+      return [];
+    }
+
     const reservations = await this.reservesService.findBySchedule(
       date,
       schedule,
       complexId,
       sportTypeId,
     );
-    return this.scheduleHelper.getAvailabilityForSchedule(
+    console.log('Reservations found:', reservations.length);
+
+    const result = await this.scheduleHelper.getAvailabilityForSchedule(
       scheduleInfo,
       reservations,
       schedule,
       complexId, // Pasar el complexId
       sportTypeId,
     );
+    console.log('Result availability:', JSON.stringify(result, null, 2));
+    return result;
   }
 
   @Get('availability/daily')
@@ -184,6 +213,11 @@ export class ReservesController {
       complexId,
       sportTypeId,
     );
+
+    if (!scheduleInfo) {
+      return [];
+    }
+
     const reservations = await this.reservesService.findByDay(
       dateString,
       complexId,

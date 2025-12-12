@@ -8,6 +8,7 @@ import {
   Put,
   Delete,
   Patch,
+  Query,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { FixedReservesService } from './fixed-reserves.service';
@@ -38,8 +39,14 @@ export class FixedReservesController {
     status: 200,
     description: 'Return all fixed reserves.',
   })
-  async findAll(): Promise<FixedReserve[]> {
-    return this.fixedReservesService.findAll();
+  async findAll(
+    @Query('complexId') complexId?: string,
+    @Query('dayOfWeek') dayOfWeek?: number,
+  ): Promise<FixedReserve[]> {
+    return this.fixedReservesService.findAll(
+      complexId,
+      dayOfWeek ? Number(dayOfWeek) : undefined,
+    );
   }
 
   @Get(':id')

@@ -75,4 +75,50 @@ export class ScheduleDayService {
       where: { id },
     });
   }
+
+  async ensureScheduleDaysExist(complexId: string): Promise<void> {
+    const DAYS_OF_WEEK = [0, 1, 2, 3, 4, 5, 6];
+
+    // Obtener los días que ya existen
+    const existingDays = await this.prisma.scheduleDay.findMany({
+      where: { complexId },
+      select: { dayOfWeek: true },
+    });
+
+    const existingDayNumbers = existingDays.map((d) => d.dayOfWeek);
+
+    // Encontrar los días que faltan
+    const missingDays = DAYS_OF_WEEK.filter(
+      (day) => !existingDayNumbers.includes(day),
+    );
+
+    // Si no faltan días, retornar
+    if (missingDays.length === 0) {
+      return;
+    }
+
+    // Crear solo los días faltantes
+    await this.prisma.scheduleDay.createMany({
+      data: missingDays.map((dayOfWeek) => ({
+        dayOfWeek,
+        isActive: false,
+        complexId,
+      })),
+      skipDuplicates: true,
+    });
+  }
+
+  async getScheduleDays(complexId: string) {
+    // Asegurar que existan los días antes de devolverlos
+    await this.ensureScheduleDaysExist(complexId);
+
+    return this.prisma.scheduleDay.findMany({
+      where: { complexId },
+      orderBy: { dayOfWeek: 'asc' },
+      include: {
+        schedules: true,
+        fixedReserves: true,
+      },
+    });
+  }
 }

@@ -6,6 +6,7 @@ import {
   Param,
   Put,
   Delete,
+  Query,
 } from '@nestjs/common';
 import { CreateProductSaleDto } from './dto/create-product-sale.dto';
 import { UpdateProductSaleDto } from './dto/update-product-sale.dto';
@@ -39,21 +40,23 @@ export class ProductSaleController {
     description: 'List of product sales',
     type: [ProductSaleResponseDto],
   })
-  async findAll(): Promise<ProductSaleResponseDto[]> {
-    return this.productSaleService.findAll();
+  async findAll(
+    @Query('complexId') complexId?: string,
+  ): Promise<ProductSaleResponseDto[]> {
+    return this.productSaleService.findAll(complexId);
   }
 
-  @Get('by-payment/:paymentId')
-  @ApiOperation({ summary: 'Get product sales by payment ID' })
+  @Get('by-sale/:saleId')
+  @ApiOperation({ summary: 'Get product sales by sale ID' })
   @ApiResponse({
     status: 200,
-    description: 'List of product sales for the payment',
+    description: 'List of product sales for the sale',
     type: [ProductSaleResponseDto],
   })
-  async findByPayment(
-    @Param('paymentId') paymentId: string,
+  async findBySale(
+    @Param('saleId') saleId: string,
   ): Promise<ProductSaleResponseDto[]> {
-    return this.productSaleService.findByPayment(paymentId);
+    return this.productSaleService.findBySale(saleId);
   }
 
   @Get(':id')
