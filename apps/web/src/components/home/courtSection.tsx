@@ -39,14 +39,11 @@ const settings = {
   ),
 };
 
-export const CourtSection = () => {
+export const CourtSection = React.memo(() => {
   return (
-    <section
-      className="py-16 bg-gradient-to-br from-Primary-dark to-black/90"
-      id="Galeria"
-    >
+    <section className="py-16 bg-Primary-dark" id="Galeria">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
-        <h2 className="text-4xl sm:text-5xl font-bold bg-gradient-to-r from-Accent-1 to-Complementary bg-clip-text text-transparent mb-6">
+        <h2 className="text-4xl sm:text-5xl font-bold text-Accent-1 mb-6">
           Nuestras Instalaciones
         </h2>
 
@@ -73,4 +70,4 @@ export const CourtSection = () => {
       </div>
     </section>
   );
-};
+});
