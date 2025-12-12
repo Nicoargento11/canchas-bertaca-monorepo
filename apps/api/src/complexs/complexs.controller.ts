@@ -7,9 +7,11 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { CreateComplexDto } from './dto/create-complex.dto';
 import { UpdateComplexDto } from './dto/update-complex.dto';
+import { SaveMercadoPagoConfigDto } from './dto/save-mercadopago-config.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -21,6 +23,7 @@ import { Role } from '@prisma/client';
 import { Roles } from 'src/auth/decorators/roles.decorator';
 import { PaginationParams } from './dto/pagination.dto';
 import { ComplexService } from './complexs.service';
+import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
 @ApiTags('Complexes')
 @ApiBearerAuth()
@@ -48,9 +51,9 @@ export class ComplexController {
     description: 'Lista de complejos',
     type: [ComplexResponseDto],
   })
-  async findAll(@Query() { page = 1, limit = 10 }: PaginationParams) {
+  async findAll(@Query() { page = 1, limit = 100 }: PaginationParams) {
     const complexes = await this.complexService.findAll({ page, limit });
-    return complexes;
+    return complexes.data; // Devolver solo el array para el frontend
   }
 
   @Get(':id')
@@ -116,5 +119,77 @@ export class ComplexController {
   async toggleStatus(@Param('id') id: string) {
     const complex = await this.complexService.toggleStatus(id);
     return new ComplexResponseDto(complex);
+  }
+
+  // ==================== ENDPOINTS DE MERCADOPAGO ====================
+
+  @Post(':id/mercadopago/oauth')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  @ApiOperation({ summary: 'Canjear código OAuth de MercadoPago' })
+  @ApiResponse({
+    status: 200,
+    description: 'Código OAuth canjeado y configuración guardada exitosamente',
+  })
+  async exchangeOAuthCode(
+    @Param('id') complexId: string,
+    @Body() body: { code: string; redirectUri: string },
+  ) {
+    return await this.complexService.exchangeOAuthCode(
+      complexId,
+      body.code,
+      body.redirectUri,
+    );
+  }
+
+  @Post(':id/mercadopago')
+  // TODO: Descomentar cuando funcione el OAuth
+  // @UseGuards(JwtAuthGuard)
+  // @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  @ApiOperation({ summary: 'Guardar configuración de MercadoPago' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración de MercadoPago guardada exitosamente',
+  })
+  async saveMercadoPagoConfig(
+    @Param('id') complexId: string,
+    @Body() config: SaveMercadoPagoConfigDto,
+  ) {
+    return await this.complexService.saveMercadoPagoConfig(complexId, config);
+  }
+
+  @Get(':id/mercadopago')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  @ApiOperation({ summary: 'Obtener configuración de MercadoPago' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración de MercadoPago',
+  })
+  async getMercadoPagoConfig(@Param('id') complexId: string) {
+    return await this.complexService.getMercadoPagoConfig(complexId);
+  }
+
+  @Get(':id/mercadopago/status')
+  @ApiOperation({ summary: 'Verificar si tiene MercadoPago configurado' })
+  @ApiResponse({
+    status: 200,
+    description: 'Estado de configuración de MercadoPago',
+  })
+  async checkMercadoPagoStatus(@Param('id') complexId: string) {
+    const hasConfig = await this.complexService.hasMercadoPagoConfig(complexId);
+    return { hasConfig };
+  }
+
+  @Delete(':id/mercadopago')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  @ApiOperation({ summary: 'Desactivar configuración de MercadoPago' })
+  @ApiResponse({
+    status: 200,
+    description: 'Configuración desactivada',
+  })
+  async deactivateMercadoPagoConfig(@Param('id') complexId: string) {
+    return await this.complexService.deactivateMercadoPagoConfig(complexId);
   }
 }
