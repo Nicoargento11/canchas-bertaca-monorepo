@@ -190,20 +190,6 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                 ))}
               </SelectContent>
             </Select>
-
-            <Button
-              size="lg"
-              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all"
-              onClick={() => {
-                toast({
-                  title: "Tip",
-                  description: "Haz clic en una celda vacía para crear un turno fijo.",
-                });
-              }}
-            >
-              <Plus className="w-5 h-5 mr-2" />
-              Nuevo Turno Fijo
-            </Button>
           </div>
         </div>
 
@@ -228,10 +214,10 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left table-fixed border-collapse min-w-[800px]">
+            <table className="w-full text-left table-fixed border-separate border-spacing-0">
               <thead>
                 <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-                  <th className="border-b border-r border-blue-700 p-4 sticky top-0 z-10 w-32 bg-blue-600">
+                  <th className="border-b border-blue-700 p-4 sticky top-0 z-10">
                     <h6 className="font-semibold leading-none text-white text-center hidden md:block">
                       Horarios
                     </h6>
@@ -239,24 +225,27 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                       <Clock9 className="block md:hidden text-white" size={24} />
                     </div>
                   </th>
-                  {complex.courts.map((court) => (
-                    <th
-                      key={court.id}
-                      className="border-b border-r border-blue-700 p-2 sticky top-0 z-10 text-center bg-blue-600 last:border-r-0"
-                    >
-                      <div className="flex flex-col items-center md:hidden">
-                        <div className="relative text-white">
-                          <GiSoccerField size={30} />
+                  {complex.courts
+                    .slice()
+                    .sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0))
+                    .map((court) => (
+                      <th
+                        key={court.id}
+                        className="border-b border-blue-700 p-2 sticky top-0 z-10 text-center"
+                      >
+                        <div className="flex flex-col items-center md:hidden">
+                          <div className="relative text-white">
+                            <GiSoccerField size={40} />
+                          </div>
+                          <div className="pt-2 absolute">
+                            <p className="font-extrabold text-white">{court.courtNumber ?? "-"}</p>
+                          </div>
                         </div>
-                        <div className="pt-1 absolute">
-                          <p className="font-extrabold text-white text-xs">{court.name}</p>
-                        </div>
-                      </div>
-                      <h6 className="font-semibold leading-none text-white hidden md:block">
-                        {court.name}
-                      </h6>
-                    </th>
-                  ))}
+                        <h6 className="font-semibold leading-none text-white hidden md:block">
+                          {court.courtNumber ? `Cancha ${court.courtNumber}` : court.name}
+                        </h6>
+                      </th>
+                    ))}
                 </tr>
               </thead>
               <tbody>
@@ -267,138 +256,144 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                   return (
                     <tr key={timeSlot} className="hover:bg-gray-50 transition-colors">
                       {/* Horario Label */}
-                      <td className="h-[80px] text-center font-semibold text-gray-700 bg-gray-50 border-r border-b border-gray-300">
+                      <td className="h-[80px] text-center font-semibold hidden md:flex md:justify-center md:items-center text-gray-700 bg-gray-50 border-r border-b border-gray-300">
                         {timeSlot}
+                      </td>
+                      <td className="h-[80px] text-center font-semibold flex justify-center md:hidden items-center text-gray-700 bg-gray-50 border-r border-b border-gray-300">
+                        {startTime}
                       </td>
 
                       {/* Cells */}
-                      {complex.courts.map((court) => {
-                        // Find if any reserve covers this slot
-                        const fixedReserve = fixedReserves.find((fr) => {
-                          if (fr.courtId !== court.id) return false;
-                          const rStart = parseInt(fr.startTime.split(":")[0]);
-                          const rEnd = parseInt(fr.endTime.split(":")[0]);
-                          // Check if this slot is within the reserve duration
-                          return slotStartHour >= rStart && slotStartHour < rEnd;
-                        });
+                      {complex.courts
+                        .slice()
+                        .sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0))
+                        .map((court) => {
+                          // Find if any reserve covers this slot
+                          const fixedReserve = fixedReserves.find((fr) => {
+                            if (fr.courtId !== court.id) return false;
+                            const rStart = parseInt(fr.startTime.split(":")[0]);
+                            const rEnd = parseInt(fr.endTime.split(":")[0]);
+                            // Check if this slot is within the reserve duration
+                            return slotStartHour >= rStart && slotStartHour < rEnd;
+                          });
 
-                        // If this slot is covered by a reserve
-                        if (fixedReserve) {
-                          const rStart = parseInt(fixedReserve.startTime.split(":")[0]);
-                          const rEnd = parseInt(fixedReserve.endTime.split(":")[0]);
+                          // If this slot is covered by a reserve
+                          if (fixedReserve) {
+                            const rStart = parseInt(fixedReserve.startTime.split(":")[0]);
+                            const rEnd = parseInt(fixedReserve.endTime.split(":")[0]);
 
-                          // Only render the cell if it's the START of the reserve
-                          if (slotStartHour === rStart) {
-                            const duration = rEnd - rStart;
+                            // Only render the cell if it's the START of the reserve
+                            if (slotStartHour === rStart) {
+                              const duration = rEnd - rStart;
 
-                            // Filter by search term
-                            if (searchTerm) {
-                              const matches = fixedReserve.user.name
-                                .toLowerCase()
-                                .includes(searchTerm.toLowerCase());
-                              if (!matches)
-                                return (
-                                  <td
-                                    key={`${timeSlot}-${court.id}`}
-                                    rowSpan={duration}
-                                    className="border-r border-b border-gray-300 bg-gray-50/50 opacity-20 pointer-events-none"
-                                  ></td>
-                                );
-                            }
+                              // Filter by search term
+                              if (searchTerm) {
+                                const matches = fixedReserve.user.name
+                                  .toLowerCase()
+                                  .includes(searchTerm.toLowerCase());
+                                if (!matches)
+                                  return (
+                                    <td
+                                      key={`${timeSlot}-${court.id}`}
+                                      rowSpan={duration}
+                                      className="border-r border-b border-gray-300 bg-gray-50/50 opacity-20 pointer-events-none"
+                                    ></td>
+                                  );
+                              }
 
-                            return (
-                              <td
-                                key={fixedReserve.id}
-                                rowSpan={duration}
-                                onClick={() => handleCellClick(timeSlot, court.id)}
-                                className="border-r border-b border-gray-300 p-1 cursor-pointer align-top bg-white"
-                              >
-                                <div className="h-full w-full bg-white border border-gray-200 rounded-md p-2 hover:border-blue-400 hover:shadow-md transition-all flex flex-col relative overflow-hidden">
-                                  <div
-                                    className={`absolute top-0 left-0 w-1 h-full ${fixedReserve.isActive ? "bg-green-500" : "bg-red-500"}`}
-                                  />
+                              return (
+                                <td
+                                  key={fixedReserve.id}
+                                  rowSpan={duration}
+                                  onClick={() => handleCellClick(timeSlot, court.id)}
+                                  className="border-r border-b border-gray-300 p-1 cursor-pointer align-top bg-white"
+                                >
+                                  <div className="h-full w-full bg-white border border-gray-200 rounded-md p-2 hover:border-blue-400 hover:shadow-md transition-all flex flex-col relative overflow-hidden">
+                                    <div
+                                      className={`absolute top-0 left-0 w-1 h-full ${fixedReserve.isActive ? "bg-green-500" : "bg-red-500"}`}
+                                    />
 
-                                  <div className="absolute top-1 right-1 z-10 flex gap-1">
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        setEditingReserve(fixedReserve);
-                                        setModalInitialData({
-                                          courtId: fixedReserve.courtId,
-                                          startTime: fixedReserve.startTime,
-                                          endTime: fixedReserve.endTime,
-                                          dayOfWeek: selectedDay,
-                                          sportType: complex.sportTypes[0],
-                                        });
-                                        setIsModalOpen(true);
-                                      }}
-                                    >
-                                      <Pencil className="h-4 w-4" />
-                                    </Button>
-                                    <Button
-                                      size="icon"
-                                      variant="ghost"
-                                      className={`h-8 w-8 ${fixedReserve.isActive ? "text-green-600 hover:text-red-600 hover:bg-red-50" : "text-red-600 hover:text-green-600 hover:bg-green-50"}`}
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleToggleStatus(fixedReserve.id);
-                                      }}
-                                    >
-                                      <Power className="h-5 w-5" />
-                                    </Button>
-                                  </div>
+                                    <div className="absolute top-1 right-1 z-10 flex gap-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingReserve(fixedReserve);
+                                          setModalInitialData({
+                                            courtId: fixedReserve.courtId,
+                                            startTime: fixedReserve.startTime,
+                                            endTime: fixedReserve.endTime,
+                                            dayOfWeek: selectedDay,
+                                            sportType: complex.sportTypes[0],
+                                          });
+                                          setIsModalOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-4 w-4" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className={`h-8 w-8 ${fixedReserve.isActive ? "text-green-600 hover:text-red-600 hover:bg-red-50" : "text-red-600 hover:text-green-600 hover:bg-green-50"}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleStatus(fixedReserve.id);
+                                        }}
+                                      >
+                                        <Power className="h-5 w-5" />
+                                      </Button>
+                                    </div>
 
-                                  <div className="pl-2 flex-1">
-                                    <div className="flex justify-between items-start">
-                                      <p className="font-semibold text-gray-900 text-sm truncate">
-                                        {fixedReserve.user.name}
+                                    <div className="pl-2 flex-1">
+                                      <div className="flex justify-between items-start">
+                                        <p className="font-semibold text-gray-900 text-sm truncate">
+                                          {fixedReserve.user.name}
+                                        </p>
+                                        {fixedReserve.isActive && (
+                                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                                        )}
+                                      </div>
+                                      <p className="text-xs text-gray-500 truncate mt-1">
+                                        {fixedReserve.user.phone || "-"}
                                       </p>
-                                      {fixedReserve.isActive && (
-                                        <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                      )}
-                                    </div>
-                                    <p className="text-xs text-gray-500 truncate mt-1">
-                                      {fixedReserve.user.phone || "-"}
-                                    </p>
 
-                                    <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-1 rounded">
-                                      <Clock9 className="w-3 h-3 inline mr-1" />
-                                      {fixedReserve.startTime.slice(0, 5)} -{" "}
-                                      {fixedReserve.endTime.slice(0, 5)}
+                                      <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-1 rounded">
+                                        <Clock9 className="w-3 h-3 inline mr-1" />
+                                        {fixedReserve.startTime.slice(0, 5)} -{" "}
+                                        {fixedReserve.endTime.slice(0, 5)}
+                                      </div>
+                                    </div>
+
+                                    <div className="pl-2 mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
+                                      <span className="text-xs font-bold text-gray-700">
+                                        ${fixedReserve.rate?.price || "-"}
+                                      </span>
                                     </div>
                                   </div>
-
-                                  <div className="pl-2 mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                    <span className="text-xs font-bold text-gray-700">
-                                      ${fixedReserve.rate?.price || "-"}
-                                    </span>
-                                  </div>
-                                </div>
-                              </td>
-                            );
-                          } else {
-                            // This slot is covered by a reserve starting earlier
-                            // Do NOT render a cell here, as the previous one has rowSpan
-                            return null;
+                                </td>
+                              );
+                            } else {
+                              // This slot is covered by a reserve starting earlier
+                              // Do NOT render a cell here, as the previous one has rowSpan
+                              return null;
+                            }
                           }
-                        }
 
-                        // Empty cell (no reserve covers this slot)
-                        return (
-                          <td
-                            key={`${timeSlot}-${court.id}`}
-                            onClick={() => handleCellClick(timeSlot, court.id)}
-                            className="border-r border-b border-gray-300 cursor-pointer hover:bg-blue-50 transition-all group relative p-0 bg-white"
-                          >
-                            <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                              <Plus className="w-6 h-6 text-blue-400" />
-                            </div>
-                          </td>
-                        );
-                      })}
+                          // Empty cell (no reserve covers this slot)
+                          return (
+                            <td
+                              key={`${timeSlot}-${court.id}`}
+                              onClick={() => handleCellClick(timeSlot, court.id)}
+                              className="border-r border-b border-gray-300 cursor-pointer hover:bg-blue-50 transition-all group relative p-0 bg-white"
+                            >
+                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                                <Plus className="w-6 h-6 text-blue-400" />
+                              </div>
+                            </td>
+                          );
+                        })}
                     </tr>
                   );
                 })}
