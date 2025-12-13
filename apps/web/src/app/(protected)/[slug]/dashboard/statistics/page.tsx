@@ -151,7 +151,7 @@ export default function FootballReservationsDashboard() {
 
         // Primero obtener el complejo por slug
         const complexResult = await getComplexBySlug(slug);
-
+        console.log(complexResult.data);
         if (!complexResult.data) {
           setError("No se encontró el complejo");
           return;
@@ -169,7 +169,7 @@ export default function FootballReservationsDashboard() {
               ? format(dateRange.from, "yyyy-MM-dd")
               : undefined
         );
-
+        console.log(result);
 
         if (result.success && result.data) {
           setData(result.data);
@@ -496,8 +496,8 @@ export default function FootballReservationsDashboard() {
           value={
             paymentMethods.length > 0
               ? paymentMethods.reduce((prev, current) =>
-                prev.value > current.value ? prev : current
-              ).name
+                  prev.value > current.value ? prev : current
+                ).name
               : "Sin datos"
           }
           icon={<CreditCard className="h-5 w-5" />}
@@ -911,8 +911,9 @@ function MetricCard({
         <div className="text-2xl font-bold">{value}</div>
         {change !== undefined && (
           <div
-            className={`flex items-center text-xs mt-1 ${change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-gray-500"
-              }`}
+            className={`flex items-center text-xs mt-1 ${
+              change > 0 ? "text-green-500" : change < 0 ? "text-red-500" : "text-gray-500"
+            }`}
           >
             {change > 0 ? (
               <ArrowUp className="h-3 w-3 mr-1" />

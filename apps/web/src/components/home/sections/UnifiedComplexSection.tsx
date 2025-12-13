@@ -29,10 +29,6 @@ interface SportData {
   courts: Court[];
 }
 
-import { useComplexTab } from "@/contexts/ComplexTabContext";
-import { useReserve } from "@/contexts/newReserveContext";
-import { useModal } from "@/contexts/modalContext";
-
 interface UnifiedComplexSectionProps {
   bertacaSportsData: Record<SportTypeKey, SportData>;
   sevenSportsData: Record<SportTypeKey, SportData>;
@@ -40,6 +36,16 @@ interface UnifiedComplexSectionProps {
   sevenComplex?: Complex;
   sportTypes: Record<SportTypeKey, SportType>;
   sevenSportTypes?: Partial<Record<SportTypeKey, SportType>>;
+  activeTab: "bertaca" | "seven";
+  onTabChange: (tab: "bertaca" | "seven") => void;
+  onReserveClick: (
+    complexId: string,
+    sportType: SportTypeKey,
+    sportTypeId: string,
+    day: Date,
+    hour: string,
+    field: string
+  ) => void;
 }
 
 const ImageSlider = ({ images }: { images: string[] }) => {
@@ -78,15 +84,13 @@ const ImageSlider = ({ images }: { images: string[] }) => {
 
       <button
         onClick={prevSlide}
-        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-        aria-label="Ver imagen anterior"
+        className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <ChevronLeft size={24} />
       </button>
       <button
         onClick={nextSlide}
-        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity focus:opacity-100"
-        aria-label="Ver siguiente imagen"
+        className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
       >
         <ChevronRight size={24} />
       </button>
@@ -111,37 +115,10 @@ export const UnifiedComplexSection = React.memo(
     sevenComplex,
     sportTypes,
     sevenSportTypes,
+    activeTab,
+    onTabChange,
+    onReserveClick,
   }: UnifiedComplexSectionProps) => {
-    const { activeTab, setActiveTab } = useComplexTab();
-    const { preloadReservation } = useReserve();
-    const { openModal } = useModal();
-
-    const handleReserveClick = (
-      complexId: string,
-      sportType: SportTypeKey,
-      sportTypeId: string,
-      day: Date,
-      hour: string,
-      field: string
-    ) => {
-      // Preload reservation data
-      preloadReservation({
-        complexId,
-        sportType,
-        sportTypeId,
-        day,
-        hour,
-        field,
-        initialStep: 2, // Skip to confirmation step (Step 2 when preselected)
-      });
-
-      // Determine which complex is selected based on ID
-      // const isSeven = sevenComplex && complexId === sevenComplex.id;
-      // setPreSelectedComplex(isSeven ? "seven" : "bertaca"); // Not needed, derived from context or ID
-
-      openModal("RESERVE_FUTBOL", { complexId, sportType });
-    };
-
     const bertacaImages = [
       "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=1200&h=800&fit=crop",
       "https://images.unsplash.com/photo-1574629810360-7efbbe195018?w=1200&h=800&fit=crop",
@@ -211,7 +188,7 @@ export const UnifiedComplexSection = React.memo(
 
           <Tabs
             value={activeTab}
-            onValueChange={(val) => setActiveTab(val as "bertaca" | "seven")}
+            onValueChange={(val) => onTabChange(val as "bertaca" | "seven")}
             className="w-full"
           >
             <div className="flex justify-center mb-12">
@@ -252,7 +229,7 @@ export const UnifiedComplexSection = React.memo(
                       courts={bertacaMerged.allCourts}
                       complex={complex}
                       sportTypes={sportTypes}
-                      onReserveClick={handleReserveClick}
+                      onReserveClick={onReserveClick}
                     />
                   ) : (
                     <div className="text-white text-center py-8">
@@ -341,7 +318,7 @@ export const UnifiedComplexSection = React.memo(
                       courts={sevenMerged.allCourts}
                       complex={sevenComplex}
                       sportTypes={sevenSportTypes as Record<string, SportType>}
-                      onReserveClick={handleReserveClick}
+                      onReserveClick={onReserveClick}
                     />
                   ) : (
                     <div className="text-white text-center py-8">
@@ -539,7 +516,6 @@ const LocationSection = ({
           <button
             onClick={() => setShowMap(true)}
             className="w-full h-full relative flex items-center justify-center bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer group"
-            aria-label={`Cargar mapa interactivo de ${address}`}
           >
             <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
             <div className="relative z-10 flex flex-col items-center gap-3">
