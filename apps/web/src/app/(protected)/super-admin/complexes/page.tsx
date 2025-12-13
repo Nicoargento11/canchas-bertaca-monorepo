@@ -71,14 +71,14 @@ export default function ComplexesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Complejos</h1>
-          <p className="text-slate-400">Gestiona los complejos deportivos</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Complejos</h1>
+          <p className="text-sm text-muted-foreground">Gestiona los complejos deportivos</p>
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/50 transition-all font-semibold"
+          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-semibold w-full sm:w-auto justify-center"
         >
           <Plus className="w-5 h-5" />
           Nuevo Complejo
@@ -87,13 +87,13 @@ export default function ComplexesPage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
           placeholder="Buscar complejos..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl text-white placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
         />
       </div>
 
@@ -102,29 +102,29 @@ export default function ComplexesPage() {
         {filteredComplexes.map((complex) => (
           <div
             key={complex.id}
-            className="group relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 hover:border-slate-700/50 transition-all"
+            className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition-all shadow-sm"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center">
-                  <MapPin className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center">
+                  <MapPin className="w-6 h-6 text-gray-700" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">{complex.name}</h3>
-                  <p className="text-slate-400 text-sm">{complex.address}</p>
+                  <h3 className="text-lg font-bold text-gray-900">{complex.name}</h3>
+                  <p className="text-muted-foreground text-sm line-clamp-1">{complex.address}</p>
                 </div>
               </div>
             </div>
 
             <div className="flex items-center gap-2 mb-4">
-              <Building2 className="w-4 h-4 text-slate-500" />
-              <span className="text-slate-400 text-sm">
+              <Building2 className="w-4 h-4 text-gray-400" />
+              <span className="text-muted-foreground text-sm">
                 {complex.organization?.name || "Sin organización"}
               </span>
             </div>
 
             <div className="mb-4">
-              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
                 Administradores
               </p>
               <div className="flex flex-wrap gap-2">
@@ -132,34 +132,36 @@ export default function ComplexesPage() {
                   complex.managers.map((user) => (
                     <div
                       key={user.id}
-                      className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-lg border border-slate-700/50"
+                      className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200"
                     >
-                      <div className="w-5 h-5 rounded-full bg-green-500/20 flex items-center justify-center text-[10px] text-green-400 font-bold">
+                      <div className="w-5 h-5 rounded-full bg-green-50 flex items-center justify-center text-[10px] text-green-700 font-bold border border-green-200">
                         {user.name.charAt(0)}
                       </div>
-                      <span className="text-xs text-slate-300">{user.name}</span>
+                      <span className="text-xs text-gray-700">{user.name}</span>
                     </div>
                   ))
                 ) : (
-                  <span className="text-xs text-slate-600 italic">
+                  <span className="text-xs text-muted-foreground italic">
                     Sin administradores asignados
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-              <span className="text-slate-500 text-xs">{complex._count?.courts || 0} canchas</span>
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <span className="text-muted-foreground text-xs">
+                {complex._count?.courts || 0} canchas
+              </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(complex)}
-                  className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-all"
+                  className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(complex.id)}
-                  className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all"
+                  className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -237,113 +239,116 @@ function ComplexModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-white mb-6">
-          {complex ? "Editar Complejo" : "Nuevo Complejo"}
-        </h2>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto shadow-lg">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            {complex ? "Editar Complejo" : "Nuevo Complejo"}
+          </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="text-white font-medium mb-2 block">Nombre</label>
-              <input
-                type="text"
-                required
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-              />
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">Nombre</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">Dirección</label>
+                <input
+                  type="text"
+                  required
+                  value={formData.address}
+                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">
+                  Email <span className="text-muted-foreground text-sm">(opcional)</span>
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="contacto@complejo.com"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">
+                  Slug{" "}
+                  <span className="text-muted-foreground text-sm">
+                    (opcional, se genera automáticamente)
+                  </span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.slug}
+                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  placeholder="complejo-deportivo-central"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
             </div>
 
             <div>
-              <label className="text-white font-medium mb-2 block">Dirección</label>
-              <input
-                type="text"
-                required
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-              />
+              <label className="text-gray-900 font-medium mb-2 block">
+                Organización <span className="text-muted-foreground text-sm">(opcional)</span>
+              </label>
+              <select
+                value={formData.organizationId}
+                onChange={(e) => setFormData({ ...formData, organizationId: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+              >
+                <option value="">Sin organización</option>
+                {organizations.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div>
-              <label className="text-white font-medium mb-2 block">
-                Email <span className="text-slate-500 text-sm">(opcional)</span>
+              <label className="text-gray-900 font-medium mb-2 block">
+                Servicios{" "}
+                <span className="text-muted-foreground text-sm">(separados por coma)</span>
               </label>
               <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                placeholder="contacto@complejo.com"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-white font-medium mb-2 block">
-                Slug{" "}
-                <span className="text-slate-500 text-sm">
-                  (opcional, se genera automáticamente)
-                </span>
-              </label>
-              <input
                 type="text"
-                value={formData.slug}
-                onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                placeholder="complejo-deportivo-central"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
+                value={formData.services}
+                onChange={(e) => setFormData({ ...formData, services: e.target.value })}
+                placeholder="vestuarios, cafetería, estacionamiento, quincho, parrilla, wifi"
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
               />
             </div>
-          </div>
 
-          <div>
-            <label className="text-white font-medium mb-2 block">
-              Organización <span className="text-slate-500 text-sm">(opcional)</span>
-            </label>
-            <select
-              value={formData.organizationId}
-              onChange={(e) => setFormData({ ...formData, organizationId: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-            >
-              <option value="">Sin organización</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label className="text-white font-medium mb-2 block">
-              Servicios <span className="text-slate-500 text-sm">(separados por coma)</span>
-            </label>
-            <input
-              type="text"
-              value={formData.services}
-              onChange={(e) => setFormData({ ...formData, services: e.target.value })}
-              placeholder="vestuarios, cafetería, estacionamiento, quincho, parrilla, wifi"
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-            />
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-semibold"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/50 transition-all font-semibold"
-            >
-              {complex ? "Guardar" : "Crear"}
-            </button>
-          </div>
-        </form>
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition-all font-semibold"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-semibold"
+              >
+                {complex ? "Guardar" : "Crear"}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );

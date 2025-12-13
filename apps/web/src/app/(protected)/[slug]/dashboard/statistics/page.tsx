@@ -151,7 +151,6 @@ export default function FootballReservationsDashboard() {
 
         // Primero obtener el complejo por slug
         const complexResult = await getComplexBySlug(slug);
-        console.log(complexResult.data);
         if (!complexResult.data) {
           setError("No se encontró el complejo");
           return;
@@ -169,7 +168,6 @@ export default function FootballReservationsDashboard() {
               ? format(dateRange.from, "yyyy-MM-dd")
               : undefined
         );
-        console.log(result);
 
         if (result.success && result.data) {
           setData(result.data);

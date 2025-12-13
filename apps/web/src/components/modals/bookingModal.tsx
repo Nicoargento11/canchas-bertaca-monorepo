@@ -296,12 +296,6 @@ const BookingModal = ({
       const availableSportIds = selectedSlot?._sportIds?.[selectedComplex];
       const targetSportId = availableSportIds?.[0]; // Pick first available sport for this hour
 
-      console.log("--- FRONTEND: handleSubmit (Complex Selection) ---");
-      console.log("Selected Complex:", selectedComplex);
-      console.log("Selected Hour:", currentReservation?.form.hour);
-      console.log("Available Sport IDs for Complex:", availableSportIds);
-      console.log("Target Sport ID:", targetSportId);
-
       // Find the key (FUTBOL_5, FUTBOL_7) for this ID
       let sportTypeKey: SportTypeKey | undefined;
       if (targetSportId && targetSportTypes) {
@@ -310,23 +304,15 @@ const BookingModal = ({
         );
       }
 
-      console.log("Detected Sport Type Key:", sportTypeKey);
-
       // Fallback to default logic if not found (shouldn't happen if logic is correct)
       if (!sportTypeKey) {
         sportTypeKey = complexData[selectedComplex].supportedSports[0];
-        console.log("Fallback Sport Type Key:", sportTypeKey);
       }
 
       const sportId = targetSportTypes?.[sportTypeKey]?.id;
       const currentForm = currentReservation?.form;
 
       if (targetComplex && sportId && currentForm && sportTypeKey) {
-        console.log("Preloading Reservation with:", {
-          complexId: targetComplex.id,
-          sportType: sportTypeKey,
-          sportTypeId: sportId,
-        });
         preloadReservation({
           complexId: targetComplex.id,
           sportType: sportTypeKey,
@@ -338,10 +324,7 @@ const BookingModal = ({
         });
 
         const date = currentForm.day.toISOString().split("T")[0];
-        console.log("Fetching Availability immediately for:", {
-          complexId: targetComplex.id,
-          sportTypeId: sportId,
-        });
+
         await fetchAvailability("hour", date, currentForm.hour, {
           complexId: targetComplex.id,
           sportTypeId: sportId,

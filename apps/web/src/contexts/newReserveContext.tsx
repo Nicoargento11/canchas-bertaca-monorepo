@@ -259,10 +259,7 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
       if (type === "day") {
         data = await getDailyAvailability(date, complexId, sportTypeId);
       } else if (type === "hour" && schedule) {
-        console.log("--- FRONTEND: fetchAvailability (hour) ---");
-        console.log("Params:", { date, schedule, complexId, sportTypeId });
         data = await getAvailabilityForSchedule(date, schedule, complexId, sportTypeId);
-        console.log("Result:", data);
       } else {
         return;
       }

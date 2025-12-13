@@ -1,0 +1,41 @@
+# ===================================
+# ADMIN MONITORING (SUPER_ADMIN)
+# ===================================
+
+@baseUrl = http://localhost:8000
+@email = valdes.nicoedu@gmail.com
+@password = 12345678
+
+### Login
+# @name login
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "{{email}}",
+  "password": "{{password}}"
+}
+
+### Health (auth)
+GET {{baseUrl}}/admin/monitoring/health
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Overview (últimos 7 días por defecto)
+GET {{baseUrl}}/admin/monitoring/overview
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Anomalies (staleHours configurable)
+GET {{baseUrl}}/admin/monitoring/anomalies?staleHours=24
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Payments (paginado)
+GET {{baseUrl}}/admin/monitoring/payments?take=50&skip=0
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Integrity (checks de consistencia)
+GET {{baseUrl}}/admin/monitoring/integrity?inactiveDays=14&staleHours=24
+Authorization: Bearer {{login.response.body.access_token}}
+
+### Tenants status
+GET {{baseUrl}}/admin/monitoring/tenants
+Authorization: Bearer {{login.response.body.access_token}}

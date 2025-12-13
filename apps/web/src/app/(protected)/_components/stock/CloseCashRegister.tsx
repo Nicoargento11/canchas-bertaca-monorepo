@@ -83,7 +83,6 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
 
   // Helper para limpiar el monto
   const parseAmount = (value: string) => {
-    console.log("parseAmount input:", value);
     if (!value) return 0;
     // Permitimos cualquier caracter, pero limpiamos para el parseo
     let clean = value.replace(/[^\d.,]/g, "");
@@ -129,14 +128,12 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
     }
 
     const result = parseFloat(clean);
-    console.log("parseAmount result:", result, "from clean:", clean);
     return isNaN(result) ? 0 : result;
   };
 
   // Cierre de caja
   const handleCloseSession = async () => {
     const finalAmount = parseAmount(amount);
-    console.log("handleCloseSession amount:", amount, "finalAmount:", finalAmount);
 
     if (!amount || isNaN(finalAmount)) {
       toast.error("Debes ingresar un monto final válido para cerrar la caja.");
@@ -186,7 +183,6 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
       downloadFile(blob, filename);
       toast.success("Reporte PDF descargado exitosamente");
     } catch (error) {
-      console.error("Error exporting PDF:", error);
       toast.error("Error al generar el reporte PDF", {
         description: error instanceof Error ? error.message : "Error desconocido",
       });
@@ -212,7 +208,6 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
       downloadFile(blob, filename);
       toast.success("Reporte Excel descargado exitosamente");
     } catch (error) {
-      console.error("Error exporting Excel:", error);
       toast.error("Error al generar el reporte Excel", {
         description: error instanceof Error ? error.message : "Error desconocido",
       });
@@ -416,12 +411,7 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
               <Button
                 onClick={() => {
                   const finalAmount = parseAmount(amount);
-                  console.log(
-                    "Confirm button click - amount:",
-                    amount,
-                    "finalAmount:",
-                    finalAmount
-                  );
+
                   // Validamos que haya un monto escrito (aunque sea 0)
                   if (amount.trim() === "" || isNaN(finalAmount)) {
                     toast.error("Debes ingresar un monto final válido para cerrar la caja.");

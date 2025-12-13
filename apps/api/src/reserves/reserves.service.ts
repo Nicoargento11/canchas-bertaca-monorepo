@@ -16,7 +16,7 @@ export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) { }
+  ) {}
 
   private timeouts = new Map<string, NodeJS.Timeout>();
 
@@ -300,9 +300,9 @@ export class ReservesService implements OnModuleInit {
           sportType: {
             select: {
               name: true,
-            }
-          }
-        }
+            },
+          },
+        },
       },
       fixedReserve: true,
     };
@@ -315,14 +315,14 @@ export class ReservesService implements OnModuleInit {
           id: true,
           name: true,
           image: true,
-        }
+        },
       },
       court: {
         select: {
           id: true,
           name: true,
           courtNumber: true,
-        }
+        },
       },
     };
   }
@@ -347,7 +347,7 @@ export class ReservesService implements OnModuleInit {
             id: true,
             name: true,
             address: true,
-          }
+          },
         },
         payment: { include: { CashSession: true } },
       },
@@ -362,15 +362,15 @@ export class ReservesService implements OnModuleInit {
           select: {
             id: true,
             name: true,
-            sportType: { select: { name: true } }
-          }
+            sportType: { select: { name: true } },
+          },
         },
         complex: {
           select: {
             id: true,
             name: true,
             slug: true,
-          }
+          },
         },
       },
     });
@@ -396,7 +396,7 @@ export class ReservesService implements OnModuleInit {
             id: true,
             name: true,
             courtNumber: true,
-          }
+          },
         },
         user: {
           select: {
@@ -404,7 +404,7 @@ export class ReservesService implements OnModuleInit {
             name: true,
             image: true,
             phone: true,
-          }
+          },
         },
       },
     });
@@ -425,14 +425,14 @@ export class ReservesService implements OnModuleInit {
             name: true,
             phone: true,
             email: true,
-          }
+          },
         },
         payment: { include: { CashSession: true } },
         court: {
           select: {
             id: true,
             name: true,
-          }
+          },
         },
       },
     });

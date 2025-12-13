@@ -26,6 +26,7 @@ import { ReportsModule } from './reports/reports.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { SalesModule } from './sales/sales.module';
 import { CacheModule } from '@nestjs/cache-manager';
+import { AdminMonitoringModule } from './admin-monitoring/admin-monitoring.module';
 
 @Module({
   imports: [
@@ -53,6 +54,7 @@ import { CacheModule } from '@nestjs/cache-manager';
     CashSessionModule,
     CashSessionModule,
     ReportsModule,
+    AdminMonitoringModule,
     CacheModule.register({
       isGlobal: true,
       ttl: 60000, // 1 minute default cache
@@ -62,4 +64,4 @@ import { CacheModule } from '@nestjs/cache-manager';
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
-export class AppModule { }
+export class AppModule {}
