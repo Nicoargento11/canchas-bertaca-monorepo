@@ -19,6 +19,7 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { BadRequestException, ValidationPipe } from '@nestjs/common';
 import * as cookieParser from 'cookie-parser';
+import * as compression from 'compression';
 import { randomUUID } from 'crypto';
 
 // Polyfill para navegadores o entornos limitados
@@ -85,6 +86,7 @@ async function bootstrap() {
 
   // Aplicar middlewares en el orden correcto
   app.use(cookieParser());
+  app.use(compression());
   app.enableCors(corsOptions);
 
   // Resto de tu configuración...

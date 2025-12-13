@@ -178,7 +178,7 @@ model Organization {
   sales     Sale[]
 
   @@index([name])
-  @@index([createdAt])
+
 }
 
 // Gestión de complejos y canchas
@@ -387,11 +387,10 @@ model Reserve {
 
   @@index([courtId])
   @@index([userId, date])
-  @@index([userId])
+
   @@index([fixedReserveId])
-  @@index([complexId])
-  @@index([date])
-  @@index([status])
+
+  @@index([complexId, date])
 }
 
 model FixedReserve {
@@ -492,6 +491,7 @@ model Payment {
   @@index([reserveId])
   @@index([tournamentRegistrationId])
   @@index([saleId])
+  @@index([complexId, createdAt])
 }
 
 // Inhabilitación de días
@@ -510,6 +510,7 @@ model UnavailableDay {
   updatedAt DateTime @updatedAt
 
   @@unique([date, complexId, courtId])
+  @@index([complexId, date])
 }
 
 model Notification {
@@ -535,8 +536,6 @@ model Notification {
   @@index([userId])
   @@index([complexId])
   @@index([organizationId])
-  @@index([isRead])
-  @@index([type])
 }
 
 // Inventario y ventas
@@ -564,8 +563,6 @@ model Product {
   updatedAt DateTime @updatedAt
 
   @@index([complexId])
-  @@index([stock])
-  @@index([isActive])
 }
 
 model ProductSale {
@@ -611,8 +608,9 @@ model Sale {
   organization   Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
 
-  @@index([complexId])
+
   @@index([createdById])
+  @@index([complexId, createdAt])
 }
 
 model InventoryMovement {
@@ -632,7 +630,7 @@ model InventoryMovement {
   updatedAt DateTime @updatedAt
 
   @@index([productId])
-  @@index([complexId])
+  @@index([complexId, createdAt])
 }
 
 model CashRegister {
@@ -707,8 +705,7 @@ model Tournament {
   @@index([sportTypeId])
   @@index([complexId])
   @@index([winnerTeamId])
-  @@index([isOpen])
-  @@index([fixturePublished])
+
 }
 
 model TournamentRegistration {

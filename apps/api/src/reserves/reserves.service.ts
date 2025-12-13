@@ -16,7 +16,7 @@ export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   private timeouts = new Map<string, NodeJS.Timeout>();
 
@@ -100,10 +100,12 @@ export class ReservesService implements OnModuleInit {
   // ----------------------------
 
   private async validateCreateReserve(dto: CreateReserveDto) {
-    await this.validateUser(dto.userId);
-    await this.validateUserHasNoPendingReserves(dto.userId);
-    await this.validateUnavailableDay(dto.date, dto.complexId, dto.courtId);
-    await this.validateReservationConflict(dto);
+    await Promise.all([
+      this.validateUser(dto.userId),
+      this.validateUserHasNoPendingReserves(dto.userId),
+      this.validateUnavailableDay(dto.date, dto.complexId, dto.courtId),
+      this.validateReservationConflict(dto),
+    ]);
   }
 
   private async validateUpdateReserve(id: string, dto: UpdateReserveDto) {
@@ -285,18 +287,43 @@ export class ReservesService implements OnModuleInit {
           name: true,
           email: true,
           phone: true,
+          // Removed role to keep it strictly minimal if not needed, or add if critical. Keeping it safe:
           role: true,
+          // EXCLUDED: password, hashedRefreshToken, etc.
         },
       },
-      court: true,
+      court: {
+        select: {
+          id: true,
+          name: true,
+          courtNumber: true,
+          sportType: {
+            select: {
+              name: true,
+            }
+          }
+        }
+      },
       fixedReserve: true,
     };
   }
 
   private get paginateInclude() {
     return {
-      user: true,
-      court: true,
+      user: {
+        select: {
+          id: true,
+          name: true,
+          image: true,
+        }
+      },
+      court: {
+        select: {
+          id: true,
+          name: true,
+          courtNumber: true,
+        }
+      },
     };
   }
 
@@ -315,8 +342,13 @@ export class ReservesService implements OnModuleInit {
       where: { id },
       include: {
         ...this.defaultInclude,
-        complex: true,
-        court: { include: { sportType: true } },
+        complex: {
+          select: {
+            id: true,
+            name: true,
+            address: true,
+          }
+        },
         payment: { include: { CashSession: true } },
       },
     });
@@ -326,8 +358,20 @@ export class ReservesService implements OnModuleInit {
     return this.prisma.reserve.findMany({
       where: { userId },
       include: {
-        court: true,
-        complex: true,
+        court: {
+          select: {
+            id: true,
+            name: true,
+            sportType: { select: { name: true } }
+          }
+        },
+        complex: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          }
+        },
       },
     });
   }
@@ -347,8 +391,21 @@ export class ReservesService implements OnModuleInit {
         court: sportTypeId ? { sportTypeId } : undefined,
       },
       include: {
-        court: true,
-        user: true,
+        court: {
+          select: {
+            id: true,
+            name: true,
+            courtNumber: true,
+          }
+        },
+        user: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            phone: true,
+          }
+        },
       },
     });
   }
@@ -362,9 +419,21 @@ export class ReservesService implements OnModuleInit {
         court: sportTypeId ? { sportTypeId } : undefined,
       },
       include: {
-        user: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+            email: true,
+          }
+        },
         payment: { include: { CashSession: true } },
-        court: true,
+        court: {
+          select: {
+            id: true,
+            name: true,
+          }
+        },
       },
     });
   }

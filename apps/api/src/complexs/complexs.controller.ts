@@ -8,7 +8,9 @@ import {
   Delete,
   Query,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
+import { CacheInterceptor } from '@nestjs/cache-manager';
 import { CreateComplexDto } from './dto/create-complex.dto';
 import { UpdateComplexDto } from './dto/update-complex.dto';
 import { SaveMercadoPagoConfigDto } from './dto/save-mercadopago-config.dto';
@@ -29,7 +31,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @ApiBearerAuth()
 @Controller('complexes')
 export class ComplexController {
-  constructor(private readonly complexService: ComplexService) {}
+  constructor(private readonly complexService: ComplexService) { }
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)
@@ -45,6 +47,7 @@ export class ComplexController {
   }
 
   @Get()
+  @UseInterceptors(CacheInterceptor)
   @ApiOperation({ summary: 'Obtener lista de complejos' })
   @ApiResponse({
     status: 200,
