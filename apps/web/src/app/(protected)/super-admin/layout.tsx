@@ -16,23 +16,23 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-black">
+    <div className="min-h-screen bg-gray-50">
       {/* Sidebar */}
-      <aside className="fixed left-0 top-0 h-full w-64 bg-slate-900/50 backdrop-blur-xl border-r border-slate-800/50">
-        <div className="p-6 border-b border-slate-800/50">
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-purple-600 rounded-lg flex items-center justify-center">
-              <span className="text-white text-sm font-bold">SA</span>
+      <aside className="w-full md:fixed md:left-0 md:top-0 md:h-full md:w-64 bg-white border-b md:border-b-0 md:border-r border-gray-200">
+        <div className="p-6 border-b border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center border border-gray-200">
+              <span className="text-gray-900 text-sm font-bold">SA</span>
             </div>
             Super Admin
           </h1>
-          <p className="text-slate-400 text-xs mt-1">God Mode Activated</p>
+          <p className="text-gray-500 text-xs mt-1">Panel de administración</p>
         </div>
 
-        <nav className="p-4 space-y-2">
+        <nav className="p-4 flex gap-2 overflow-x-auto md:block md:space-y-2">
           <Link
             href="/"
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all group border border-slate-700/50"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all group border border-gray-200 whitespace-nowrap shrink-0"
           >
             <Home className="w-5 h-5 group-hover:scale-110 transition-transform" />
             <span className="font-medium">Volver al Home</span>
@@ -41,7 +41,7 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             <Link
               key={item.href}
               href={item.href}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-800/50 hover:text-white transition-all group"
+              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 hover:bg-gray-100 hover:text-gray-900 transition-all group whitespace-nowrap shrink-0"
             >
               <item.icon className="w-5 h-5 group-hover:scale-110 transition-transform" />
               <span className="font-medium">{item.label}</span>
@@ -49,10 +49,10 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
           ))}
         </nav>
 
-        <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-slate-800/50">
+        <div className="md:absolute md:bottom-0 md:left-0 md:right-0 p-4 border-t border-gray-200">
           <button
             onClick={() => router.push("/logout")}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-400 hover:bg-red-500/10 hover:text-red-400 transition-all w-full"
+            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all w-full"
           >
             <LogOut className="w-5 h-5" />
             <span className="font-medium">Salir</span>
@@ -61,7 +61,9 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
       </aside>
 
       {/* Main Content */}
-      <main className="ml-64 p-8">{children}</main>
+      <main className="md:ml-64 p-4 md:p-8">
+        <div className="max-w-[1600px] mx-auto">{children}</div>
+      </main>
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { Building2, Users, MapPin, Activity } from "lucide-react";
 import { getDashboardStats } from "@/services/admin/admin-stats";
 import { toast } from "sonner";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export default function SuperAdminDashboard() {
   const [stats, setStats] = useState({
@@ -31,33 +32,29 @@ export default function SuperAdminDashboard() {
       title: "Organizaciones",
       value: stats.totalOrganizations,
       icon: Building2,
-      color: "from-blue-500 to-blue-600",
-      bgColor: "bg-blue-500/10",
-      textColor: "text-blue-400",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
     },
     {
       title: "Complejos",
       value: stats.totalComplexes,
       icon: MapPin,
-      color: "from-green-500 to-green-600",
-      bgColor: "bg-green-500/10",
-      textColor: "text-green-400",
+      iconBg: "bg-green-50",
+      iconColor: "text-green-600",
     },
     {
       title: "Usuarios",
       value: stats.totalUsers,
       icon: Users,
-      color: "from-purple-500 to-purple-600",
-      bgColor: "bg-purple-500/10",
-      textColor: "text-purple-400",
+      iconBg: "bg-purple-50",
+      iconColor: "text-purple-600",
     },
     {
       title: "Reservas Activas",
       value: stats.activeReservations,
       icon: Activity,
-      color: "from-orange-500 to-orange-600",
-      bgColor: "bg-orange-500/10",
-      textColor: "text-orange-400",
+      iconBg: "bg-orange-50",
+      iconColor: "text-orange-600",
     },
   ];
 
@@ -65,38 +62,34 @@ export default function SuperAdminDashboard() {
     <div className="space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-4xl font-bold text-white mb-2">Dashboard</h1>
-        <p className="text-slate-400">Vista general del sistema</p>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
+        <p className="text-sm text-muted-foreground">Vista general del sistema</p>
       </div>
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {statCards.map((stat) => (
-          <div
-            key={stat.title}
-            className="relative overflow-hidden bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 hover:border-slate-700/50 transition-all group"
-          >
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-slate-400 text-sm font-medium mb-2">{stat.title}</p>
-                <p className="text-4xl font-bold text-white">{stat.value}</p>
+          <Card key={stat.title} className="shadow-sm border-border/60">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                {stat.title}
+              </CardTitle>
+              <div className={`${stat.iconBg} p-2.5 rounded-xl`}>
+                <stat.icon className={`w-5 h-5 ${stat.iconColor}`} />
               </div>
-              <div className={`${stat.bgColor} p-3 rounded-xl`}>
-                <stat.icon className={`w-6 h-6 ${stat.textColor}`} />
-              </div>
-            </div>
-
-            {/* Gradient overlay on hover */}
-            <div
-              className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-0 group-hover:opacity-5 transition-opacity`}
-            />
-          </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-3xl font-bold text-gray-900">{stat.value}</div>
+            </CardContent>
+          </Card>
         ))}
       </div>
 
       {/* Recent Activity */}
-      <div className="bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6">
-        <h2 className="text-2xl font-bold text-white mb-4">Actividad Reciente</h2>
+      <Card className="shadow-sm border-border/60">
+        <CardHeader>
+          <CardTitle className="text-lg md:text-xl text-gray-900">Actividad Reciente</CardTitle>
+        </CardHeader>
         <div className="space-y-3">
           {[
             {
@@ -114,17 +107,17 @@ export default function SuperAdminDashboard() {
           ].map((activity, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between p-4 bg-slate-800/30 rounded-xl hover:bg-slate-800/50 transition-all"
+              className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-all"
             >
               <div>
-                <p className="text-white font-medium">{activity.action}</p>
-                <p className="text-slate-400 text-sm">{activity.detail}</p>
+                <p className="text-gray-900 font-medium">{activity.action}</p>
+                <p className="text-muted-foreground text-sm">{activity.detail}</p>
               </div>
-              <span className="text-slate-500 text-xs">{activity.time}</span>
+              <span className="text-muted-foreground text-xs">{activity.time}</span>
             </div>
           ))}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

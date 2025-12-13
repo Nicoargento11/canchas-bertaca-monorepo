@@ -59,14 +59,14 @@ export default function OrganizationsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Organizaciones</h1>
-          <p className="text-slate-400">Gestiona las organizaciones del sistema</p>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">Organizaciones</h1>
+          <p className="text-sm text-muted-foreground">Gestiona las organizaciones del sistema</p>
         </div>
         <button
           onClick={handleCreate}
-          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/50 transition-all font-semibold"
+          className="flex items-center gap-2 px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-semibold w-full sm:w-auto justify-center"
         >
           <Plus className="w-5 h-5" />
           Nueva Organización
@@ -75,13 +75,13 @@ export default function OrganizationsPage() {
 
       {/* Search Bar */}
       <div className="relative">
-        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
         <input
           type="text"
           placeholder="Buscar organizaciones..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-12 pr-4 py-4 bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-xl text-white placeholder:text-slate-500 focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none transition-all"
+          className="w-full pl-12 pr-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all"
         />
       </div>
 
@@ -90,26 +90,28 @@ export default function OrganizationsPage() {
         {filteredOrgs.map((org) => (
           <div
             key={org.id}
-            className="group relative bg-slate-900/50 backdrop-blur-xl border border-slate-800/50 rounded-2xl p-6 hover:border-slate-700/50 transition-all"
+            className="group relative bg-white border border-gray-200 rounded-2xl p-6 hover:border-gray-300 transition-all shadow-sm"
           >
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-primary to-purple-600 rounded-xl flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-white" />
+                <div className="w-12 h-12 bg-gray-100 border border-gray-200 rounded-xl flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-gray-700" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-white">{org.name}</h3>
-                  <p className="text-slate-400 text-sm">{org._count?.complexes || 0} complejos</p>
+                  <h3 className="text-lg font-bold text-gray-900">{org.name}</h3>
+                  <p className="text-muted-foreground text-sm">
+                    {org._count?.complexes || 0} complejos
+                  </p>
                 </div>
               </div>
             </div>
 
             {org.description && (
-              <p className="text-slate-400 text-sm mb-4 line-clamp-2">{org.description}</p>
+              <p className="text-muted-foreground text-sm mb-4 line-clamp-2">{org.description}</p>
             )}
 
             <div className="mb-4">
-              <p className="text-xs font-semibold text-slate-500 mb-2 uppercase tracking-wider">
+              <p className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">
                 Administradores
               </p>
               <div className="flex flex-wrap gap-2">
@@ -120,34 +122,36 @@ export default function OrganizationsPage() {
                     .map((user) => (
                       <div
                         key={user.id}
-                        className="flex items-center gap-2 bg-slate-800/50 px-2 py-1 rounded-lg border border-slate-700/50"
+                        className="flex items-center gap-2 bg-gray-50 px-2 py-1 rounded-lg border border-gray-200"
                       >
-                        <div className="w-5 h-5 rounded-full bg-blue-500/20 flex items-center justify-center text-[10px] text-blue-400 font-bold">
+                        <div className="w-5 h-5 rounded-full bg-blue-50 flex items-center justify-center text-[10px] text-blue-700 font-bold border border-blue-200">
                           {user.name.charAt(0)}
                         </div>
-                        <span className="text-xs text-slate-300">{user.name}</span>
+                        <span className="text-xs text-gray-700">{user.name}</span>
                       </div>
                     ))
                 ) : (
-                  <span className="text-xs text-slate-600 italic">
+                  <span className="text-xs text-muted-foreground italic">
                     Sin administradores asignados
                   </span>
                 )}
               </div>
             </div>
 
-            <div className="flex items-center justify-between pt-4 border-t border-slate-800/50">
-              <span className="text-slate-500 text-xs">{org._count?.users || 0} usuarios</span>
+            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
+              <span className="text-muted-foreground text-xs">
+                {org._count?.users || 0} usuarios
+              </span>
               <div className="flex gap-2">
                 <button
                   onClick={() => handleEdit(org)}
-                  className="p-2 bg-blue-500/10 text-blue-400 rounded-lg hover:bg-blue-500/20 transition-all"
+                  className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-all"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
                   onClick={() => handleDelete(org.id)}
-                  className="p-2 bg-red-500/10 text-red-400 rounded-lg hover:bg-red-500/20 transition-all"
+                  className="p-2 bg-red-50 text-red-600 rounded-lg hover:bg-red-100 transition-all"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
@@ -205,97 +209,99 @@ function OrganizationModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <h2 className="text-2xl font-bold text-white mb-6">
-          {organization ? "Editar Organización" : "Nueva Organización"}
-        </h2>
+    <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm overflow-y-auto">
+      <div className="min-h-full flex items-start sm:items-center justify-center p-4 sm:p-6">
+        <div className="bg-white border border-gray-200 rounded-2xl w-full max-w-2xl p-4 sm:p-6 max-h-[90vh] overflow-y-auto shadow-lg">
+          <h2 className="text-xl font-bold text-gray-900 mb-6">
+            {organization ? "Editar Organización" : "Nueva Organización"}
+          </h2>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="text-white font-medium mb-2 block">Nombre</label>
-            <input
-              type="text"
-              required
-              value={formData.name}
-              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-            />
-          </div>
-
-          <div>
-            <label className="text-white font-medium mb-2 block">
-              Descripción <span className="text-slate-500 text-sm">(opcional)</span>
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              rows={3}
-              placeholder="Describe tu organización..."
-              className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none resize-none"
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="text-white font-medium mb-2 block">Tipo</label>
-              <select
+              <label className="text-gray-900 font-medium mb-2 block">Nombre</label>
+              <input
+                type="text"
                 required
-                value={formData.type}
-                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+              />
+            </div>
+
+            <div>
+              <label className="text-gray-900 font-medium mb-2 block">
+                Descripción <span className="text-muted-foreground text-sm">(opcional)</span>
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                rows={3}
+                placeholder="Describe tu organización..."
+                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none resize-none"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">Tipo</label>
+                <select
+                  required
+                  value={formData.type}
+                  onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                >
+                  <option value="CLUB">Club</option>
+                  <option value="EMPRESA">Empresa</option>
+                  <option value="MUNICIPALIDAD">Municipalidad</option>
+                  <option value="PARTICULAR">Particular</option>
+                  <option value="OTRO">Otro</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">
+                  Logo <span className="text-muted-foreground text-sm">(URL, opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={formData.logo}
+                  onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                  placeholder="https://ejemplo.com/logo.png"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-gray-900 font-medium mb-2 block">
+                  Sitio Web <span className="text-muted-foreground text-sm">(opcional)</span>
+                </label>
+                <input
+                  type="url"
+                  value={formData.website}
+                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  placeholder="https://www.tuorganizacion.com"
+                  className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl text-gray-900 placeholder:text-gray-400 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 outline-none"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                type="button"
+                onClick={onClose}
+                className="flex-1 px-4 py-3 bg-gray-100 text-gray-900 rounded-xl hover:bg-gray-200 transition-all font-semibold"
               >
-                <option value="CLUB">Club</option>
-                <option value="EMPRESA">Empresa</option>
-                <option value="MUNICIPALIDAD">Municipalidad</option>
-                <option value="PARTICULAR">Particular</option>
-                <option value="OTRO">Otro</option>
-              </select>
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition-all font-semibold"
+              >
+                {organization ? "Guardar" : "Crear"}
+              </button>
             </div>
-
-            <div>
-              <label className="text-white font-medium mb-2 block">
-                Logo <span className="text-slate-500 text-sm">(URL, opcional)</span>
-              </label>
-              <input
-                type="url"
-                value={formData.logo}
-                onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
-                placeholder="https://ejemplo.com/logo.png"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-              />
-            </div>
-
-            <div>
-              <label className="text-white font-medium mb-2 block">
-                Sitio Web <span className="text-slate-500 text-sm">(opcional)</span>
-              </label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
-                placeholder="https://www.tuorganizacion.com"
-                className="w-full px-4 py-3 bg-slate-800/50 border border-slate-700 rounded-xl text-white focus:border-primary focus:ring-2 focus:ring-primary/50 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 px-4 py-3 bg-slate-800 text-white rounded-xl hover:bg-slate-700 transition-all font-semibold"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="flex-1 px-4 py-3 bg-gradient-to-r from-primary to-purple-600 text-white rounded-xl hover:shadow-lg hover:shadow-primary/50 transition-all font-semibold"
-            >
-              {organization ? "Guardar" : "Crear"}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );
