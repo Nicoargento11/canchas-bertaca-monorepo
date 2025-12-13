@@ -25,6 +25,7 @@ import { CashSessionModule } from './cash-session/cash-session.module';
 import { ReportsModule } from './reports/reports.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { SalesModule } from './sales/sales.module';
+import { CacheModule } from '@nestjs/cache-manager';
 
 @Module({
   imports: [
@@ -50,9 +51,15 @@ import { SalesModule } from './sales/sales.module';
     ReviewsModule,
     CashRegisterModule,
     CashSessionModule,
+    CashSessionModule,
     ReportsModule,
+    CacheModule.register({
+      isGlobal: true,
+      ttl: 60000, // 1 minute default cache
+      max: 100, // max items in cache
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],
 })
-export class AppModule {}
+export class AppModule { }
