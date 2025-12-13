@@ -31,7 +31,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 @ApiBearerAuth()
 @Controller('complexes')
 export class ComplexController {
-  constructor(private readonly complexService: ComplexService) { }
+  constructor(private readonly complexService: ComplexService) {}
 
   @Post()
   @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)

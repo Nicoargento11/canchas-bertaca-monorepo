@@ -211,6 +211,7 @@ export class PaymentsController {
           isPartial: true,
           reserveId: searchedReserve.id,
           transactionType: 'RESERVA',
+          complexId: complexId,
         };
 
         await this.paymentsService.create(paymentDto);
