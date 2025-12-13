@@ -16,7 +16,8 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
+import { m, AnimatePresence } from "framer-motion";
 import TableReservesToday from "@/components/TableReservesToday";
 import { Complex } from "@/services/complex/complex";
 import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
@@ -61,16 +62,22 @@ const ImageSlider = ({ images }: { images: string[] }) => {
   return (
     <div className="relative aspect-video rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl group">
       <AnimatePresence mode="wait">
-        <motion.img
+        <m.div
           key={currentIndex}
-          src={images[currentIndex]}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
-          alt={`Slide ${currentIndex}`}
-          className="w-full h-full object-cover"
-        />
+          className="relative w-full h-full"
+        >
+          <Image
+            src={images[currentIndex]}
+            alt={`Slide ${currentIndex}`}
+            fill
+            className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
+          />
+        </m.div>
       </AnimatePresence>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 pointer-events-none"></div>
@@ -204,7 +211,7 @@ export const UnifiedComplexSection = React.memo(
             {/* BERTACA CONTENT */}
             <TabsContent value="bertaca" className="mt-0 focus-visible:outline-none space-y-16">
               {/* 1. Availability Table */}
-              <motion.div
+              <m.div
                 id="TurnosHoy-bertaca"
                 className="scroll-mt-32"
                 initial={{ opacity: 0, y: 20 }}
@@ -230,7 +237,7 @@ export const UnifiedComplexSection = React.memo(
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
 
               {/* 2. Complex Details & Slider */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -293,7 +300,7 @@ export const UnifiedComplexSection = React.memo(
             {/* SEVEN CONTENT */}
             <TabsContent value="seven" className="mt-0 focus-visible:outline-none space-y-16">
               {/* 1. Availability Table */}
-              <motion.div
+              <m.div
                 id="TurnosHoy-seven"
                 className="scroll-mt-32"
                 initial={{ opacity: 0, y: 20 }}
@@ -319,7 +326,7 @@ export const UnifiedComplexSection = React.memo(
                     </div>
                   )}
                 </div>
-              </motion.div>
+              </m.div>
 
               {/* 2. Complex Details & Slider */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -463,6 +470,7 @@ const LocationSection = ({
   mapSrc: string;
   color: "blue" | "green";
 }) => {
+  const [showMap, setShowMap] = useState(false);
   const colorClass = color === "blue" ? "text-blue-500" : "text-green-500";
   const bgClass = color === "blue" ? "bg-blue-500" : "bg-green-500";
   const borderClass = color === "blue" ? "border-blue-500/30" : "border-green-500/30";
@@ -503,16 +511,34 @@ const LocationSection = ({
           </div>
         </div>
       </div>
-      <div className="rounded-3xl overflow-hidden border border-white/10 h-80 lg:h-auto relative">
-        <iframe
-          src={mapSrc}
-          width="100%"
-          height="100%"
-          style={{ border: 0 }}
-          allowFullScreen
-          loading="lazy"
-          className="grayscale hover:grayscale-0 transition-all duration-500"
-        ></iframe>
+      <div className="rounded-3xl overflow-hidden border border-white/10 h-80 lg:h-auto relative group">
+        {!showMap ? (
+          <button
+            onClick={() => setShowMap(true)}
+            className="w-full h-full relative flex items-center justify-center bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer group"
+          >
+            <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
+            <div className="relative z-10 flex flex-col items-center gap-3">
+              <div
+                className={`w-16 h-16 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:scale-110 transition-transform duration-300`}
+              >
+                <MapPin className="text-white" size={32} />
+              </div>
+              <span className="text-white font-bold text-lg">Cargar Mapa Interactivo</span>
+              <span className="text-white/60 text-sm">Hacé click para ver la ubicación</span>
+            </div>
+          </button>
+        ) : (
+          <iframe
+            src={mapSrc}
+            width="100%"
+            height="100%"
+            style={{ border: 0 }}
+            allowFullScreen
+            loading="lazy"
+            className="grayscale hover:grayscale-0 transition-all duration-500"
+          ></iframe>
+        )}
         <div className="absolute bottom-4 left-4 bg-slate-900/90 p-4 rounded-xl border border-white/10 backdrop-blur-md">
           <div className="flex items-center gap-2 text-white font-bold">
             <MapPin className={colorClass} size={20} />

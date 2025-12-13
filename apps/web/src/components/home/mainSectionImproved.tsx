@@ -28,14 +28,26 @@ interface MainSectionProps {
 // Import section components
 import { HeroSection } from "./sections/HeroSection";
 import { GradientSeparator } from "./sections/GradientSeparator";
-import { UnifiedComplexSection } from "./sections/UnifiedComplexSection";
+// import { UnifiedComplexSection } from "./sections/UnifiedComplexSection";
+// Import dynamic
+import dynamic from "next/dynamic";
+
+const UnifiedComplexSection = dynamic(
+  () => import("./sections/UnifiedComplexSection").then((mod) => mod.UnifiedComplexSection),
+  {
+    loading: () => <div className="h-96 w-full animate-pulse bg-slate-900/50" />,
+  }
+);
 import { LocationContact } from "./sections/LocationContact";
 import { ServicesGrid } from "./sections/ServicesGrid";
 import { Footer } from "./sections/Footer";
 
 // Import modals
 import { useComplexTab } from "@/contexts/ComplexTabContext";
-import BookingModal from "../modals/bookingModal";
+// import BookingModal from "../modals/bookingModal";
+const BookingModal = dynamic(() => import("../modals/bookingModal"), {
+  ssr: false,
+});
 
 export const MainSectionImproved = React.memo(
   ({

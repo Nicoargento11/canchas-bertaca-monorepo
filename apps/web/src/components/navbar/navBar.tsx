@@ -2,8 +2,9 @@
 import type React from "react";
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X, LogIn, UserPlus } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { m, AnimatePresence } from "framer-motion";
 import { scrollToSection } from "@/utils/scrollToSection";
 import { ProfileMenu } from "./profile-menu";
 import { navBarItems } from "@/constants";
@@ -104,10 +105,13 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
 
         {/* Logo */}
         <div className="hidden lg:block">
-          <img
+          <Image
             src="/images/bertaca_logo.png"
             alt="Logo bertaca"
-            className="h-20 w-24 object-contain"
+            width={96}
+            height={80}
+            className="h-20 w-auto object-contain"
+            priority
           />
           {/* LOGO */}
         </div>
@@ -201,7 +205,7 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
       {/* Mobile menu */}
       <AnimatePresence>
         {isMobileMenuOpen && (
-          <motion.div
+          <m.div
             initial={{ opacity: 0, x: "100%" }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: "100%" }}
@@ -297,7 +301,7 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
                 </div>
               )}
             </div>
-          </motion.div>
+          </m.div>
         )}
       </AnimatePresence>
     </div>

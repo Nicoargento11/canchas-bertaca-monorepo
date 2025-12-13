@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import {
   Calendar,
   Clock,
@@ -53,6 +53,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
           playsInline
           preload="auto"
           src="https://res.cloudinary.com/dhignxely/video/upload/q_auto,f_auto,w_1280/v1745288680/cancha-futbol1_ub6mf9.mp4"
+          poster="https://res.cloudinary.com/dhignxely/video/upload/q_auto,f_auto,w_1280/v1745288680/cancha-futbol1_ub6mf9.jpg"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-black/60 to-black/80"></div>
       </div>
@@ -60,17 +61,18 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
       {/* Contenido principal */}
       <div className="relative z-10 min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-24">
         {/* Título Principal */}
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
+        <m.h1
+          // Optimization: Remove initial opacity=0 to improve LCP
+          // initial={{ opacity: 0, y: -20 }}
+          // animate={{ opacity: 1, y: 0 }}
+          // transition={{ duration: 0.6 }}
           className="text-Primary-light font-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 text-center drop-shadow-2xl"
         >
           Reserva tu Cancha
-        </motion.h1>
+        </m.h1>
 
         {/* TIER 1 - HERO CTA PRINCIPAL */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, delay: 0.2 }}
@@ -114,13 +116,13 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
           <p className="text-center text-white/60 text-sm sm:text-base mt-3 font-light tracking-wide">
             Elige tu complejo, fecha y horario paso a paso
           </p>
-        </motion.div>
+        </m.div>
 
         {/* TIER 2 - PREMIUM SHORTCUT CARDS */}
         <PremiumShortcutCards onOpenModal={onOpenModal} />
 
         {/* TIER 3 - UTILITY BUTTONS */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.6 }}
@@ -150,10 +152,10 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
               Opiniones
             </span>
           </button>
-        </motion.div>
+        </m.div>
 
         {/* Premium Trust Indicators */}
-        <motion.div
+        <m.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 0.8 }}
@@ -180,7 +182,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
             <Shield className="text-Success" size={16} />
             <span className="font-semibold text-white/90 text-xs sm:text-sm">Pago seguro</span>
           </div>
-        </motion.div>
+        </m.div>
       </div>
     </div>
   );
@@ -194,7 +196,7 @@ HeroSection.displayName = "HeroSection";
 const PremiumShortcutCards = React.memo(
   ({ onOpenModal }: { onOpenModal: (complexType: "bertaca" | "seven") => void }) => {
     return (
-      <motion.div
+      <m.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.6, delay: 0.4 }}
@@ -365,7 +367,7 @@ const PremiumShortcutCards = React.memo(
             />
           </button>
         </div>
-      </motion.div>
+      </m.div>
     );
   }
 );
