@@ -165,8 +165,6 @@ export class ReservesController {
     @Query('complexId') complexId: string,
     @Query('sportTypeId') sportTypeId: string,
   ) {
-    console.log('--- BACKEND: getAvailabilityForSchedule ---');
-    console.log('Params:', { date, schedule, complexId, sportTypeId });
     this.validateDateAndScheduleParams(date, schedule);
     const parsedDate = this.parseDate(date);
 
@@ -176,7 +174,6 @@ export class ReservesController {
     );
 
     if (!scheduleInfo) {
-      console.log('No schedule info found');
       return [];
     }
 
@@ -186,7 +183,6 @@ export class ReservesController {
       complexId,
       sportTypeId,
     );
-    console.log('Reservations found:', reservations.length);
 
     const result = await this.scheduleHelper.getAvailabilityForSchedule(
       scheduleInfo,
@@ -195,7 +191,6 @@ export class ReservesController {
       complexId, // Pasar el complexId
       sportTypeId,
     );
-    console.log('Result availability:', JSON.stringify(result, null, 2));
     return result;
   }
 

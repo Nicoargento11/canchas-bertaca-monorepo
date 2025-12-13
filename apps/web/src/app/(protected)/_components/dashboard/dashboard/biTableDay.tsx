@@ -72,7 +72,6 @@ const BiTableDay: React.FC<TableReservesProps> = ({
     (state) => state
   );
   const selectedDate = date && format(date, "yyyy-MM-dd");
-  console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
 
   // Efecto para inicializar la fecha en el cliente después de la hidratación
   useEffect(() => {

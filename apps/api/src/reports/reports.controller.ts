@@ -368,7 +368,6 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      console.error('Error generando Excel:', error);
       throw new HttpException(
         error.message || 'Error generando archivo Excel',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -431,7 +430,7 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      console.error('Error generando PDF:', error);
+      error('Error generando PDF:', error);
       throw new HttpException(
         error.message || 'Error generando archivo PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -469,7 +468,7 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      console.error('Error generando Excel:', error);
+      error('Error generando Excel:', error);
       throw new HttpException(
         error.message || 'Error generando archivo Excel',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -502,7 +501,7 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      console.error('Error generando PDF:', error);
+      error('Error generando PDF:', error);
       throw new HttpException(
         error.message || 'Error generando archivo PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -543,51 +542,13 @@ export class ReportsController {
         timezone: 'Argentina (UTC-3)',
       };
     } catch (error) {
-      console.error('Error obteniendo resumen por rango de fechas:', error);
+      error('Error obteniendo resumen por rango de fechas:', error);
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
       );
     }
   }
-
-  //   @Public()
-  //   @Get('test/daily-summary')
-  //   @ApiOperation({
-  //     summary: '[TESTING] Obtener resumen diario (sin auth)',
-  //     description:
-  //       'Endpoint temporal para testing - devuelve JSON sin autenticación',
-  //   })
-  //   async testGetDailySummary(@Query() query: GetDailySummaryDto) {
-  //     try {
-  //       const { date, complexId } = query;
-
-  //       // Validar formato de fecha
-  //       const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-  //       if (!dateRegex.test(date)) {
-  //         throw new HttpException(
-  //           'Formato de fecha inválido. Use YYYY-MM-DD',
-  //           HttpStatus.BAD_REQUEST,
-  //         );
-  //       }
-
-  //       const startOfDay = new Date(date + 'T00:00:00.000Z');
-  //       const endOfDay = new Date(date + 'T23:59:59.999Z');
-
-  //       const summary = await this.reportsService.getDailySummary(
-  //         startOfDay,
-  //         endOfDay,
-  //         complexId,
-  //       );
-
-  //       return summary;
-  //     } catch (error) {  //       console.error('Error obteniendo resumen diario:', error);
-  //       throw new HttpException(
-  //         error.message || 'Error interno del servidor',
-  //         HttpStatus.INTERNAL_SERVER_ERROR,
-  //       );
-  //     }
-  //   }
 
   // ===================================
   // ENDPOINTS DEL DASHBOARD
@@ -640,7 +601,7 @@ export class ReportsController {
         endDate,
         cashSessionId,
       );
-      // console.log(dashboardData);
+      // log(dashboardData);
 
       return {
         success: true,
@@ -679,7 +640,6 @@ export class ReportsController {
         message: 'Datos del dashboard obtenidos exitosamente (TEST)',
       };
     } catch (error) {
-      console.error('Error obteniendo datos del dashboard:', error);
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,

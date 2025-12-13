@@ -88,22 +88,6 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
         const { data: userData } = await getUserById(currentUser.user.id);
         setUser(userData);
 
-        console.log("--- ReserveTurn: Calculating Price ---");
-        console.log("Complex:", complex.name);
-        console.log("Field ID:", field);
-        console.log("Day:", day);
-        console.log("Hour:", hour);
-        console.log("Schedules Count:", complex.schedules?.length);
-        console.log(
-          "Schedules Summary:",
-          complex.schedules?.map((s) => ({
-            id: s.id,
-            courtId: s.courtId,
-            day: s.scheduleDay?.dayOfWeek,
-            time: `${s.startTime}-${s.endTime}`,
-          }))
-        );
-
         const pricing = priceCalculator(day, hour, complex.schedules, field);
         if (!pricing) throw new Error("Price calculation failed");
 
@@ -123,7 +107,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
       } catch (error: any) {
         console.error("Error loading reservation data:", error);
         if (error.message === "Price calculation failed") {
-          console.warn("Price Calc Failed Details:", {
+          warn("Price Calc Failed Details:", {
             day: format(day, "yyyy-MM-dd"),
             hour,
             field,
@@ -480,7 +464,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   initialization={{ preferenceId: preferenceId }}
                   onReady={() => {}}
                   onError={(error) => {
-                    console.error("❌ [MP] Error en widget:", error);
+                    error("❌ [MP] Error en widget:", error);
                     setError("Error al cargar MercadoPago. Usa el botón alternativo.");
                     setIsProcessingPayment(false);
                   }}

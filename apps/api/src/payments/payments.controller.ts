@@ -126,7 +126,6 @@ export class PaymentsController {
     @Req() req,
     @Query('complexId') complexId: string,
   ) {
-    console.log(req.body);
     const body = req.body;
 
     // Validación inicial de tipo de notificación

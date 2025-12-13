@@ -41,7 +41,6 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
   const { reserve, date } = useDashboardDataStore((state) => state);
   const selectedDate = date && format(date, "yyyy-MM-dd");
-  console.log(reserve);
   const handleDeleteReserve = async (id: string) => {
     startTransition(async () => {
       try {

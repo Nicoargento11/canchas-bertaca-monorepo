@@ -34,7 +34,7 @@ export function OpenCashRegister({
   const { setActiveSession } = useCashRegisterStore();
 
   const parseAmount = (value: string) => {
-    console.log("parseAmount input:", value);
+    log("parseAmount input:", value);
     if (!value) return 0;
     let clean = value.replace(/[^\d.,]/g, "");
 
@@ -57,13 +57,11 @@ export function OpenCashRegister({
     }
 
     const result = parseFloat(clean);
-    console.log("parseAmount result:", result, "from clean:", clean);
     return isNaN(result) ? 0 : result;
   };
 
   const handleOpenSession = async () => {
     const finalAmount = parseAmount(amount);
-    console.log("handleOpenSession amount:", amount, "finalAmount:", finalAmount);
     if (amount.trim() === "" || isNaN(finalAmount)) {
       toast.error("Ingrese un monto inicial válido");
 
