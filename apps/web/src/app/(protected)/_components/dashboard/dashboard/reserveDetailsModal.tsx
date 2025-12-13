@@ -41,7 +41,7 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
   const { reserve, date } = useDashboardDataStore((state) => state);
   const selectedDate = date && format(date, "yyyy-MM-dd");
-
+  console.log(reserve);
   const handleDeleteReserve = async (id: string) => {
     startTransition(async () => {
       try {
@@ -245,14 +245,14 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
         {(userSession?.user.role === "COMPLEJO_ADMIN" ||
           userSession?.user.role === "SUPER_ADMIN") && (
-            <Button
-              onClick={() => handleDeleteReserve(reserve.id)}
-              // disabled={}
-              className="w-full bg-Error hover:bg-Error-dark text-white py-4 text-base font-medium"
-            >
-              Eliminar Reserva
-            </Button>
-          )}
+          <Button
+            onClick={() => handleDeleteReserve(reserve.id)}
+            // disabled={}
+            className="w-full bg-Error hover:bg-Error-dark text-white py-4 text-base font-medium"
+          >
+            Eliminar Reserva
+          </Button>
+        )}
       </div>
     ) : (
       <div className="flex justify-center items-center h-32">

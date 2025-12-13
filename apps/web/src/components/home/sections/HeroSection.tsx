@@ -2,7 +2,6 @@
 import React from "react";
 import Link from "next/link";
 import { m } from "framer-motion";
-import Image from "next/image";
 import {
   Calendar,
   Clock,
@@ -15,66 +14,18 @@ import {
 } from "lucide-react";
 
 import { useModal } from "@/contexts/modalContext";
-import { useReserve } from "@/contexts/newReserveContext";
-import { Complex } from "@/services/complex/complex";
-import { SportTypeKey, SportType } from "@/services/sport-types/sport-types";
-import { useComplexTab } from "@/contexts/ComplexTabContext";
 
 interface HeroSectionProps {
-  // onOpenModal: (complexType?: "bertaca" | "seven") => void; // Deprecated
+  onOpenModal: (complexType?: "bertaca" | "seven") => void;
   trustData: {
     rating: number;
     reviews: number;
     monthlyGames: number;
   };
-  complex: Complex;
-  sevenComplex?: Complex;
-  sportTypes: Record<SportTypeKey, SportType>;
-  sevenSportTypes?: Partial<Record<SportTypeKey, SportType>>;
 }
 
-export const HeroSection = React.memo(({ trustData, complex, sevenComplex, sportTypes, sevenSportTypes }: HeroSectionProps) => {
+export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionProps) => {
   const { openModal } = useModal();
-  const { initReservation, resetReservation } = useReserve();
-  const { setActiveTab } = useComplexTab();
-
-  const handleOpenBookingModal = React.useCallback((complexType?: "bertaca" | "seven") => {
-    // Inicializar la reserva antes de abrir el modal
-    const isSeven = complexType === "seven";
-    const targetComplex = isSeven && sevenComplex ? sevenComplex : complex;
-    const targetSportTypes = isSeven && sevenSportTypes ? sevenSportTypes : sportTypes;
-    const sportType = isSeven ? "FUTBOL_7" : "FUTBOL_5";
-
-    // Verificar si el deporte existe en los tipos disponibles
-    const targetSport = targetSportTypes[sportType as SportTypeKey];
-
-    if (targetSport) {
-      resetReservation();
-      initReservation(targetComplex.id, sportType as SportTypeKey, targetSport.id);
-    } else if (isSeven) {
-      // Si es Seven y no tiene F7, NO hacer fallback a F5.
-      resetReservation();
-    } else {
-      // Caso default (General o Bertaca): Si no hay F5, intentamos fallback (raro)
-      const fallbackSport = targetSportTypes.FUTBOL_5;
-      if (fallbackSport) {
-        resetReservation();
-        initReservation(targetComplex.id, "FUTBOL_5", fallbackSport.id);
-      }
-    }
-
-    // We need to signal the orchestrator to open the modal.
-    // Since we are decoupling, we might need a way to pass "preSelectedComplex".
-    // For now, we will assume standard RESERVE_FUTBOL modal opening relies on the context we just set.
-    // But MainSectionImproved had "setPreSelectedComplex".
-    // Let's assume the ModalManager or BookingModal reads from the Context or we pass it via openModal payload.
-
-    openModal("RESERVE_FUTBOL", { complexId: targetComplex.id, sportType: sportType as SportTypeKey });
-
-    // Also update tab if needed?
-    if (complexType) setActiveTab(complexType);
-
-  }, [complex, sevenComplex, sportTypes, sevenSportTypes, initReservation, resetReservation, openModal, setActiveTab]);
 
   const handleScrollToSchedule = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -94,13 +45,6 @@ export const HeroSection = React.memo(({ trustData, complex, sevenComplex, sport
     <div className="relative min-h-screen w-full overflow-hidden">
       {/* Fondo con video */}
       <div className="absolute inset-0">
-        <Image
-          src="https://res.cloudinary.com/dhignxely/video/upload/q_auto,f_auto,w_1280/v1745288680/cancha-futbol1_ub6mf9.jpg"
-          alt="Vista panorámica de las canchas de fútbol del Club Bertaca"
-          fill
-          priority
-          className="object-cover -z-10"
-        />
         <video
           className="w-full h-full object-cover"
           autoPlay
@@ -117,20 +61,26 @@ export const HeroSection = React.memo(({ trustData, complex, sevenComplex, sport
       {/* Contenido principal */}
       <div className="relative z-10 min-h-screen flex flex-col justify-center items-center px-4 sm:px-6 lg:px-8 py-4 sm:py-6 pt-20 sm:pt-24">
         {/* Título Principal */}
-        <h1
-          className="text-Primary-light font-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 text-center drop-shadow-2xl animate-fade-in-up"
+        <m.h1
+          // Optimization: Remove initial opacity=0 to improve LCP
+          // initial={{ opacity: 0, y: -20 }}
+          // animate={{ opacity: 1, y: 0 }}
+          // transition={{ duration: 0.6 }}
+          className="text-Primary-light font-title text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-6 sm:mb-8 text-center drop-shadow-2xl"
         >
           Reserva tu Cancha
-        </h1>
+        </m.h1>
 
         {/* TIER 1 - HERO CTA PRINCIPAL */}
-        <div
-          className="w-full max-w-2xl mb-6 sm:mb-8 animate-fade-in-up delay-100"
+        <m.div
+          initial={{ opacity: 0, scale: 0.9 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+          className="w-full max-w-2xl mb-6 sm:mb-8"
         >
           <button
-            onClick={() => handleOpenBookingModal()}
+            onClick={() => onOpenModal()}
             className="group relative w-full px-6 sm:px-8 py-5 sm:py-6 rounded-2xl sm:rounded-3xl font-bold text-xl sm:text-2xl md:text-3xl overflow-hidden transition-all duration-500 hover:scale-[1.02] cursor-pointer"
-            aria-label="Iniciar proceso de reserva de cancha"
             style={{
               background: "rgba(15, 23, 42, 0.6)",
               backdropFilter: "blur(20px)",
@@ -166,10 +116,10 @@ export const HeroSection = React.memo(({ trustData, complex, sevenComplex, sport
           <p className="text-center text-white/60 text-sm sm:text-base mt-3 font-light tracking-wide">
             Elige tu complejo, fecha y horario paso a paso
           </p>
-        </div>
+        </m.div>
 
         {/* TIER 2 - PREMIUM SHORTCUT CARDS */}
-        <PremiumShortcutCards onOpenModal={handleOpenBookingModal} />
+        <PremiumShortcutCards onOpenModal={onOpenModal} />
 
         {/* TIER 3 - UTILITY BUTTONS */}
         <m.div
@@ -257,7 +207,6 @@ const PremiumShortcutCards = React.memo(
           <button
             onClick={() => onOpenModal("bertaca")}
             className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2"
-            aria-label="Reservar cancha de Fútbol 5 en sede Bertaca"
             style={{
               background: "rgba(15, 23, 42, 0.6)",
               backdropFilter: "blur(20px)",
@@ -340,7 +289,6 @@ const PremiumShortcutCards = React.memo(
           <button
             onClick={() => onOpenModal("seven")}
             className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2"
-            aria-label="Reservar cancha de Fútbol 7 en sede Seven"
             style={{
               background: "rgba(15, 23, 42, 0.6)",
               backdropFilter: "blur(20px)",

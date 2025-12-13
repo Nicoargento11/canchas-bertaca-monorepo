@@ -77,14 +77,14 @@ export const createUser = async (data: any): Promise<UserResult<User>> => {
 };
 
 export const getUsers = async (): Promise<UserResult<User[]>> => {
-
+  console.log("holaaaaaaaaaaaaaaaaaaaaaaa");
   try {
     const response = await api.get(`/users`);
 
-
+    console.log(response);
     return { success: true, data: response.data };
   } catch (error) {
-
+    console.log(error);
     return handleUserError(error);
   }
 };
