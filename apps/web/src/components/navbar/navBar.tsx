@@ -92,7 +92,7 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
           <button
             className="p-2 rounded-md hover:bg-white/20 transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-            aria-label="Toggle menu"
+            aria-label={isMobileMenuOpen ? "Cerrar menú de navegación" : "Abrir menú de navegación"}
           >
             {isMobileMenuOpen ? (
               <X size={24} className="text-white" />
@@ -105,14 +105,16 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
 
         {/* Logo */}
         <div className="hidden lg:block">
-          <Image
-            src="/images/bertaca_logo.png"
-            alt="Logo bertaca"
-            width={96}
-            height={80}
-            className="h-20 w-auto object-contain"
-            priority
-          />
+          <Link href="/" aria-label="Ir al inicio - Club Bertaca">
+            <Image
+              src="/images/bertaca_logo.png"
+              alt="Logo del Club Bertaca"
+              width={96}
+              height={80}
+              className="h-20 w-auto object-contain"
+              priority
+            />
+          </Link>
           {/* LOGO */}
         </div>
 

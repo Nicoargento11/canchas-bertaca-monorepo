@@ -44,14 +44,14 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
     return notFound();
   }
   const activeCashSession = await getActiveCashSessionByUser(userSession?.user.id, complejo.id);
-  console.log(activeCashSession);
+
   const today = formatReportDate(new Date());
   // const {
   //   data: dailySummaryData,
   //   error,
   //   success,
   // } = await getDailySummary(today, complejo.id, activeCashSession.data?.id || "");
-  // console.log(dailySummaryData);
+
   // if (error || !success) {
   //   console.error("Error fetching daily summary:", error);
   // }
@@ -158,7 +158,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                     userSession={userSession}
                     activeCashSession={activeCashSession.data || null}
                     cashRegisters={cashRegisters.data || null}
-                    // dailySummaryData={dailySummaryData || null}
+                  // dailySummaryData={dailySummaryData || null}
                   />
                 </CardContent>
               </Card>

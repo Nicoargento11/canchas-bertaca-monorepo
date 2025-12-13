@@ -296,11 +296,7 @@ const BookingModal = ({
       const availableSportIds = selectedSlot?._sportIds?.[selectedComplex];
       const targetSportId = availableSportIds?.[0]; // Pick first available sport for this hour
 
-      console.log("--- FRONTEND: handleSubmit (Complex Selection) ---");
-      console.log("Selected Complex:", selectedComplex);
-      console.log("Selected Hour:", currentReservation?.form.hour);
-      console.log("Available Sport IDs for Complex:", availableSportIds);
-      console.log("Target Sport ID:", targetSportId);
+
 
       // Find the key (FUTBOL_5, FUTBOL_7) for this ID
       let sportTypeKey: SportTypeKey | undefined;
@@ -310,23 +306,20 @@ const BookingModal = ({
         );
       }
 
-      console.log("Detected Sport Type Key:", sportTypeKey);
+
 
       // Fallback to default logic if not found (shouldn't happen if logic is correct)
       if (!sportTypeKey) {
         sportTypeKey = complexData[selectedComplex].supportedSports[0];
-        console.log("Fallback Sport Type Key:", sportTypeKey);
+
       }
 
       const sportId = targetSportTypes?.[sportTypeKey]?.id;
       const currentForm = currentReservation?.form;
 
       if (targetComplex && sportId && currentForm && sportTypeKey) {
-        console.log("Preloading Reservation with:", {
-          complexId: targetComplex.id,
-          sportType: sportTypeKey,
-          sportTypeId: sportId,
-        });
+
+
         preloadReservation({
           complexId: targetComplex.id,
           sportType: sportTypeKey,
@@ -338,10 +331,8 @@ const BookingModal = ({
         });
 
         const date = currentForm.day.toISOString().split("T")[0];
-        console.log("Fetching Availability immediately for:", {
-          complexId: targetComplex.id,
-          sportTypeId: sportId,
-        });
+
+
         await fetchAvailability("hour", date, currentForm.hour, {
           complexId: targetComplex.id,
           sportTypeId: sportId,
@@ -437,16 +428,16 @@ const BookingModal = ({
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {(hasPreselection
               ? [
-                  { step: 0, label: "Fecha & Hora" },
-                  { step: 1, label: "Cancha" },
-                  { step: 2, label: "Confirmar" },
-                ]
+                { step: 0, label: "Fecha & Hora" },
+                { step: 1, label: "Cancha" },
+                { step: 2, label: "Confirmar" },
+              ]
               : [
-                  { step: 0, label: "Fecha & Hora" },
-                  { step: 1, label: "Complejo" },
-                  { step: 2, label: "Cancha" },
-                  { step: 3, label: "Confirmar" },
-                ]
+                { step: 0, label: "Fecha & Hora" },
+                { step: 1, label: "Complejo" },
+                { step: 2, label: "Cancha" },
+                { step: 3, label: "Confirmar" },
+              ]
             ).map((item, idx, arr) => {
               const isActive = currentStep === item.step;
               const isPast = currentStep > item.step;
@@ -454,20 +445,18 @@ const BookingModal = ({
               return (
                 <div key={idx} className="flex items-center">
                   <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
-                      isActive
-                        ? "bg-Primary text-white scale-110"
-                        : isPast
-                          ? "bg-Success text-white"
-                          : "bg-white/20 text-white/40"
-                    }`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${isActive
+                      ? "bg-Primary text-white scale-110"
+                      : isPast
+                        ? "bg-Success text-white"
+                        : "bg-white/20 text-white/40"
+                      }`}
                   >
                     {isPast ? <CheckCircle2 size={20} /> : item.step + 1}
                   </div>
                   <span
-                    className={`ml-2 text-xs sm:text-sm font-semibold hidden sm:block ${
-                      isActive ? "text-white" : "text-white/40"
-                    }`}
+                    className={`ml-2 text-xs sm:text-sm font-semibold hidden sm:block ${isActive ? "text-white" : "text-white/40"
+                      }`}
                   >
                     {item.label}
                   </span>
@@ -531,18 +520,16 @@ const BookingModal = ({
                       <button
                         key={key}
                         onClick={() => setSelectedComplex(key)}
-                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
-                          isSelected
-                            ? `${comp.borderColor} bg-gradient-to-br ${comp.color} scale-105 shadow-2xl`
-                            : "border-white/20 bg-white/5 hover:border-white/40"
-                        }`}
+                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${isSelected
+                          ? `${comp.borderColor} bg-gradient-to-br ${comp.color} scale-105 shadow-2xl`
+                          : "border-white/20 bg-white/5 hover:border-white/40"
+                          }`}
                       >
                         <div className="p-6 text-left">
                           <div className="flex items-center gap-4 mb-4">
                             <div
-                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center ${
-                                isSelected ? "scale-110" : ""
-                              } transition-transform`}
+                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center ${isSelected ? "scale-110" : ""
+                                } transition-transform`}
                             >
                               <Building2 className="text-white" size={32} />
                             </div>
