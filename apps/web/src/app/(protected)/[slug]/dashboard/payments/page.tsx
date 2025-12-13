@@ -23,8 +23,8 @@ import {
   Wallet,
 } from "lucide-react";
 
-const MP_CLIENT_ID = process.env.NEXT_PUBLIC_MP_CLIENT_ID || "4270775168368450";
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+const MP_CLIENT_ID = process.env.NEXT_PUBLIC_MP_CLIENT_ID;
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL;
 
 const PageDashboardPayments = () => {
   const params = useParams();

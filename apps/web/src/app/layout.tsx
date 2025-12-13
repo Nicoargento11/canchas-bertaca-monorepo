@@ -4,6 +4,7 @@ import "./globals.css";
 import { ModalProvider } from "@/contexts/modalContext";
 import { ReserveProvider } from "@/contexts/newReserveContext";
 import { Toaster } from "sonner";
+import { FramerMotionProvider } from "@/components/FramerMotionProvider";
 import { ReactScanProvider } from "../components/ReactScanProvider";
 
 // const geistSans = localFont({
@@ -17,7 +18,7 @@ import { ReactScanProvider } from "../components/ReactScanProvider";
 //   weight: "100 900",
 // });
 
-const sansCaption = PT_Sans_Caption({ weight: "400", subsets: ["latin"] });
+const sansCaption = PT_Sans_Caption({ weight: "400", subsets: ["latin"], display: "swap" });
 export const metadata = {
   title: "Canchas Bertaca",
   description: "Sitio web oficial del Club Bertaca",
@@ -39,11 +40,13 @@ export default function RootLayout({
       </head>
       <ModalProvider>
         <ReserveProvider>
-          <body className={`${sansCaption.className} `}>
-            {process.env.NODE_ENV === "development" && <ReactScanProvider />}
-            <Toaster expand={true} richColors position="bottom-right" />
-            {children}
-          </body>
+          <FramerMotionProvider>
+            <body className={`${sansCaption.className} `}>
+              {process.env.NODE_ENV === "development" && <ReactScanProvider />}
+              <Toaster expand={true} richColors position="bottom-right" />
+              {children}
+            </body>
+          </FramerMotionProvider>
         </ReserveProvider>
       </ModalProvider>
     </html>

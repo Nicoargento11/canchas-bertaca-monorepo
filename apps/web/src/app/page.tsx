@@ -18,9 +18,14 @@ export interface SportData {
 }
 
 export default async function HomePage() {
-  const { success, data: complejo } = await getComplexBySlug("bertaca");
-  const { data: sevenComplex } = await getComplexBySlug("seven");
-  const session = await getSession();
+  const [bertacaRes, sevenRes, session] = await Promise.all([
+    getComplexBySlug("bertaca"),
+    getComplexBySlug("seven"),
+    getSession(),
+  ]);
+
+  const { success, data: complejo } = bertacaRes;
+  const { data: sevenComplex } = sevenRes;
 
   const today = new Date();
   today.setHours(today.getHours() - 3);
@@ -72,20 +77,20 @@ export default async function HomePage() {
 
   const sevenSportAvailability = sevenComplex
     ? await Promise.all(
-        Object.entries(sevenSportTypes).map(async ([key, sportType]) => {
-          const reserves = await getDailyAvailability(
-            format(today, "yyyy-MM-dd"),
-            sevenComplex.id,
-            sportType.id
-          );
+      Object.entries(sevenSportTypes).map(async ([key, sportType]) => {
+        const reserves = await getDailyAvailability(
+          format(today, "yyyy-MM-dd"),
+          sevenComplex.id,
+          sportType.id
+        );
 
-          return {
-            sportKey: key as SportTypeKey,
-            reserves: reserves.data,
-            allCourts: sevenComplex.courts.filter((court) => court.sportTypeId === sportType.id),
-          };
-        })
-      )
+        return {
+          sportKey: key as SportTypeKey,
+          reserves: reserves.data,
+          allCourts: sevenComplex.courts.filter((court) => court.sportTypeId === sportType.id),
+        };
+      })
+    )
     : [];
 
   const sevenSportsData: Record<SportTypeKey, SportData> = sevenSportAvailability.reduce(
