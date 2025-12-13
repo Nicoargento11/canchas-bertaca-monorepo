@@ -72,7 +72,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
     (state) => state
   );
   const selectedDate = date && format(date, "yyyy-MM-dd");
-  console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
+
 
   // Efecto para inicializar la fecha en el cliente después de la hidratación
   useEffect(() => {
@@ -339,8 +339,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                   }
                                 }
                               }}
-                              className={`rounded-md w-full h-full flex flex-col p-2 font-bold text-xs relative transition-all ${
-                                isReserved.reserveType === "FIJO"
+                              className={`rounded-md w-full h-full flex flex-col p-2 font-bold text-xs relative transition-all ${isReserved.reserveType === "FIJO"
                                   ? `${isReserved.date ? "cursor-pointer" : "cursor-default"} bg-blue-100 border-2 border-dashed border-blue-400`
                                   : isReserved.status === "PENDIENTE"
                                     ? "cursor-default bg-yellow-100 border-2 border-dashed border-yellow-400"
@@ -349,7 +348,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                       : isReserved.status === "COMPLETADO"
                                         ? "cursor-pointer bg-emerald-100 border-2 border-solid border-emerald-600 hover:bg-emerald-200"
                                         : "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 hover:cursor-pointer"
-                              }`}
+                                }`}
                             >
                               <div className="flex gap-0.5 items-center text-gray-800">
                                 <UserRound className="hidden sm:block text-gray-900" size={14} />
@@ -420,31 +419,31 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                             {scheduleReserve.courtInfo.courts.find(
                               (courtData) => courtData.courtId === court.id
                             ) && (
-                              <Button
-                                onClick={() => {
-                                  if (date) {
-                                    setCreateReserve({
-                                      date: date,
-                                      schedule: scheduleReserve.schedule,
-                                      userId: userId!,
-                                      price:
-                                        scheduleReserve.courtInfo.courts.find(
-                                          (courtData) => courtData.courtId === court.id
-                                        )?.rates[0].price ||
-                                        scheduleReserve.courtInfo.rates[0].price,
-                                      courtId: court.id,
-                                      complexId: complex.id,
-                                      reserveType: "MANUAL",
-                                    });
-                                    handleChangeReserve();
-                                  }
-                                }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-md text-xs flex items-center gap-1 shadow-sm"
-                              >
-                                <Edit size={20} />
-                                <p className="hidden md:block">Reservar</p>
-                              </Button>
-                            )}
+                                <Button
+                                  onClick={() => {
+                                    if (date) {
+                                      setCreateReserve({
+                                        date: date,
+                                        schedule: scheduleReserve.schedule,
+                                        userId: userId!,
+                                        price:
+                                          scheduleReserve.courtInfo.courts.find(
+                                            (courtData) => courtData.courtId === court.id
+                                          )?.rates[0].price ||
+                                          scheduleReserve.courtInfo.rates[0].price,
+                                        courtId: court.id,
+                                        complexId: complex.id,
+                                        reserveType: "MANUAL",
+                                      });
+                                      handleChangeReserve();
+                                    }
+                                  }}
+                                  className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-md text-xs flex items-center gap-1 shadow-sm"
+                                >
+                                  <Edit size={20} />
+                                  <p className="hidden md:block">Reservar</p>
+                                </Button>
+                              )}
                           </div>
                         </td>
                       );

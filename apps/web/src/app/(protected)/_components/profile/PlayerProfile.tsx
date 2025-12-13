@@ -75,7 +75,7 @@ export default function PlayerProfile({ userData, slug }: PlayerProfileProps) {
 
   const handleUpdateProfile = async (data: any) => {
     // TODO: Implementar actualización con API
-    console.log("Actualizar perfil:", data);
+
   };
 
   return (

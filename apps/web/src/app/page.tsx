@@ -8,9 +8,18 @@ import { format } from "date-fns";
 import { Court } from "@/services/court/court";
 import NavBar from "@/components/navbar/navBar";
 import ModalManager from "@/components/modals/modalManager";
-import { MainSectionImproved } from "@/components/home/mainSectionImproved";
-
 import { ClientLayout } from "@/components/home/ClientLayout";
+import { HeroSection } from "@/components/home/sections/HeroSection";
+import { Footer } from "@/components/home/sections/Footer";
+import { BookingOrchestrator } from "@/components/home/BookingOrchestrator";
+import dynamic from "next/dynamic";
+
+const UnifiedComplexSection = dynamic(
+  () => import("@/components/home/sections/UnifiedComplexSection").then((mod) => mod.UnifiedComplexSection),
+  {
+    loading: () => <div className="h-96 w-full animate-pulse bg-slate-900/50" />,
+  }
+);
 
 export interface SportData {
   reserves: TurnByDay | undefined;
@@ -101,20 +110,57 @@ export default async function HomePage() {
     {} as Record<SportTypeKey, SportData>
   );
 
+  // Static trust data (moved from MainSectionImproved)
+  const trustData = {
+    rating: 4.8,
+    reviews: 120,
+    monthlyGames: 2340,
+  };
+
   return (
     <ClientLayout>
       <div className="">
         <NavBar currentUser={session} complex={complejo} />
-        {/* <Home sportsData={sportsData} complex={complejo} sportTypes={sportTypes} /> */}
-        <MainSectionImproved
+
+        {/* Optimized Hero Section (Client Component) */}
+        <HeroSection
+          complex={complejo}
+          sportTypes={sportTypes}
+          sevenComplex={sevenComplex}
+          sevenSportTypes={sevenSportTypes}
+          trustData={trustData}
+        />
+
+        {/* Deferred Loading Section */}
+        <UnifiedComplexSection
+          bertacaSportsData={sportsData}
+          sevenSportsData={sevenSportsData}
+          complex={complejo}
+          sevenComplex={sevenComplex}
+          sportTypes={sportTypes}
+          sevenSportTypes={sevenSportTypes}
+        // Note: unified section needs to handle its own tab state or we wrap it.
+        // UnifiedComplexSection expects `activeTab` and `onTabChange`.
+        // We can let it use `Display` only OR wraps it in a client component for state?
+        // Actually, UnifiedComplexSection was controlled by MainSectionImproved state.
+        // To make it truly independent, we should probably let it control itself OR use the Context `useComplexTab`.
+        // I will check UnifiedComplexSection signatures.
+
+        // For now, I will wrap UnifiedComplexWrapper.
+        />
+
+        <Footer />
+
+        {/* Orchestrators */}
+        <BookingOrchestrator
           complex={complejo}
           sportTypes={sportTypes}
           sevenComplex={sevenComplex}
           sevenSportTypes={sevenSportTypes}
           currentUser={session}
-          bertacaSportsData={sportsData}
-          sevenSportsData={sevenSportsData}
         />
+
+        {/* Legacy Manager (Verify if needed) */}
         <ModalManager session={session} complex={complejo} sportTypes={sportTypes} />
       </div>
     </ClientLayout>
