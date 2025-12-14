@@ -430,7 +430,6 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      error('Error generando PDF:', error);
       throw new HttpException(
         error.message || 'Error generando archivo PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -468,7 +467,6 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      error('Error generando Excel:', error);
       throw new HttpException(
         error.message || 'Error generando archivo Excel',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -501,7 +499,6 @@ export class ReportsController {
 
       res.end(buffer);
     } catch (error) {
-      error('Error generando PDF:', error);
       throw new HttpException(
         error.message || 'Error generando archivo PDF',
         HttpStatus.INTERNAL_SERVER_ERROR,
@@ -542,7 +539,6 @@ export class ReportsController {
         timezone: 'Argentina (UTC-3)',
       };
     } catch (error) {
-      error('Error obteniendo resumen por rango de fechas:', error);
       throw new HttpException(
         error.message || 'Error interno del servidor',
         HttpStatus.INTERNAL_SERVER_ERROR,
