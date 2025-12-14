@@ -226,12 +226,12 @@ export class AuthController {
   ) {
     res.cookie('access_token', accessToken, {
       ...this.jwtConfiguration.cookieOptions,
-      maxAge: 15 * 60 * 1000, // 15 mins
+      maxAge: 60 * 60 * 1000, // 1 hora (se refresca automático)
     });
 
     res.cookie('refresh_token', refreshToken, {
       ...this.jwtConfiguration.cookieOptions,
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 365 días (1 año, como Netflix)
     });
   }
 
