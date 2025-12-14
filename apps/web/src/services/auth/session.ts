@@ -22,7 +22,7 @@ export type SessionPayload = {
   accessToken: string;
 };
 
-const SESSION_DURATION_MS = 7 * 24 * 60 * 60 * 1000; // 7 días
+const SESSION_DURATION_MS = 365 * 24 * 60 * 60 * 1000; // 365 días
 
 export async function encrypt(payload: SessionPayload): Promise<string> {
   return new SignJWT(payload)
