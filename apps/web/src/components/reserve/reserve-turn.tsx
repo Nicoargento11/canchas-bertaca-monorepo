@@ -107,12 +107,6 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
       } catch (error: any) {
         console.error("Error loading reservation data:", error);
         if (error.message === "Price calculation failed") {
-          warn("Price Calc Failed Details:", {
-            day: format(day, "yyyy-MM-dd"),
-            hour,
-            field,
-            schedulesCount: complex.schedules?.length,
-          });
           // No mostramos error bloqueante, permitimos que el usuario intente (el backend validará)
           // O mostramos un mensaje más suave
           setError(
