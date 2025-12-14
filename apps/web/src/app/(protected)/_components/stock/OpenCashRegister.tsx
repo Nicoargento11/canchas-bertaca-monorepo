@@ -34,7 +34,6 @@ export function OpenCashRegister({
   const { setActiveSession } = useCashRegisterStore();
 
   const parseAmount = (value: string) => {
-    log("parseAmount input:", value);
     if (!value) return 0;
     let clean = value.replace(/[^\d.,]/g, "");
 
