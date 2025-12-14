@@ -458,7 +458,6 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   initialization={{ preferenceId: preferenceId }}
                   onReady={() => {}}
                   onError={(error) => {
-                    error("❌ [MP] Error en widget:", error);
                     setError("Error al cargar MercadoPago. Usa el botón alternativo.");
                     setIsProcessingPayment(false);
                   }}
