@@ -153,18 +153,16 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
 
         {/* Precio total */}
         <div
-          className={`p-4 sm:p-5 rounded-xl border-2 shadow-inner ${
-            isCancelled
-              ? "bg-gradient-to-r from-Error/5 to-Error/10 border-Error/20"
-              : "bg-gradient-to-r from-Primary/5 to-Primary/10 border-Primary/20"
-          }`}
+          className={`p-4 sm:p-5 rounded-xl border-2 shadow-inner ${isCancelled
+            ? "bg-gradient-to-r from-Error/5 to-Error/10 border-Error/20"
+            : "bg-gradient-to-r from-Primary/5 to-Primary/10 border-Primary/20"
+            }`}
         >
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3 sm:gap-4">
               <div
-                className={`flex items-center justify-center p-2 sm:p-3 rounded-xl shadow-md flex-shrink-0 ${
-                  isCancelled ? "bg-Error/20" : "bg-Primary/20"
-                }`}
+                className={`flex items-center justify-center p-2 sm:p-3 rounded-xl shadow-md flex-shrink-0 ${isCancelled ? "bg-Error/20" : "bg-Primary/20"
+                  }`}
               >
                 <CreditCard className={isCancelled ? "text-Error" : "text-Primary"} size={20} />
               </div>
@@ -173,9 +171,8 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
                   {isCancelled ? "Precio de la reserva" : "Precio total"}
                 </p>
                 <p
-                  className={`text-xl sm:text-2xl font-bold ${
-                    isCancelled ? "text-Error" : "text-Primary"
-                  }`}
+                  className={`text-xl sm:text-2xl font-bold ${isCancelled ? "text-Error" : "text-Primary"
+                    }`}
                 >
                   {reserve.price.toLocaleString("es-AR", {
                     style: "currency",
@@ -220,9 +217,8 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 text-Neutral-dark/60">
                 <div
-                  className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                    isCancelled ? "bg-Error/50" : "bg-Primary/50"
-                  }`}
+                  className={`w-3 h-3 rounded-full flex-shrink-0 ${isCancelled ? "bg-Error/50" : "bg-Primary/50"
+                    }`}
                 ></div>
                 <span className="text-xs sm:text-sm font-medium">
                   Última actualización:{" "}

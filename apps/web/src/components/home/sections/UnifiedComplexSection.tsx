@@ -195,15 +195,17 @@ export const UnifiedComplexSection = React.memo(
               <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-900/50 border border-white/10 p-1 h-auto rounded-xl">
                 <TabsTrigger
                   value="bertaca"
-                  className="text-lg py-3 data-[state=active]:bg-Primary data-[state=active]:text-white rounded-lg transition-all"
+                  className="text-lg py-3 data-[state=active]:bg-Primary data-[state=active]:text-white rounded-lg transition-all flex items-center gap-2 justify-center"
                 >
-                  Bertaca (F5)
+                  <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-6 h-6 object-contain" />
+                  <span>Bertaca (F5)</span>
                 </TabsTrigger>
                 <TabsTrigger
                   value="seven"
-                  className="text-lg py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all"
+                  className="text-lg py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all flex items-center gap-2 justify-center"
                 >
-                  Seven (F7)
+                  <img src="/images/seven_logo.png" alt="Seven" className="w-6 h-6 object-contain" />
+                  <span>Seven (F7)</span>
                 </TabsTrigger>
               </TabsList>
             </div>

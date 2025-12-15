@@ -13,9 +13,10 @@ interface AvailableFieldsProps {
   complex: Complex;
   sportTypes: Partial<Record<SportTypeKey, SportType>>;
   targetStep?: number;
+  complexName?: string; // 'bertaca' | 'seven' - para identificar el tipo de reserva
 }
 
-const AvailableFields = ({ complex, sportTypes, targetStep = 2 }: AvailableFieldsProps) => {
+const AvailableFields = ({ complex, sportTypes, targetStep = 2, complexName }: AvailableFieldsProps) => {
   const {
     state,
     getCurrentReservation,
@@ -123,6 +124,7 @@ const AvailableFields = ({ complex, sportTypes, targetStep = 2 }: AvailableField
       hour: currentReservation!.form.hour,
       field: field.id,
       initialStep: targetStep, // Ir al paso de confirmación (o el que corresponda)
+      complexName, // Pasar complexName para localStorage
     });
 
     // updateReservationForm("field", field.id); // Ya incluido en preloadReservation
@@ -148,11 +150,10 @@ const AvailableFields = ({ complex, sportTypes, targetStep = 2 }: AvailableField
               <div
                 key={`${field.id}-${field.sportTypeKey}`}
                 onClick={() => handleFieldSelect(field)}
-                className={`${
-                  currentReservation?.form.field === field.id
+                className={`${currentReservation?.form.field === field.id
                     ? "ring-2 ring-Primary bg-Primary/20 scale-105"
                     : "hover:bg-white/10"
-                } p-3 rounded-lg border border-white/20 bg-white/5 transition-all cursor-pointer shadow-xs`}
+                  } p-3 rounded-lg border border-white/20 bg-white/5 transition-all cursor-pointer shadow-xs`}
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-Primary/20 text-Primary">

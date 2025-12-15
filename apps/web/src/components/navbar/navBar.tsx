@@ -104,16 +104,18 @@ const NavBar = ({ currentUser, complex }: NavBarProps) => {
         </div>
 
         {/* Logo */}
-        <div className="hidden lg:block">
-          <Image
+        <div className="hidden lg:flex items-center gap-3">
+          <img
             src="/images/bertaca_logo.png"
-            alt="Logo bertaca"
-            width={96}
-            height={80}
-            className="h-20 w-auto object-contain"
-            priority
+            alt="Bertaca"
+            className="h-12 w-auto object-contain"
           />
-          {/* LOGO */}
+          <div className="h-12 w-[2px] bg-white/20"></div>
+          <img
+            src="/images/seven_logo.png"
+            alt="Seven"
+            className="h-12 w-auto object-contain"
+          />
         </div>
 
         {/* Desktop navigation */}

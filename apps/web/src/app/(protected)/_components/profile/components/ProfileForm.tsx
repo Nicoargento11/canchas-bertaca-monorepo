@@ -6,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Mail, Phone, User as UserIcon, Camera, Save } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { toast } from "sonner";
+import { updateCurrentUser } from "@/services/user/user";
 
 const profileSchema = z.object({
   name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
@@ -48,16 +49,31 @@ export const ProfileForm = ({ user, onUpdate }: ProfileFormProps) => {
     },
   });
 
+  // Actualizar el formulario cuando cambian los datos del usuario
+  useEffect(() => {
+    reset({
+      name: user.name || "",
+      email: user.email || "",
+      phone: user.phone || "",
+    });
+  }, [user, reset]);
+
+
   const onSubmit = async (data: ProfileFormData) => {
     setIsLoading(true);
     try {
-      if (onUpdate) {
-        await onUpdate(data);
+      const result = await updateCurrentUser(data);
+
+      if (result.success) {
         toast.success("Perfil actualizado correctamente");
         setIsEditing(false);
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        throw new Error(result.error || "Error al actualizar");
       }
     } catch (error) {
-      toast.error("Error al actualizar el perfil");
+      const errorMessage = error instanceof Error ? error.message : "Error al actualizar el perfil";
+      toast.error(errorMessage);
     } finally {
       setIsLoading(false);
     }

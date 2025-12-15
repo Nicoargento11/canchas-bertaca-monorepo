@@ -157,7 +157,7 @@ export const FixedSchedules = ({ schedules }: FixedSchedulesProps) => {
       </div>
 
       {/* Group Info */}
-      <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
+      {/* <Card className="bg-white/5 border-white/10 backdrop-blur-sm">
         <div className="p-4 sm:p-5">
           <div className="flex items-start gap-3">
             <Users className="w-5 h-5 text-Primary flex-shrink-0 mt-1" />
@@ -175,7 +175,7 @@ export const FixedSchedules = ({ schedules }: FixedSchedulesProps) => {
             </div>
           </div>
         </div>
-      </Card>
+      </Card> */}
     </div>
   );
 };

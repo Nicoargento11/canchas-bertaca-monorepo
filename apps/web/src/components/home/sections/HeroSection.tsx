@@ -227,13 +227,13 @@ const PremiumShortcutCards = React.memo(
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden group-hover:scale-110 transition-transform duration-500"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center p-2 relative overflow-hidden group-hover:scale-110 transition-transform duration-500"
                     style={{
                       background: "linear-gradient(135deg, #3B82F6 0%, #2563EB 100%)",
                       boxShadow: "0 8px 24px rgba(59, 130, 246, 0.4)",
                     }}
                   >
-                    <Building2 className="text-white relative z-10" size={28} />
+                    <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-full h-full object-contain relative z-10" />
                     <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
                   </div>
 
@@ -309,13 +309,13 @@ const PremiumShortcutCards = React.memo(
               <div className="flex items-start justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <div
-                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden group-hover:scale-110 transition-transform duration-500"
+                    className="w-14 h-14 sm:w-16 sm:h-16 rounded-xl sm:rounded-2xl flex items-center justify-center p-2 relative overflow-hidden group-hover:scale-110 transition-transform duration-500"
                     style={{
                       background: "linear-gradient(135deg, #22C55E 0%, #16A34A 100%)",
                       boxShadow: "0 8px 24px rgba(34, 197, 94, 0.4)",
                     }}
                   >
-                    <Building2 className="text-white relative z-10" size={28} />
+                    <img src="/images/seven_logo.png" alt="Seven" className="w-full h-full object-contain relative z-10" />
                     <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent" />
                   </div>
 

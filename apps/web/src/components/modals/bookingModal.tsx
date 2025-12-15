@@ -97,21 +97,17 @@ const BookingModal = ({
 
         // Only init if the sport type actually exists in the system
         if (targetSport) {
-          // Only reset if we are actually changing something to avoid loops
+          // Only initialize if we are actually changing something to avoid loops
           if (state.currentReservation.sportTypeId !== targetSport.id) {
-            resetReservation();
-
+            // NO llamar resetReservation - solo inicializar con initReservation que carga datos guardados
             const targetComplexId =
               preSelectedComplex === "seven" && sevenComplex ? sevenComplex.id : complex.id;
 
-            initReservation(targetComplexId, targetSportKey, targetSport.id);
+            initReservation(targetComplexId, targetSportKey, targetSport.id, preSelectedComplex || undefined);
           }
         } else {
           // If the target sport doesn't exist (e.g. FUTBOL_7 missing),
-          // ensure we don't have a lingering reservation
-          if (state.currentReservation.sportTypeId) {
-            resetReservation();
-          }
+          // don't do anything - let the current state remain
         }
       }
     }
@@ -128,7 +124,7 @@ const BookingModal = ({
   // Fetch general availability
   React.useEffect(() => {
     const fetchGeneral = async () => {
-      if (currentStep === 0 && currentReservation?.form.day) {
+      if (currentStep === 0 && currentReservation?.form?.day) {
         setLoadingGeneral(true);
         const dateStr = format(currentReservation.form.day, "yyyy-MM-dd");
 
@@ -221,14 +217,14 @@ const BookingModal = ({
         } finally {
           setLoadingGeneral(false);
         }
-      } else if (!currentReservation?.form.day) {
+      } else if (!currentReservation?.form?.day) {
         setGeneralAvailability(null);
       }
     };
 
     fetchGeneral();
   }, [
-    currentReservation?.form.day,
+    currentReservation?.form?.day,
     preSelectedComplex,
     currentStep,
     complex.id,
@@ -291,7 +287,7 @@ const BookingModal = ({
 
       // Find which sport is available at the selected hour
       const selectedSlot = generalAvailability?.find(
-        (s) => s.schedule === currentReservation?.form.hour
+        (s) => s.schedule === currentReservation?.form?.hour
       );
       const availableSportIds = selectedSlot?._sportIds?.[selectedComplex];
       const targetSportId = availableSportIds?.[0]; // Pick first available sport for this hour
@@ -312,7 +308,7 @@ const BookingModal = ({
       const sportId = targetSportTypes?.[sportTypeKey]?.id;
       const currentForm = currentReservation?.form;
 
-      if (targetComplex && sportId && currentForm && sportTypeKey) {
+      if (targetComplex && sportId && currentForm?.day && sportTypeKey) {
         preloadReservation({
           complexId: targetComplex.id,
           sportType: sportTypeKey,
@@ -321,6 +317,9 @@ const BookingModal = ({
           hour: currentForm.hour,
           field: "",
           initialStep: 1,
+          // NO pasar complexName aquí - mantener como 'general' aunque seleccione un complejo
+          // Solo pasar si HAY preselección inicial
+          complexName: preSelectedComplex || undefined,
         });
 
         const date = currentForm.day.toISOString().split("T")[0];
@@ -336,7 +335,7 @@ const BookingModal = ({
 
     // Si estamos en el paso 0 (fecha y hora) Y HAY PRESELECCIÓN
     // Necesitamos ajustar el deporte si el horario seleccionado pertenece a otro deporte
-    if (hasPreselection && currentStep === 0 && currentReservation?.form.hour) {
+    if (hasPreselection && currentStep === 0 && currentReservation?.form?.hour) {
       const selectedSlot = generalAvailability?.find(
         (s) => s.schedule === currentReservation.form.hour
       );
@@ -352,7 +351,7 @@ const BookingModal = ({
             (key) => targetSportTypes[key]?.id === targetSportId
           );
 
-        if (sportTypeKey) {
+        if (sportTypeKey && currentReservation?.form?.day) {
           preloadReservation({
             complexId: complex.id,
             sportType: sportTypeKey,
@@ -361,6 +360,7 @@ const BookingModal = ({
             hour: currentReservation.form.hour,
             field: "",
             initialStep: 0, // Stay in step 0 but updated, then next step will move to 1
+            complexName: preSelectedComplex || undefined,
           });
 
           const date = currentReservation.form.day.toISOString().split("T")[0];
@@ -378,8 +378,8 @@ const BookingModal = ({
     if (
       !fetched &&
       currentStep === 0 &&
-      currentReservation?.form.day &&
-      currentReservation?.form.hour
+      currentReservation?.form?.day &&
+      currentReservation?.form?.hour
     ) {
       const date = currentReservation.form.day.toISOString().split("T")[0];
       const schedule = currentReservation.form.hour; // Ya viene en formato "HH:MM - HH:MM"
@@ -420,16 +420,16 @@ const BookingModal = ({
           <div className="flex items-center justify-center gap-2 flex-wrap">
             {(hasPreselection
               ? [
-                  { step: 0, label: "Fecha & Hora" },
-                  { step: 1, label: "Cancha" },
-                  { step: 2, label: "Confirmar" },
-                ]
+                { step: 0, label: "Fecha & Hora" },
+                { step: 1, label: "Cancha" },
+                { step: 2, label: "Confirmar" },
+              ]
               : [
-                  { step: 0, label: "Fecha & Hora" },
-                  { step: 1, label: "Complejo" },
-                  { step: 2, label: "Cancha" },
-                  { step: 3, label: "Confirmar" },
-                ]
+                { step: 0, label: "Fecha & Hora" },
+                { step: 1, label: "Complejo" },
+                { step: 2, label: "Cancha" },
+                { step: 3, label: "Confirmar" },
+              ]
             ).map((item, idx, arr) => {
               const isActive = currentStep === item.step;
               const isPast = currentStep > item.step;
@@ -437,20 +437,18 @@ const BookingModal = ({
               return (
                 <div key={idx} className="flex items-center">
                   <div
-                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${
-                      isActive
-                        ? "bg-Primary text-white scale-110"
-                        : isPast
-                          ? "bg-Success text-white"
-                          : "bg-white/20 text-white/40"
-                    }`}
+                    className={`flex items-center justify-center w-10 h-10 rounded-full font-bold transition-all ${isActive
+                      ? "bg-Primary text-white scale-110"
+                      : isPast
+                        ? "bg-Success text-white"
+                        : "bg-white/20 text-white/40"
+                      }`}
                   >
                     {isPast ? <CheckCircle2 size={20} /> : item.step + 1}
                   </div>
                   <span
-                    className={`ml-2 text-xs sm:text-sm font-semibold hidden sm:block ${
-                      isActive ? "text-white" : "text-white/40"
-                    }`}
+                    className={`ml-2 text-xs sm:text-sm font-semibold hidden sm:block ${isActive ? "text-white" : "text-white/40"
+                      }`}
                   >
                     {item.label}
                   </span>
@@ -514,20 +512,22 @@ const BookingModal = ({
                       <button
                         key={key}
                         onClick={() => setSelectedComplex(key)}
-                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
-                          isSelected
-                            ? `${comp.borderColor} bg-gradient-to-br ${comp.color} scale-105 shadow-2xl`
-                            : "border-white/20 bg-white/5 hover:border-white/40"
-                        }`}
+                        className={`group relative overflow-hidden rounded-2xl border-2 transition-all duration-300 ${isSelected
+                          ? `${comp.borderColor} bg-gradient-to-br ${comp.color} scale-105 shadow-2xl`
+                          : "border-white/20 bg-white/5 hover:border-white/40"
+                          }`}
                       >
                         <div className="p-6 text-left">
                           <div className="flex items-center gap-4 mb-4">
                             <div
-                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center ${
-                                isSelected ? "scale-110" : ""
-                              } transition-transform`}
+                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center p-2 ${isSelected ? "scale-110" : ""
+                                } transition-transform`}
                             >
-                              <Building2 className="text-white" size={32} />
+                              <img
+                                src={`/images/${key}_logo.png`}
+                                alt={comp.name}
+                                className="w-full h-full object-contain"
+                              />
                             </div>
                             <div>
                               <h4 className="text-2xl font-bold text-white">{comp.name}</h4>
@@ -567,6 +567,7 @@ const BookingModal = ({
                   complex={activeComplex}
                   sportTypes={activeSportTypes}
                   targetStep={hasPreselection ? 2 : 3}
+                  complexName={preSelectedComplex || undefined}
                 />
               )}
             </motion.div>
@@ -601,11 +602,11 @@ const BookingModal = ({
               onClick={handleSubmit}
               disabled={
                 (currentStep === 0 &&
-                  (!currentReservation?.form.day || !currentReservation?.form.hour)) ||
+                  (!currentReservation?.form?.day || !currentReservation?.form?.hour)) ||
                 (!hasPreselection && currentStep === 1 && !selectedComplex) ||
                 (((hasPreselection && currentStep === 1) ||
                   (!hasPreselection && currentStep === 2)) &&
-                  !currentReservation?.form.field)
+                  !currentReservation?.form?.field)
               }
               className="px-8 py-2 bg-Primary hover:bg-Primary/80 text-white font-bold rounded-xl disabled:opacity-40 disabled:cursor-not-allowed transition-all"
             >
