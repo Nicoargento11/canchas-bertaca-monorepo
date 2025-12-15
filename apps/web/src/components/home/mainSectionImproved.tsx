@@ -59,11 +59,59 @@ export const MainSectionImproved = React.memo(
     bertacaSportsData,
     sevenSportsData,
   }: MainSectionProps) => {
-    const { openModal } = useModal();
+    const { openModal, currentModal, closeModal } = useModal();
     const { activeTab, setActiveTab } = useComplexTab();
-    const { initReservation, resetReservation, preloadReservation } = useReserve();
+    const { initReservation, resetReservation, preloadReservation, state } = useReserve();
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [preSelectedComplex, setPreSelectedComplex] = useState<"bertaca" | "seven" | null>(null);
+
+    // Listen for global modal state to open local BookingModal
+    React.useEffect(() => {
+      if (currentModal === "RESERVE_FUTBOL") {
+        // Try to infer complex from state to set preSelectedComplex correctly
+        if (state.currentReservation.complexId) {
+          const isSeven = sevenComplex && state.currentReservation.complexId === sevenComplex.id;
+          setPreSelectedComplex(isSeven ? "seven" : "bertaca");
+        }
+        setShowBookingModal(true);
+        // We close the global modal context so it doesn't stay "open" in the context
+        // but we keep our local state true.
+        closeModal();
+      }
+    }, [currentModal, closeModal, state.currentReservation.complexId, sevenComplex]);
+
+    // Restore reservation from localStorage if user logged in via Google
+    React.useEffect(() => {
+      if (currentUser) {
+        const savedReserve = localStorage.getItem("reserveData");
+        if (savedReserve) {
+          try {
+            const parsed = JSON.parse(savedReserve);
+            if (parsed.complexId && parsed.sportTypeKey && parsed.sportTypeId) {
+              const isSeven = sevenComplex && parsed.complexId === sevenComplex.id;
+              const complexName = isSeven ? "seven" : "bertaca";
+
+              preloadReservation({
+                complexId: parsed.complexId,
+                sportType: parsed.sportTypeKey,
+                sportTypeId: parsed.sportTypeId,
+                day: new Date(parsed.day),
+                hour: parsed.hour,
+                field: parsed.field,
+                initialStep: 2,
+                complexName,
+              });
+
+              setPreSelectedComplex(complexName);
+              setShowBookingModal(true);
+              localStorage.removeItem("reserveData");
+            }
+          } catch (e) {
+            console.error("Failed to restore reservation", e);
+          }
+        }
+      }
+    }, [currentUser, sevenComplex, preloadReservation]);
 
     // Trust indicators
     const trustData = {
@@ -105,19 +153,19 @@ export const MainSectionImproved = React.memo(
       const targetSport = targetSportTypes[sportType as SportTypeKey];
 
       if (targetSport) {
-        resetReservation();
-        initReservation(targetComplex.id, sportType as SportTypeKey, targetSport.id);
+        // NO llamar resetReservation - initReservation carga datos guardados si existen
+        initReservation(targetComplex.id, sportType as SportTypeKey, targetSport.id, complexType);
       } else if (isSeven) {
-        // Si es Seven y no tiene F7, NO hacer fallback a F5.
-        resetReservation();
+        // Si es Seven y no tiene F7, inicializar vacío
+        initReservation(targetComplex.id, "FUTBOL_5" as SportTypeKey, "", complexType);
       } else {
         // Caso default (General o Bertaca): Si no hay F5, intentamos fallback (raro)
         const fallbackSport = targetSportTypes.FUTBOL_5;
         if (fallbackSport) {
-          resetReservation();
-          initReservation(targetComplex.id, "FUTBOL_5", fallbackSport.id);
+          initReservation(targetComplex.id, "FUTBOL_5", fallbackSport.id, complexType);
         }
       }
+
 
       setPreSelectedComplex(complexType || null);
       setShowBookingModal(true);
@@ -131,6 +179,10 @@ export const MainSectionImproved = React.memo(
       hour: string,
       field: string
     ) => {
+      // Determine which complex is selected based on ID
+      const isSeven = sevenComplex && complexId === sevenComplex.id;
+      const complexName = isSeven ? "seven" : "bertaca";
+
       // Preload reservation data
       preloadReservation({
         complexId,
@@ -140,11 +192,10 @@ export const MainSectionImproved = React.memo(
         hour,
         field,
         initialStep: 2, // Skip to confirmation step (Step 2 when preselected)
+        complexName,
       });
 
-      // Determine which complex is selected based on ID
-      const isSeven = sevenComplex && complexId === sevenComplex.id;
-      setPreSelectedComplex(isSeven ? "seven" : "bertaca");
+      setPreSelectedComplex(complexName);
       setShowBookingModal(true);
     };
 

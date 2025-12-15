@@ -20,10 +20,12 @@ import { signIn } from "@/services/auth/auth";
 import { loginSchema } from "@/schemas/auth";
 import { FormError } from "../form-error";
 import { FormSucces } from "../form-succes";
+import { useReserve } from "@/contexts/newReserveContext";
 
 export const LoginForm = () => {
   const [isPending, startTransition] = useTransition();
   const { openModal, closeModal, modalData } = useModal();
+  const { preloadReservation } = useReserve();
 
   const [errror, setError] = useState<string | undefined>("");
   const [succes, setSucces] = useState<string | undefined>("");
@@ -45,15 +47,7 @@ export const LoginForm = () => {
         if (data.success) {
           closeModal();
           // oncloseLogin();
-          const reservaTemporal = localStorage.getItem("reserveData");
-          if (reservaTemporal) {
-            openModal("RESERVE_FUTBOL", {
-              complexId: modalData?.complexId,
-              sportType: modalData?.sportType,
-            });
-            // onOpenFutbolReserve();
-            localStorage.removeItem("reserveData");
-          }
+          // La restauración de reserva se maneja globalmente en mainSectionImproved.tsx
         }
         setError(data?.error);
         // setSucces(data.success);

@@ -159,6 +159,9 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                       field: reservationData.form.field,
                       day: reservationData.form.day.toISOString(),
                       hour: reservationData.form.hour,
+                      complexId: complex.id,
+                      sportTypeKey: sportType.name,
+                      sportTypeId: sportType.id,
                       // phone: form.getValues("phone") || ""
                     })
                   );
@@ -182,6 +185,9 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                       field: reservationData.form.field,
                       day: reservationData.form.day.toISOString(),
                       hour: reservationData.form.hour,
+                      complexId: complex.id,
+                      sportTypeKey: sportType.name,
+                      sportTypeId: sportType.id,
                       // phone: form.getValues("phone") || "",
                     })
                   );
