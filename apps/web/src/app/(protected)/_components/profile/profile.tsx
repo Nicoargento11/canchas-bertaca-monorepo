@@ -30,6 +30,8 @@ import { es } from "date-fns/locale";
 import dateLocal from "@/utils/dateLocal";
 import { Role, User } from "@/services/user/user";
 import { ButtonBack } from "./ButtonBack";
+import { ProfileForm } from "./components/ProfileForm";
+
 
 interface ProfileProps {
   userData: User;
@@ -352,40 +354,9 @@ const Profile = ({ userData, slug }: ProfileProps) => {
 
             {/* Tab de Perfil */}
             <TabsContent value="account">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Información personal */}
-                <Card className="lg:col-span-2 bg-white/90 backdrop-blur-sm border-white/20">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-Neutral-dark">
-                      <UserRound className="h-5 w-5 text-Primary" />
-                      Información Personal
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      <UserDetailCard
-                        icon={<UserRound className="h-5 w-5" />}
-                        label="Nombre completo"
-                        value={userData?.name || "No disponible"}
-                      />
-                      <UserDetailCard
-                        icon={<Mail className="h-5 w-5" />}
-                        label="Correo electrónico"
-                        value={userData?.email || "No disponible"}
-                      />
-                      <UserDetailCard
-                        icon={<Phone className="h-5 w-5" />}
-                        label="Teléfono"
-                        value={userData?.phone || "No disponible"}
-                      />
-                      <UserDetailCard
-                        icon={<Shield className="h-5 w-5" />}
-                        label="Rol del usuario"
-                        value={getRoleLabel(userData?.role || "")}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
+              <div className="grid grid-cols-1 gap-6">
+                {/* Profile Form con edición */}
+                <ProfileForm user={userData} />
 
                 {/* Resumen de estadísticas */}
                 <Card className="bg-white/90 backdrop-blur-sm border-white/20">

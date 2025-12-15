@@ -13,7 +13,7 @@ import { Role } from '@prisma/client';
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   private readonly SALT_ROUNDS = 10;
 

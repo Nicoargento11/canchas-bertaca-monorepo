@@ -520,10 +520,14 @@ const BookingModal = ({
                         <div className="p-6 text-left">
                           <div className="flex items-center gap-4 mb-4">
                             <div
-                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center ${isSelected ? "scale-110" : ""
+                              className={`w-16 h-16 rounded-full ${comp.iconBg} flex items-center justify-center p-2 ${isSelected ? "scale-110" : ""
                                 } transition-transform`}
                             >
-                              <Building2 className="text-white" size={32} />
+                              <img
+                                src={`/images/${key}_logo.png`}
+                                alt={comp.name}
+                                className="w-full h-full object-contain"
+                              />
                             </div>
                             <div>
                               <h4 className="text-2xl font-bold text-white">{comp.name}</h4>

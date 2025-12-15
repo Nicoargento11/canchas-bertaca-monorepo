@@ -260,7 +260,13 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
           <div
             className={`mb-6 p-4 rounded-xl border ${complexBorder} ${complexBg} flex items-center justify-center gap-3`}
           >
-            <Building2 className={`w-6 h-6 ${complexColor}`} />
+            <div className="w-12 h-12 flex items-center justify-center">
+              <img
+                src={`/images/${isSeven ? 'seven' : 'bertaca'}_logo.png`}
+                alt={complex.name}
+                className="w-full h-full object-contain"
+              />
+            </div>
             <div className="text-center">
               <p className={`text-sm font-medium ${complexColor} uppercase tracking-wider`}>
                 Estás reservando en
@@ -462,7 +468,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
 
                 <Wallet
                   initialization={{ preferenceId: preferenceId }}
-                  onReady={() => {}}
+                  onReady={() => { }}
                   onError={(error) => {
                     setError("Error al cargar MercadoPago. Usa el botón alternativo.");
                     setIsProcessingPayment(false);

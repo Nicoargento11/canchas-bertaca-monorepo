@@ -120,7 +120,6 @@ export const updateUser = async (id: string, data: any): Promise<UserResult<User
 export const updateCurrentUser = async (data: any): Promise<UserResult<User>> => {
   try {
     const response = await api.patch(`/users/me`, data);
-
     return { success: true, data: response.data };
   } catch (error) {
     return handleUserError(error);
