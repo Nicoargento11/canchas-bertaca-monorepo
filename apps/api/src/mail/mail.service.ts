@@ -13,12 +13,25 @@ export class MailService {
   private transporter;
 
   constructor() {
+    // Validar que las variables de entorno estén configuradas
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      console.warn('⚠️  EMAIL_USER o EMAIL_PASS no están configurados. El servicio de correo estará deshabilitado.');
+    }
+
     this.transporter = nodemailer.createTransport({
-      service: 'Gmail', // O el servicio que uses
+      host: 'smtp.gmail.com',
+      port: 465, // Puerto TLS (más compatible que SSL 465)
+      secure: true, // true para 465, false para otros puertos
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
+      tls: {
+        rejectUnauthorized: true, // Verificar certificados SSL
+      },
+      connectionTimeout: 10000, // 10 segundos timeout
+      greetingTimeout: 10000,
+      socketTimeout: 10000,
     });
   }
 
