@@ -1,51 +1,64 @@
 import { Injectable } from '@nestjs/common';
-import * as nodemailer from 'nodemailer';
+import * as brevo from '@getbrevo/brevo';
 
 interface MailOptions {
   to: string;
   subject: string;
   text: string;
-  html?: string; // HTML es opcional
+  html?: string;
 }
 
 @Injectable()
 export class MailService {
-  private transporter;
+  private apiInstance: brevo.TransactionalEmailsApi;
+  private isConfigured: boolean;
 
   constructor() {
-    // Validar que las variables de entorno estén configuradas
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      console.warn('⚠️  EMAIL_USER o EMAIL_PASS no están configurados. El servicio de correo estará deshabilitado.');
+    // Validar que la API key esté configurada
+    if (!process.env.BREVO_API_KEY) {
+      console.warn('⚠️  BREVO_API_KEY no está configurado. El servicio de correo estará deshabilitado.');
+      this.isConfigured = false;
+      return;
     }
 
-    this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 465, // Puerto TLS (más compatible que SSL 465)
-      secure: true, // true para 465, false para otros puertos
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: true, // Verificar certificados SSL
-      },
-      connectionTimeout: 10000, // 10 segundos timeout
-      greetingTimeout: 10000,
-      socketTimeout: 10000,
-    });
+    this.apiInstance = new brevo.TransactionalEmailsApi();
+    this.apiInstance.setApiKey(
+      brevo.TransactionalEmailsApiApiKeys.apiKey,
+      process.env.BREVO_API_KEY
+    );
+    this.isConfigured = true;
+    console.log('✅ Brevo mail service configurado correctamente');
   }
 
   async sendMail(mailOptions: MailOptions) {
+    if (!this.isConfigured) {
+      console.warn('⚠️  Mail service no configurado. Email NO enviado a:', mailOptions.to);
+      return;
+    }
+
     try {
-      await this.transporter.sendMail({
-        from: process.env.EMAIL_USER,
-        to: mailOptions.to,
-        subject: mailOptions.subject,
-        text: mailOptions.text,
-        html: mailOptions.html, // se envía si existe
-      });
+      const sendSmtpEmail = new brevo.SendSmtpEmail();
+
+      // Configurar remitente
+      sendSmtpEmail.sender = {
+        email: process.env.BREVO_SENDER_EMAIL || 'noreply@reservasfutbol.com.ar',
+        name: process.env.BREVO_SENDER_NAME || 'Canchas Bertaca & Seven'
+      };
+
+      // Configurar destinatario
+      sendSmtpEmail.to = [{ email: mailOptions.to }];
+
+      // Configurar contenido
+      sendSmtpEmail.subject = mailOptions.subject;
+      sendSmtpEmail.htmlContent = mailOptions.html || `<p>${mailOptions.text}</p>`;
+
+      // Enviar email
+      const response = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
+      console.log('✅ Email enviado correctamente a:', mailOptions.to);
+      return response;
+
     } catch (error) {
-      console.error('Error sending email:', error);
+      console.error('❌ Error enviando email:', error);
       throw error;
     }
   }
