@@ -292,7 +292,9 @@ export const UnifiedComplexSection = React.memo(
               {/* 4. Location & Contact (Bertaca) */}
               <div id="Contacto-bertaca" className="scroll-mt-32">
                 <LocationSection
-                  address="Av. Bertaca 1234, Resistencia, Chaco"
+                  address="Fray Bertaca 1642, Resistencia, Chaco"
+                  whatsapp="+54 9 3624 895303"
+                  instagram="https://www.instagram.com/canchasbertaca"
                   mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540.367636837866!2d-59.0234567!3d-27.4583456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjfCsDI3JzMwLjAiUyA1OcKwMDEnMjQuNCJX!5e0!3m2!1ses!2sar!4v1635789012345!5m2!1ses!2sar"
                   color="blue"
                 />
@@ -381,7 +383,9 @@ export const UnifiedComplexSection = React.memo(
               {/* 4. Location & Contact (Seven) */}
               <div id="Contacto-seven" className="scroll-mt-32">
                 <LocationSection
-                  address="Calle Seven 567, Resistencia, Chaco"
+                  address="Ruta 16 KM 13.6, Resistencia, Chaco 3500"
+                  whatsapp="+54 9 3624 160843"
+                  instagram="https://www.instagram.com/canchaseven7"
                   mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540.367636837866!2d-59.0234567!3d-27.4583456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjfCsDI3JzMwLjAiUyA1OcKwMDEnMjQuNCJX!5e0!3m2!1ses!2sar!4v1635789012345!5m2!1ses!2sar"
                   color="green"
                 />
@@ -465,87 +469,94 @@ const ServicesSection = ({
 
 const LocationSection = ({
   address,
+  whatsapp,
+  instagram,
   mapSrc,
   color,
 }: {
   address: string;
+  whatsapp?: string;
+  instagram?: string;
   mapSrc: string;
   color: "blue" | "green";
 }) => {
-  const [showMap, setShowMap] = useState(false);
   const colorClass = color === "blue" ? "text-blue-500" : "text-green-500";
   const bgClass = color === "blue" ? "bg-blue-500" : "bg-green-500";
   const borderClass = color === "blue" ? "border-blue-500/30" : "border-green-500/30";
+
+  const whatsappUrl = whatsapp ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}` : '#';
+  // URL para abrir Google Maps con la ubicación marcada
+  const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <div className="rounded-3xl p-8 bg-slate-900/50 border border-white/10 backdrop-blur-sm">
         <h3 className="text-2xl font-bold text-white mb-8">Contactanos</h3>
         <div className="space-y-6">
-          <a
-            href="#"
-            className={`flex items-center gap-4 p-4 rounded-xl ${color === "blue" ? "bg-blue-500/10" : "bg-green-500/10"} border ${borderClass} hover:bg-white/5 transition-all`}
-          >
-            <div className={`w-12 h-12 rounded-full ${bgClass} flex items-center justify-center`}>
-              <Phone className="text-white" size={24} />
-            </div>
-            <div>
-              <p className="text-white font-semibold">WhatsApp</p>
-              <p className="text-white/60">+54 9 11 2345-6789</p>
-            </div>
-          </a>
+          {whatsapp && (
+            <a
+              href={whatsappUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-4 p-4 rounded-xl ${color === "blue" ? "bg-blue-500/10" : "bg-green-500/10"} border ${borderClass} hover:bg-white/5 transition-all`}
+            >
+              <div className={`w-12 h-12 rounded-full ${bgClass} flex items-center justify-center`}>
+                <Phone className="text-white" size={24} />
+              </div>
+              <div>
+                <p className="text-white font-semibold">WhatsApp</p>
+                <p className="text-white/60">{whatsapp}</p>
+              </div>
+            </a>
+          )}
           <div className="pt-6 border-t border-white/10">
             <p className="text-white font-semibold mb-4">Seguinos en redes</p>
             <div className="flex gap-4">
-              <a
-                href="#"
-                className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all"
-              >
-                <Instagram className="text-white" size={24} />
-              </a>
-              <a
-                href="#"
-                className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all"
-              >
-                <Facebook className="text-white" size={24} />
-              </a>
+              {instagram && (
+                <a
+                  href={instagram}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-12 h-12 rounded-full bg-white/10 border border-white/20 flex items-center justify-center hover:bg-white/20 transition-all"
+                >
+                  <Instagram className="text-white" size={24} />
+                </a>
+              )}
             </div>
           </div>
         </div>
       </div>
       <div className="rounded-3xl overflow-hidden border border-white/10 h-80 lg:h-auto relative group">
-        {!showMap ? (
-          <button
-            onClick={() => setShowMap(true)}
-            className="w-full h-full relative flex items-center justify-center bg-slate-800 hover:bg-slate-700 transition-colors cursor-pointer group"
-          >
-            <div className="absolute inset-0 bg-gradient-to-br from-slate-800 to-slate-900" />
-            <div className="relative z-10 flex flex-col items-center gap-3">
-              <div
-                className={`w-16 h-16 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm border border-white/20 group-hover:scale-110 transition-transform duration-300`}
-              >
-                <MapPin className="text-white" size={32} />
-              </div>
-              <span className="text-white font-bold text-lg">Cargar Mapa Interactivo</span>
-              <span className="text-white/60 text-sm">Hacé click para ver la ubicación</span>
+        {/* Mapa siempre visible */}
+        <iframe
+          src={mapSrc}
+          width="100%"
+          height="100%"
+          style={{ border: 0, minHeight: '400px' }}
+          allowFullScreen
+          loading="lazy"
+          className="grayscale hover:grayscale-0 transition-all duration-500"
+        ></iframe>
+
+        {/* Overlay con dirección y botón */}
+        <div className="absolute bottom-4 left-4 right-4 space-y-3">
+          <div className="bg-slate-900/90 p-4 rounded-xl border border-white/10 backdrop-blur-md">
+            <div className="flex items-center gap-2 text-white font-bold text-sm">
+              <MapPin className={colorClass} size={20} />
+              {address}
             </div>
-          </button>
-        ) : (
-          <iframe
-            src={mapSrc}
-            width="100%"
-            height="100%"
-            style={{ border: 0 }}
-            allowFullScreen
-            loading="lazy"
-            className="grayscale hover:grayscale-0 transition-all duration-500"
-          ></iframe>
-        )}
-        <div className="absolute bottom-4 left-4 bg-slate-900/90 p-4 rounded-xl border border-white/10 backdrop-blur-md">
-          <div className="flex items-center gap-2 text-white font-bold">
-            <MapPin className={colorClass} size={20} />
-            {address}
           </div>
+
+          {/* Botón para abrir en Google Maps */}
+          <a
+            href={googleMapsUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`flex items-center justify-center gap-2 w-full ${bgClass} hover:opacity-90 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-lg`}
+          >
+            <MapPin size={20} />
+            <span>Abrir en Google Maps</span>
+          </a>
         </div>
       </div>
     </div>

@@ -15,8 +15,8 @@ export const ContactSection = () => {
       icon: <FaWhatsapp className="text-green-400" size={24} />,
       title: "WhatsApp",
       description: "Respuesta inmediata",
-      info: "+54 379 5165059",
-      link: "https://wa.me/+543795165059",
+      info: "+54 9 3624 895303",
+      link: "https://wa.me/5493624895303",
     },
     email: {
       icon: <MdEmail className="text-red-300" size={24} />,
@@ -28,24 +28,19 @@ export const ContactSection = () => {
     location: {
       icon: <FaMapMarkerAlt className="text-yellow-300" size={24} />,
       title: "Ubicación",
-      description: "Visítanos",
+      description: "Fray Bertaca 1642, Resistencia, Chaco",
       info: "Ver en mapa",
-      link: "https://maps.app.goo.gl/csSJmhT7QrKzkErz6",
+      link: "https://maps.google.com/?q=Fray+Bertaca+1642,+Resistencia,+Chaco",
     },
   };
 
   const footerData = {
     about:
-      "El mejor complejo de fútbol 5 en la región, con canchas de primer nivel y atención personalizada.",
+      "⚽Jugá, Entrená y Disfrutá. 3 Canchas de fut5, Escuelita @elsemillerofutbol1, Quincho+Parrilla. ¡Reservá ahora y armá tu partido!",
     social: [
       {
-        icon: <FaFacebook size={20} className="text-white" />,
-        link: "https://www.facebook.com/ComplejoSarmientoF5",
-        color: "bg-[#1877F2] hover:bg-[#1877F2]/90 transition-colors",
-      },
-      {
         icon: <FaInstagram size={20} className="text-white" />,
-        link: "https://www.instagram.com/sarmientof5",
+        link: "https://www.instagram.com/canchasbertaca",
         color:
           "bg-gradient-to-r from-[#FEDA75] via-[#FA7E1E] to-[#D62976] hover:opacity-90 transition-opacity",
       },

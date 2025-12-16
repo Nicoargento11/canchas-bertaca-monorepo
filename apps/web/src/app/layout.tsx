@@ -23,8 +23,7 @@ export const metadata = {
   title: "Canchas Bertaca",
   description: "Sitio web oficial del Club Bertaca",
   icons: {
-    icon: "/images/bertaca_logo.png", // Ruta desde la carpeta /public
-    // sizes: "32x32", // <- Sugiere un tamaño de 32x32
+    icon: "/favicon.png", // Nuevo favicon de pelota de fútbol
   },
 };
 
@@ -35,9 +34,6 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es">
-      <head>
-        <link rel="icon" type="image/png" href="/images/bertaca_logo.png" />
-      </head>
       <ModalProvider>
         <ReserveProvider>
           <FramerMotionProvider>
