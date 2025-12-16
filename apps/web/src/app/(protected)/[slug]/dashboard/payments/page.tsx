@@ -47,6 +47,13 @@ const PageDashboardPayments = () => {
     loadComplex();
   }, [slug]);
 
+  // Process OAuth code when redirected back from MercadoPago
+  useEffect(() => {
+    if (code && complex?.id && !hasConfig) {
+      handleOAuthCallback(code);
+    }
+  }, [code, complex]);
+
   useEffect(() => {
     if (complex?.id && hasConfig) {
       loadPayments(complex.id);
@@ -189,9 +196,8 @@ const PageDashboardPayments = () => {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
             <div className="flex items-start gap-4">
               <div
-                className={`p-3 rounded-lg ${
-                  hasConfig ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"
-                }`}
+                className={`p-3 rounded-lg ${hasConfig ? "bg-blue-100 text-blue-600" : "bg-gray-100 text-gray-500"
+                  }`}
               >
                 <Wallet className="h-8 w-8" />
               </div>
@@ -206,14 +212,12 @@ const PageDashboardPayments = () => {
                 </p>
                 <div className="mt-3 flex items-center gap-2">
                   <span
-                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                      hasConfig ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${hasConfig ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     <span
-                      className={`h-1.5 w-1.5 rounded-full ${
-                        hasConfig ? "bg-green-500" : "bg-gray-400"
-                      }`}
+                      className={`h-1.5 w-1.5 rounded-full ${hasConfig ? "bg-green-500" : "bg-gray-400"
+                        }`}
                     />
                     {hasConfig ? "Conectado" : "No conectado"}
                   </span>
@@ -364,13 +368,12 @@ const PageDashboardPayments = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <span
-                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                            payment.status === "approved"
+                          className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${payment.status === "approved"
                               ? "bg-green-100 text-green-800"
                               : payment.status === "pending"
                                 ? "bg-yellow-100 text-yellow-800"
                                 : "bg-red-100 text-red-800"
-                          }`}
+                            }`}
                         >
                           {payment.status === "approved"
                             ? "Aprobado"
