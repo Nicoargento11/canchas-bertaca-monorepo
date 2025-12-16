@@ -286,10 +286,26 @@ function UserModal({
 
     const payload = user ? { ...formData, password: formData.password || undefined } : formData;
 
+    // Check if role is changing
+    const roleChanged = user && formData.role !== user.role;
+
     const result = user ? await updateUser(user.id, payload) : await createUser(payload);
 
     if (result.success) {
-      toast.success(user ? "Usuario actualizado" : "Usuario creado");
+      const successMessage = user ? "Usuario actualizado" : "Usuario creado";
+      toast.success(successMessage);
+
+      // Show refresh prompt if role changed
+      if (roleChanged) {
+        toast.info("El cambio de rol requiere recargar la página", {
+          duration: 6000,
+          action: {
+            label: "Recargar ahora",
+            onClick: () => window.location.reload(),
+          },
+        });
+      }
+
       onSuccess();
     } else {
       toast.error(result.error || "Error al guardar usuario");
