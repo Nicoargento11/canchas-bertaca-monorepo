@@ -207,6 +207,18 @@ function ComplexModal({
     services: complex?.services?.join(", ") || "",
   });
 
+  // Sincronizar formData cuando cambia el complex
+  useEffect(() => {
+    setFormData({
+      name: complex?.name || "",
+      address: complex?.address || "",
+      organizationId: complex?.organizationId || "",
+      email: complex?.email || "",
+      slug: complex?.slug || "",
+      services: complex?.services?.join(", ") || "",
+    });
+  }, [complex]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -215,9 +227,9 @@ function ComplexModal({
       ...formData,
       services: formData.services
         ? formData.services
-            .split(",")
-            .map((s) => s.trim())
-            .filter((s) => s)
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => s)
         : [],
     };
 

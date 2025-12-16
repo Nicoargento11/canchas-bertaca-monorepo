@@ -53,7 +53,10 @@ const handleComplexError = (error: unknown): ComplexResult => {
 export const createComplex = async (data: {
   name: string;
   address: string;
-  organizationId: string;
+  organizationId?: string;
+  email?: string;
+  slug?: string;
+  services?: string[];
 }): Promise<ComplexResult<Complex>> => {
   try {
     const response = await api.post(`/complexes`, data);
@@ -65,7 +68,8 @@ export const createComplex = async (data: {
 
 export const getComplexes = async (): Promise<ComplexResult<Complex[]>> => {
   try {
-    const response = await api.get(`/complexes`);
+    // Add timestamp to prevent caching
+    const response = await api.get(`/complexes?_t=${Date.now()}`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleComplexError(error);
@@ -83,7 +87,14 @@ export const getComplexById = async (id: string): Promise<ComplexResult<Complex>
 
 export const updateComplex = async (
   id: string,
-  data: { name?: string; address?: string; organizationId?: string }
+  data: {
+    name?: string;
+    address?: string;
+    organizationId?: string;
+    email?: string;
+    slug?: string;
+    services?: string[];
+  }
 ): Promise<ComplexResult<Complex>> => {
   try {
     const response = await api.patch(`/complexes/${id}`, data);

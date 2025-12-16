@@ -12,7 +12,7 @@ import { MercadoPagoConfig, OAuth } from 'mercadopago';
 
 @Injectable()
 export class ComplexService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(data: CreateComplexDto): Promise<Complex> {
     try {
@@ -206,14 +206,49 @@ export class ComplexService {
 
   async update(id: string, data: Prisma.ComplexUpdateInput): Promise<Complex> {
     try {
+      // Verificar que el complejo existe
+      const existingComplex = await this.prisma.complex.findUnique({
+        where: { id },
+      });
+
+      if (!existingComplex) {
+        throw new NotFoundException(`Complejo con ID ${id} no encontrado`);
+      }
+
+      // Validar slug único solo si se está actualizando
+      if (data.slug && data.slug !== existingComplex.slug) {
+        const slugExists = await this.prisma.complex.findFirst({
+          where: {
+            slug: data.slug as string,
+            id: { not: id }, // Excluir el complejo actual
+          },
+        });
+
+        if (slugExists) {
+          throw new ConflictException('Ya existe un complejo con ese slug');
+        }
+      }
+
+      // Email ya no requiere validación de unicidad - múltiples complejos pueden compartir email
+
+      // Actualizar el complejo
       return await this.prisma.complex.update({
         where: { id },
         data,
+        include: {
+          courts: true,
+          Organization: true,
+        },
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
-          throw new ConflictException('Violación de campo único');
+          // Obtener el campo que causó el conflicto
+          const field = (error.meta?.target as string[])?.join(', ') || 'campo único';
+          throw new ConflictException(`Ya existe un complejo con ese ${field}`);
+        }
+        if (error.code === 'P2025') {
+          throw new NotFoundException('Complejo no encontrado');
         }
       }
       throw error;
