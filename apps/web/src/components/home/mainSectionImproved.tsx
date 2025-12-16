@@ -142,7 +142,7 @@ export const MainSectionImproved = React.memo(
     //   }
     // };
 
-    const handleOpenBookingModal = (complexType?: "bertaca" | "seven") => {
+    const handleOpenBookingModal = React.useCallback((complexType?: "bertaca" | "seven") => {
       // Inicializar la reserva antes de abrir el modal
       const isSeven = complexType === "seven";
       const targetComplex = isSeven && sevenComplex ? sevenComplex : complex;
@@ -169,9 +169,9 @@ export const MainSectionImproved = React.memo(
 
       setPreSelectedComplex(complexType || null);
       setShowBookingModal(true);
-    };
+    }, [complex, sevenComplex, sportTypes, sevenSportTypes, initReservation]);
 
-    const handleReserveFromTable = (
+    const handleReserveFromTable = React.useCallback((
       complexId: string,
       sportType: SportTypeKey,
       sportTypeId: string,
@@ -197,7 +197,7 @@ export const MainSectionImproved = React.memo(
 
       setPreSelectedComplex(complexName);
       setShowBookingModal(true);
-    };
+    }, [sevenComplex, preloadReservation]);
 
     return (
       <>

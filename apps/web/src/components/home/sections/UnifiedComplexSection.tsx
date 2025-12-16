@@ -17,7 +17,6 @@ import {
   ChevronRight,
 } from "lucide-react";
 import Image from "next/image";
-import { m, AnimatePresence } from "framer-motion";
 import TableReservesToday from "@/components/TableReservesToday";
 import { Complex } from "@/services/complex/complex";
 import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
@@ -48,49 +47,56 @@ interface UnifiedComplexSectionProps {
   ) => void;
 }
 
-const ImageSlider = ({ images }: { images: string[] }) => {
+const ImageSlider = React.memo(({ images }: { images: string[] }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
-  const nextSlide = () => {
+  const nextSlide = React.useCallback(() => {
     setCurrentIndex((prev) => (prev + 1) % images.length);
-  };
+  }, [images.length]);
 
-  const prevSlide = () => {
+  const prevSlide = React.useCallback(() => {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
-  };
+  }, [images.length]);
 
   return (
     <div className="relative aspect-video rounded-3xl overflow-hidden border-2 border-white/10 shadow-2xl group">
-      <AnimatePresence mode="wait">
-        <m.div
-          key={currentIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.5 }}
-          className="relative w-full h-full"
-        >
-          <Image
-            src={images[currentIndex]}
-            alt={`Slide ${currentIndex}`}
-            fill
-            className="object-cover"
-            sizes="(max-width: 768px) 100vw, 50vw"
-          />
-        </m.div>
-      </AnimatePresence>
+      {/* Image container with CSS-only transitions */}
+      <div className="relative w-full h-full">
+        {images.map((img, idx) => (
+          <div
+            key={idx}
+            className="absolute inset-0 transition-opacity duration-500 ease-in-out"
+            style={{
+              opacity: idx === currentIndex ? 1 : 0,
+              pointerEvents: idx === currentIndex ? 'auto' : 'none',
+              willChange: 'opacity',
+            }}
+          >
+            <Image
+              src={img}
+              alt={`Slide ${idx}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              {...(idx === 0 ? { priority: true } : { loading: 'lazy' as const })}
+            />
+          </div>
+        ))}
+      </div>
 
       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-80 pointer-events-none"></div>
 
       <button
         onClick={prevSlide}
         className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label="Previous image"
       >
         <ChevronLeft size={24} />
       </button>
       <button
         onClick={nextSlide}
         className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        aria-label="Next image"
       >
         <ChevronRight size={24} />
       </button>
@@ -105,7 +111,9 @@ const ImageSlider = ({ images }: { images: string[] }) => {
       </div>
     </div>
   );
-};
+});
+
+ImageSlider.displayName = "ImageSlider";
 
 export const UnifiedComplexSection = React.memo(
   ({
@@ -213,12 +221,10 @@ export const UnifiedComplexSection = React.memo(
             {/* BERTACA CONTENT */}
             <TabsContent value="bertaca" className="mt-0 focus-visible:outline-none space-y-16">
               {/* 1. Availability Table */}
-              <m.div
+              <div
                 id="TurnosHoy-bertaca"
                 className="scroll-mt-32"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}
               >
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                   <span className="w-2 h-8 bg-Primary rounded-full"></span>
@@ -239,10 +245,13 @@ export const UnifiedComplexSection = React.memo(
                     </div>
                   )}
                 </div>
-              </m.div>
+              </div>
 
               {/* 2. Complex Details & Slider */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
+              <div
+                className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12"
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '0 400px' }}
+              >
                 <div className="space-y-8">
                   <div className="bg-slate-900/50 border border-white/10 rounded-3xl p-6 sm:p-8 backdrop-blur-sm">
                     <h3 className="text-3xl font-bold text-white mb-2 flex items-center gap-3">
@@ -304,12 +313,10 @@ export const UnifiedComplexSection = React.memo(
             {/* SEVEN CONTENT */}
             <TabsContent value="seven" className="mt-0 focus-visible:outline-none space-y-16">
               {/* 1. Availability Table */}
-              <m.div
+              <div
                 id="TurnosHoy-seven"
                 className="scroll-mt-32"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.4 }}
+                style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}
               >
                 <h3 className="text-2xl font-bold text-white mb-6 flex items-center gap-2">
                   <span className="w-2 h-8 bg-green-600 rounded-full"></span>
@@ -330,7 +337,7 @@ export const UnifiedComplexSection = React.memo(
                     </div>
                   )}
                 </div>
-              </m.div>
+              </div>
 
               {/* 2. Complex Details & Slider */}
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12">
@@ -489,7 +496,10 @@ const LocationSection = ({
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div
+      className="grid grid-cols-1 lg:grid-cols-2 gap-8"
+      style={{ contentVisibility: 'auto', containIntrinsicSize: '0 500px' }}
+    >
       <div className="rounded-3xl p-8 bg-slate-900/50 border border-white/10 backdrop-blur-sm">
         <h3 className="text-2xl font-bold text-white mb-8">Contactanos</h3>
         <div className="space-y-6">
@@ -535,6 +545,8 @@ const LocationSection = ({
           style={{ border: 0, minHeight: '400px' }}
           allowFullScreen
           loading="lazy"
+          referrerPolicy="no-referrer-when-downgrade"
+          title={`Mapa de ${address}`}
           className="grayscale hover:grayscale-0 transition-all duration-500"
         ></iframe>
 
