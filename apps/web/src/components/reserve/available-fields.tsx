@@ -136,7 +136,7 @@ const AvailableFields = ({ complex, sportTypes, targetStep = 2, complexName }: A
       <h2 className="text-center font-bold text-2xl text-white mb-6">Canchas disponibles</h2>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative">
-        <div className="space-y-3 relative max-h-[400px] overflow-y-auto overflow-x-hidden pr-2 w-full scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent">
+        <div className="space-y-3 relative max-h-[400px] overflow-y-auto overflow-x-hidden pr-2 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {allFields.length <= 0 ? (
             <div>
               <CheckCircle2 className="mx-auto h-12 w-12 text-white/40" />
@@ -151,9 +151,9 @@ const AvailableFields = ({ complex, sportTypes, targetStep = 2, complexName }: A
                 key={`${field.id}-${field.sportTypeKey}`}
                 onClick={() => handleFieldSelect(field)}
                 className={`${currentReservation?.form.field === field.id
-                    ? "ring-2 ring-Primary bg-Primary/20 scale-105"
-                    : "hover:bg-white/10"
-                  } p-3 rounded-lg border border-white/20 bg-white/5 transition-all cursor-pointer shadow-xs`}
+                  ? "ring-2 ring-Primary bg-Primary/30 shadow-lg shadow-Primary/50"
+                  : "hover:bg-white/10"
+                  } p-3 rounded-lg border border-white/20 bg-white/5 transition-all cursor-pointer`}
               >
                 <div className="flex items-center gap-3">
                   <div className="p-2 rounded-full bg-Primary/20 text-Primary">

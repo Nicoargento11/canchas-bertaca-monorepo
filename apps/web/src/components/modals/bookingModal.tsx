@@ -460,7 +460,7 @@ const BookingModal = ({
         </div>
 
         {/* Contenido del Modal según el Step */}
-        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1 scrollbar-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
           {/* STEP 0: Date & Time Selection */}
           {currentStep === 0 && (
             <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
