@@ -21,7 +21,7 @@ export const ReviewModal = () => {
 
   // Fetch complexes when modal opens
   useEffect(() => {
-    if (isModalOpen) {
+    if (isModalOpen("REVIEW")) {
       const fetchComplexes = async () => {
         setLoadingComplexes(true);
         const result = await getComplexes();
@@ -42,7 +42,7 @@ export const ReviewModal = () => {
 
   // Reset state when modal opens/closes
   useEffect(() => {
-    if (!isModalOpen) {
+    if (!isModalOpen("REVIEW")) {
       setRating(0);
       setComment("");
       setHover(0);
@@ -199,8 +199,8 @@ export const ReviewModal = () => {
                             onClick={() => setSelectedComplexId(complex.id)}
                             disabled={isSubmitting}
                             className={`relative p-4 rounded-xl border-2 transition-all duration-300 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${isSelected
-                                ? `${colorScheme.activeBorder} ${colorScheme.activeBg} shadow-lg ${colorScheme.activeGlow}`
-                                : `${colorScheme.border} ${colorScheme.bg} hover:${colorScheme.activeBorder} hover:shadow-md`
+                              ? `${colorScheme.activeBorder} ${colorScheme.activeBg} shadow-lg ${colorScheme.activeGlow}`
+                              : `${colorScheme.border} ${colorScheme.bg} hover:${colorScheme.activeBorder} hover:shadow-md`
                               }`}
                           >
                             <div className="flex flex-col items-center gap-2">
