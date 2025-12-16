@@ -141,7 +141,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
             </span>
           </button>
           <button
-            onClick={() => openModal("REVIEW", { complexId: "bertaca" })} // Default to bertaca or handle logic
+            onClick={() => openModal("REVIEW")} // User will select complex inside modal
             className="group flex items-center gap-2 px-4 py-2 sm:px-5 sm:py-2.5 rounded-lg sm:rounded-xl border-2 border-white/20 bg-transparent hover:border-white/40 hover:bg-white/5 transition-all duration-300 backdrop-blur-sm cursor-pointer"
           >
             <Star
