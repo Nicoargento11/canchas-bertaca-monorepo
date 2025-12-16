@@ -19,10 +19,9 @@ import { FixedSchedules } from "./components/FixedSchedules";
 
 interface PlayerProfileProps {
   userData: User;
-  slug: string;
 }
 
-export default function PlayerProfile({ userData, slug }: PlayerProfileProps) {
+export default function PlayerProfile({ userData }: PlayerProfileProps) {
   const router = useRouter();
   const [reserves, setReserves] = useState(userData?.reserves || []);
 
