@@ -11,6 +11,7 @@ import {
   AlertCircle,
   Phone,
   Icon,
+  MessageCircle,
 } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -116,9 +117,28 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
             <div className="flex items-center gap-4">
               <Phone className="text-Primary" size={20} />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm text-white/60 font-medium">Teléfono</p>
-                <p className="font-medium text-white">{reserve.phone || "No especificado"}</p>
+                <div className="flex items-center gap-2">
+                  <p className="font-medium text-white">{reserve.phone || "No especificado"}</p>
+                  {reserve.phone && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 px-2 bg-green-600/10 hover:bg-green-600/20 border-green-600/30 text-green-400 hover:text-green-300"
+                      onClick={() => {
+                        // Format phone for WhatsApp (remove spaces, dashes, etc)
+                        const cleanPhone = reserve.phone!.replace(/[^0-9+]/g, '');
+                        const message = `Hola ${reserve.clientName || reserve.user.name}, te contacto sobre tu reserva del ${date ? format(new Date(date), 'dd/MM/yyyy') : ''} a las ${reserve.schedule} en Cancha ${reserve.court.courtNumber}.`;
+                        const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
+                        window.open(url, '_blank');
+                      }}
+                    >
+                      <MessageCircle className="w-3 h-3 mr-1" />
+                      WhatsApp
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </CardContent>
@@ -244,14 +264,14 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
         {(userSession?.user.role === "COMPLEJO_ADMIN" ||
           userSession?.user.role === "SUPER_ADMIN") && (
-          <Button
-            onClick={() => handleDeleteReserve(reserve.id)}
-            // disabled={}
-            className="w-full bg-Error hover:bg-Error-dark text-white py-4 text-base font-medium"
-          >
-            Eliminar Reserva
-          </Button>
-        )}
+            <Button
+              onClick={() => handleDeleteReserve(reserve.id)}
+              // disabled={}
+              className="w-full bg-Error hover:bg-Error-dark text-white py-4 text-base font-medium"
+            >
+              Eliminar Reserva
+            </Button>
+          )}
       </div>
     ) : (
       <div className="flex justify-center items-center h-32">

@@ -26,7 +26,7 @@ export class ReservesController {
     private readonly scheduleHelper: ScheduleHelper,
     private readonly complexesService: ComplexService,
     private readonly sportTypesService: SportTypesService,
-  ) {}
+  ) { }
 
   // ----------------------------
   // OPERACIONES CRUD BÁSICAS
@@ -133,6 +133,8 @@ export class ReservesController {
     @Query('complexId') complexId: string,
     @Query('sportTypeId') sportTypeId: string,
   ) {
+    console.log('🔍 [Backend] getReservationsByDay called:', { date, complexId, sportTypeId });
+
     this.validateDateQueryParam(date);
     const parsedDate = this.parseDate(date);
 
@@ -142,7 +144,10 @@ export class ReservesController {
       sportTypeId,
     );
 
+    console.log('📋 [Backend] Schedule info:', scheduleInfo ? `Found ${scheduleInfo.schedules.length} schedules` : 'No schedules found');
+
     if (!scheduleInfo) {
+      console.log('❌ [Backend] No schedule info - returning empty array');
       return [];
     }
 
@@ -152,10 +157,16 @@ export class ReservesController {
       sportTypeId,
     );
 
-    return this.scheduleHelper.getReservationsBySchedule(
+    console.log('📊 [Backend] Raw reservations from DB:', { count: reservations.length, reservations });
+
+    const result = this.scheduleHelper.getReservationsBySchedule(
       scheduleInfo,
       reservations,
     );
+
+    console.log('✅ [Backend] Final result:', { count: result.length, result });
+
+    return result;
   }
 
   @Get('availability/schedule')
