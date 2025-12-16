@@ -191,6 +191,17 @@ model Complex {
   isActive Boolean  @default(true)
   services String[]
 
+  // Social media and contact information
+  phone          String? // WhatsApp number in international format: +5493624895303
+  instagram      String? // Instagram profile URL
+  facebook       String? // Facebook page URL
+  googleMapsUrl  String? // Google Maps location URL
+  latitude       Float? // Latitude for map embed
+  longitude      Float? // Longitude for map embed
+  description    String? // Complex description
+  logo           String? // Logo URL or path
+  coverImage     String? // Cover image URL or path
+
   managers        User[]
   courts          Court[]
   reserves        Reserve[]
