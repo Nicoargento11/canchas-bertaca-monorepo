@@ -16,6 +16,7 @@ export type Complex = {
   services: string[];
   isActive: boolean;
   organizationId?: string | null;
+  googleMapsUrl?: string | null;
   organization?: {
     name: string;
   };

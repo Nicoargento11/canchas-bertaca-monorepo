@@ -42,7 +42,7 @@ export class PaymentsController {
     private readonly mailService: MailService,
     private readonly prisma: PrismaService,
     private jwtService: JwtService,
-  ) {}
+  ) { }
   @Get('search')
   async searchPayments(@Query('complexId') complexId: string) {
     if (!complexId) {
@@ -51,7 +51,6 @@ export class PaymentsController {
     return await this.paymentsService.searchPayments(complexId);
   }
 
-  // TODO quitar public
   @Post('create')
   @ApiOperation({ summary: 'Crear pago online y reserva asociada' })
   @ApiResponse({
@@ -60,65 +59,112 @@ export class PaymentsController {
     type: PaymentPreferenceResponseDto,
   })
   async createPayment(@Body() createPaymentDto: CreatePaymentOnlineDto) {
-    // TODO simplificar al objeto y usar spread operator para pasar los datos y verificar que funcione
-    // const utcDate = new Date(
-    //   Date.UTC(
-    //     createPaymentDto.date.getFullYear(),
-    //     createPaymentDto.date.getMonth(),
-    //     createPaymentDto.date.getDate(),
-    //   ),
-    // );
-    const courtData = await this.courtService.findOne(createPaymentDto.courtId);
-    const complex = await this.complexService.findOne(
-      createPaymentDto.complexId,
-    );
-    const utcDate = this.convertToUTC(createPaymentDto.date);
-    // Crear DTO para la reserva
-    const expiresAt = new Date(Date.now() + 20 * 60 * 1000); // 20 minutos
-    const createReserveDto: CreateReserveDto = {
-      ...createPaymentDto,
-      date: utcDate,
-      status: 'PENDIENTE',
-      clientName: createPaymentDto.clientName || '',
-      reserveType: createPaymentDto.reserveType,
-      ...(createPaymentDto.fixedReserveId && {
-        fixedReserveId: createPaymentDto.fixedReserveId,
-      }),
-      expiresAt: expiresAt,
-    };
+    try {
+      // STEP 1: Validate and get data
+      const courtData = await this.courtService.findOne(createPaymentDto.courtId);
+      const complex = await this.complexService.findOne(
+        createPaymentDto.complexId,
+      );
+      const utcDate = this.convertToUTC(createPaymentDto.date);
 
-    // Crear reserva
-    const reserve = await this.reserveService.create(createReserveDto);
-    this.reserveService.setReservationTimeout(reserve.id, 20 * 60 * 1000);
+      // STEP 2: Validate MercadoPago configuration BEFORE creating anything
+      const hasMP = await this.complexService.hasMercadoPagoConfig(complex.id);
+      if (!hasMP) {
+        throw new HttpException(
+          {
+            message: 'Este complejo no tiene MercadoPago configurado. Por favor contactá al administrador del complejo.',
+            code: 'MP_NOT_CONFIGURED',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
 
-    const preference = await this.paymentsService.createPreference({
-      ...createPaymentDto,
-      // date: utcDate,
-      reserveId: reserve.id,
-      court: courtData,
-      complex: complex,
-    });
-    const paymentToken = this.jwtService.sign({
-      court: createPaymentDto.courtId,
-      date: utcDate,
-      schedule: createPaymentDto.schedule,
-    });
+      // STEP 3: Create DTO for reserve (but don't save yet)
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 20 minutes
+      const createReserveDto: CreateReserveDto = {
+        ...createPaymentDto,
+        date: utcDate,
+        status: 'PENDIENTE',
+        clientName: createPaymentDto.clientName || '',
+        reserveType: createPaymentDto.reserveType,
+        ...(createPaymentDto.fixedReserveId && {
+          fixedReserveId: createPaymentDto.fixedReserveId,
+        }),
+        expiresAt: expiresAt,
+      };
 
-    await this.userService.update(createPaymentDto.userId, {
-      phone: createPaymentDto.phone,
-    });
-    await this.reserveService.update(preference.items[0].id, {
-      paymentUrl: preference.init_point,
-      paymentToken,
-      userId: createPaymentDto.userId,
-      courtId: createPaymentDto.courtId,
-      date: utcDate,
-      schedule: createPaymentDto.schedule,
-      complexId: createPaymentDto.complexId,
-    });
+      // STEP 4: Create reserve first (webhook needs this ID)
+      const reserve = await this.reserveService.create(createReserveDto);
+      this.reserveService.setReservationTimeout(reserve.id, 15 * 60 * 1000);
 
-    // TODO logica del token expire
-    return preference;
+      // STEP 5: Try to create MP preference with REAL reserve ID
+      let preference;
+      try {
+        preference = await this.paymentsService.createPreference({
+          ...createPaymentDto,
+          reserveId: reserve.id, // ← ID real para que webhook funcione
+          court: courtData,
+          complex: complex,
+        });
+      } catch (mpError) {
+        // MP failed - ROLLBACK: delete the reserve we just created
+        console.error('MercadoPago preference creation failed:', mpError);
+
+        try {
+          await this.reserveService.remove(reserve.id);
+          console.log(`Reserve ${reserve.id} rolled back due to MP failure`);
+        } catch (deleteError) {
+          console.error('Failed to rollback reserve:', deleteError);
+        }
+
+        throw new HttpException(
+          {
+            message: 'Error al generar el link de pago. Por favor intentá nuevamente. Si el problema persiste, contactá al complejo.',
+            code: 'MP_PREFERENCE_FAILED',
+            details: mpError.message,
+          },
+          HttpStatus.INTERNAL_SERVER_ERROR,
+        );
+      }
+
+      // STEP 6: Update reserve with payment info
+      const paymentToken = this.jwtService.sign({
+        court: createPaymentDto.courtId,
+        date: utcDate,
+        schedule: createPaymentDto.schedule,
+      });
+
+      await this.userService.update(createPaymentDto.userId, {
+        phone: createPaymentDto.phone,
+      });
+
+      await this.reserveService.update(reserve.id, {
+        paymentUrl: preference.init_point,
+        paymentToken,
+        userId: createPaymentDto.userId,
+        courtId: createPaymentDto.courtId,
+        date: utcDate,
+        schedule: createPaymentDto.schedule,
+        complexId: createPaymentDto.complexId,
+      });
+
+      return preference;
+    } catch (error) {
+      // Re-throw HttpExceptions as-is
+      if (error instanceof HttpException) {
+        throw error;
+      }
+
+      // Wrap unexpected errors
+      console.error('Unexpected error in createPayment:', error);
+      throw new HttpException(
+        {
+          message: 'Error inesperado al procesar la reserva. Por favor intentá nuevamente.',
+          code: 'UNEXPECTED_ERROR',
+        },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
   @Public()
   @Post('mercadopago')
@@ -345,9 +391,8 @@ ${reserve.complex.website ? '\n' + reserve.complex.website : ''}
         <li><strong>Fecha:</strong> ${new Date(reserve.date).toLocaleDateString('es-ES', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</li>
         <li><strong>Hora:</strong> ${reserve.schedule}</li>
         <li><strong>Cancha:</strong> ${reserve.court.name} (N° ${reserve.court.courtNumber})</li>
-        ${
-          reserve.court.characteristics?.length
-            ? `
+        ${reserve.court.characteristics?.length
+        ? `
           <li>
             <strong>Características:</strong>
             <ul style="padding-left: 20px; margin-top: 5px;">
@@ -355,8 +400,8 @@ ${reserve.complex.website ? '\n' + reserve.complex.website : ''}
             </ul>
           </li>
         `
-            : ''
-        }
+        : ''
+      }
       </ul>
     </div>
 

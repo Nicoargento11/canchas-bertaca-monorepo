@@ -14,7 +14,7 @@ import {
   Building2,
   CreditCard,
 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
@@ -49,8 +49,9 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
 
   // Obtener el próximo partido más cercano
   const nextMatch = reserves[0];
+  const matchDate = new Date(nextMatch.date);
   const daysUntil = Math.ceil(
-    (new Date(nextMatch.date).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
+    (matchDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
   );
 
   return (
@@ -72,10 +73,10 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
           </div>
           <div className="text-right">
             <div className="text-3xl sm:text-4xl font-black text-green-400">
-              {format(new Date(nextMatch.date), "dd", { locale: es })}
+              {format(matchDate, "dd", { locale: es })}
             </div>
             <div className="text-sm sm:text-base text-white/80 font-semibold">
-              {format(new Date(nextMatch.date), "MMM", { locale: es })}
+              {format(matchDate, "MMM", { locale: es })}
             </div>
           </div>
         </div>
@@ -120,7 +121,14 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
               Continuar Pago
             </Button>
           )}
-          <Button className="w-full sm:flex-1 bg-Primary/10 hover:bg-Primary/20 text-Primary border border-Primary/20">
+          <Button
+            className="w-full sm:flex-1 bg-Primary/10 hover:bg-Primary/20 text-Primary border border-Primary/20"
+            onClick={() => {
+              const mapsUrl = nextMatch.complex?.googleMapsUrl ||
+                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextMatch.complex?.address || '')}`;
+              window.open(mapsUrl, '_blank');
+            }}
+          >
             <MapPin className="w-4 h-4 mr-2" />
             Cómo llegar
           </Button>

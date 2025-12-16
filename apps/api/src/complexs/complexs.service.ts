@@ -426,11 +426,14 @@ export class ComplexService {
    * Verificar si un complejo tiene configuración de MercadoPago activa
    */
   async hasMercadoPagoConfig(complexId: string): Promise<boolean> {
-    const config = await this.prisma.paymentConfig.findUnique({
-      where: { complexId, isActive: true },
+    const config = await this.prisma.paymentConfig.findFirst({
+      where: {
+        complexId,
+        isActive: true
+      },
     });
 
-    return !!config;
+    return !!config && !!config.accessToken;
   }
 
   /**
