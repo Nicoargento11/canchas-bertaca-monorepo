@@ -49,7 +49,12 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
 
   // Obtener el próximo partido más cercano
   const nextMatch = reserves[0];
-  const matchDate = new Date(nextMatch.date);
+
+  // Fix: Parse only date portion to avoid timezone conversion
+  // DB stores as "2025-12-16 00:00:00" UTC, we want to display "16" not "15"
+  const dateString = nextMatch.date.toString().split('T')[0]; // "2025-12-16"
+  const matchDate = parseISO(dateString); // Parses as local date without time
+
   const daysUntil = Math.ceil(
     (matchDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -101,7 +106,23 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
           </div>
 
           <div className="flex items-center gap-3 bg-white/10 rounded-lg p-3 sm:col-span-2">
-            <Building2 className="w-5 h-5 text-Primary flex-shrink-0" />
+            <div className="p-2 rounded-full bg-green-500/20">
+              {nextMatch.complex?.slug === 'seven' ? (
+                <img
+                  src="/images/seven_logo.png"
+                  alt="Seven"
+                  className="w-5 h-5 object-contain"
+                />
+              ) : nextMatch.complex?.slug === 'bertaca' ? (
+                <img
+                  src="/images/bertaca_logo.png"
+                  alt="Bertaca"
+                  className="w-5 h-5 object-contain"
+                />
+              ) : (
+                <Building2 className="w-5 h-5 text-green-400" />
+              )}
+            </div>
             <div>
               <div className="text-xs text-white/60">Complejo</div>
               <div className="text-sm sm:text-base font-bold text-white truncate">
@@ -124,8 +145,21 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
           <Button
             className="w-full sm:flex-1 bg-Primary/10 hover:bg-Primary/20 text-Primary border border-Primary/20"
             onClick={() => {
-              const mapsUrl = nextMatch.complex?.googleMapsUrl ||
-                `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextMatch.complex?.address || '')}`;
+              // Priority: 1) googleMapsUrl, 2) address, 3) complex name
+              let mapsUrl;
+
+              if (nextMatch.complex?.googleMapsUrl) {
+                mapsUrl = nextMatch.complex.googleMapsUrl;
+              } else if (nextMatch.complex?.address) {
+                mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextMatch.complex.address)}`;
+              } else if (nextMatch.complex?.name) {
+                // Fallback to complex name
+                mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextMatch.complex.name)}`;
+              } else {
+                alert('No hay información de ubicación disponible');
+                return;
+              }
+
               window.open(mapsUrl, '_blank');
             }}
           >
