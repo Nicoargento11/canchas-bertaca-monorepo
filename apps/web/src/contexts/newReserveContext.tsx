@@ -118,8 +118,6 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
       const reservationType = getReservationType(effectiveComplexName);
       const savedData = loadReservationData(reservationType);
 
-      console.log(`[RESERVA] initReservation tipo:${reservationType}, savedData:`, savedData);
-
       // Si hay datos guardados, usarlos; de lo contrario, valores por defecto
       const initialForm = savedData
         ? {
@@ -183,7 +181,6 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
       field: reservationData.field,
       metadata: reservationData.metadata,
     };
-    console.log(`[RESERVA] preloadReservation tipo:${reservationType}`, dataToSave);
     saveReservationData(reservationType, dataToSave);
 
     setState((prev) => ({
@@ -232,7 +229,6 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
         field: updatedForm.field,
         metadata: updatedForm.metadata,
       };
-      console.log(`[RESERVA] updateReservationForm tipo:${reservationType}, campo:${field}`, dataToSave);
       saveReservationData(reservationType, dataToSave);
 
       return {

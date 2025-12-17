@@ -372,6 +372,7 @@ export class ReservesService implements OnModuleInit {
           select: {
             id: true,
             name: true,
+            courtNumber: true,
             sportType: { select: { name: true } },
           },
         },
