@@ -36,23 +36,30 @@ export const ReservationDashboardProvider = ({ children }: { children: React.Rea
   };
 
   const fetchReservationsByDay = async (date: string, complexId: string, sportTypeId?: string) => {
+    console.log('🔍 [Dashboard] Fetching reservations...', { date, complexId, sportTypeId });
     setState((prev) => ({ ...prev, loading: true }));
 
     try {
       const { success, data } = await getReservationsByDay(date, complexId, sportTypeId);
 
+      console.log('📊 [Dashboard] API Response:', { success, dataLength: data?.length, data });
+
       if (!success || !data) {
+        console.error('❌ [Dashboard] Error: no success or no data');
         toast.error("Error al obtener las reservas");
         setState((prev) => ({ ...prev, loading: false }));
         return;
       }
-      setState({
-        ...state,
+
+      console.log('✅ [Dashboard] Setting state with data:', data);
+      setState((prev) => ({
+        ...prev,
         reservationsByDay: data,
         loading: false,
         selectedDate: date,
-      });
+      }));
     } catch (error) {
+      console.error('💥 [Dashboard] Caught error:', error);
       toast.error("Error al obtener las reservas");
       setState((prev) => ({ ...prev, loading: false }));
     }

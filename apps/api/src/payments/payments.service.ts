@@ -14,7 +14,7 @@ export class PaymentsService {
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
     private prisma: PrismaService,
-  ) {}
+  ) { }
 
   // @Cron(CronExpression.EVERY_10_MINUTES)
   // async checkExpiredReservations() {
@@ -108,6 +108,9 @@ export class PaymentsService {
         year: 'numeric',
       })
       .replace(/\//g, '-');
+
+    // Build detailed description
+    const courtName = court.name || `Cancha ${court.courtNumber}`;
     try {
       const payment = await new Preference(client).create({
         body: {
@@ -116,8 +119,8 @@ export class PaymentsService {
               picture_url:
                 'https://http2.mlstatic.com/D_NQ_NP_2X_711116-MLA46114833477_052021-F.jpg',
               id: reserveId,
-              title: `Reserva C${court.courtNumber || court.name} - ${schedule} (${formattedDate})`,
-              description: `Reserva de cancha ${courtId} para el ${formattedDate}`,
+              title: `${courtName} - ${schedule}`,
+              description: `${complex.name} - ${formattedDate}`,
               unit_price: Number(reservationAmount),
               currency_id: 'ARS',
               quantity: 1,

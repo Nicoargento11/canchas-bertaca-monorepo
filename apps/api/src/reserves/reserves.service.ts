@@ -16,7 +16,7 @@ export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   private timeouts = new Map<string, NodeJS.Timeout>();
 
@@ -187,6 +187,16 @@ export class ReservesService implements OnModuleInit {
     userId: string,
     excludeId?: string,
   ) {
+    // Get user to check role
+    const user = await this.usersService.findOne(userId);
+
+    // Skip validation for staff roles (admins, recepción)
+    // Only USER role should be restricted from having multiple pending reserves
+    const staffRoles = ['SUPER_ADMIN', 'ORGANIZACION_ADMIN', 'COMPLEJO_ADMIN', 'RECEPCION'];
+    if (user && staffRoles.includes(user.role)) {
+      return; // Staff can have pending reserves
+    }
+
     const where: any = {
       userId,
       status: 'PENDIENTE',
@@ -432,6 +442,7 @@ export class ReservesService implements OnModuleInit {
           select: {
             id: true,
             name: true,
+            courtNumber: true,
           },
         },
       },
