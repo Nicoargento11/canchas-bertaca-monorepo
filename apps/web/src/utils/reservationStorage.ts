@@ -5,15 +5,26 @@
  * - general: reservas sin preselección de complejo
  * - bertaca: reservas con preselección del complejo Bertaca
  * - seven: reservas con preselección del complejo Seven
+ * 
+ * Los datos expiran automáticamente después de 15 minutos para evitar confusión
+ * con datos obsoletos.
  */
 
 export type ReservationType = 'general' | 'bertaca' | 'seven';
+
+// TTL en milisegundos (15 minutos)
+const TTL_DURATION = 15 * 60 * 1000;
 
 interface ReservationFormData {
     day?: string; // ISO string de la fecha
     hour?: string;
     field?: string;
     metadata?: Record<string, any>;
+}
+
+interface StoredReservationData extends ReservationFormData {
+    _timestamp: number; // Timestamp de cuando se guardó
+    _expiresAt: number; // Timestamp de cuando expira
 }
 
 const STORAGE_KEYS: Record<ReservationType, string> = {
@@ -37,7 +48,7 @@ function isLocalStorageAvailable(): boolean {
 }
 
 /**
- * Guarda los datos de reserva en localStorage
+ * Guarda los datos de reserva en localStorage con TTL
  * @param type - Tipo de reserva (general, bertaca, seven)
  * @param data - Datos del formulario a guardar
  */
@@ -52,7 +63,13 @@ export function saveReservationData(
 
     try {
         const key = STORAGE_KEYS[type];
-        const serialized = JSON.stringify(data);
+        const now = Date.now();
+        const dataWithTTL: StoredReservationData = {
+            ...data,
+            _timestamp: now,
+            _expiresAt: now + TTL_DURATION,
+        };
+        const serialized = JSON.stringify(dataWithTTL);
         localStorage.setItem(key, serialized);
     } catch (error) {
         console.error(`Error al guardar datos de reserva (${type}):`, error);
@@ -60,9 +77,9 @@ export function saveReservationData(
 }
 
 /**
- * Carga los datos de reserva desde localStorage
+ * Carga los datos de reserva desde localStorage y valida TTL
  * @param type - Tipo de reserva (general, bertaca, seven)
- * @returns Datos del formulario o null si no hay datos guardados
+ * @returns Datos del formulario o null si no hay datos guardados o están expirados
  */
 export function loadReservationData(
     type: ReservationType
@@ -79,7 +96,7 @@ export function loadReservationData(
             return null;
         }
 
-        const data = JSON.parse(stored) as ReservationFormData;
+        const data = JSON.parse(stored) as StoredReservationData;
 
         // Validación básica de los datos
         if (typeof data !== 'object' || data === null) {
@@ -88,7 +105,25 @@ export function loadReservationData(
             return null;
         }
 
-        return data;
+        // Verificar si los datos tienen TTL (compatibilidad con datos viejos)
+        if (!data._expiresAt) {
+            // Datos sin TTL, limpiar y retornar null
+            console.warn(`Datos sin TTL en localStorage para ${type}, limpiando...`);
+            clearReservationData(type);
+            return null;
+        }
+
+        // Verificar si los datos expiraron
+        const now = Date.now();
+        if (now > data._expiresAt) {
+            clearReservationData(type);
+            return null;
+        }
+
+        // Datos válidos y no expirados
+        // Remover metadata interna antes de retornar
+        const { _timestamp, _expiresAt, ...cleanData } = data;
+        return cleanData;
     } catch (error) {
         console.error(`Error al cargar datos de reserva (${type}):`, error);
         return null;
