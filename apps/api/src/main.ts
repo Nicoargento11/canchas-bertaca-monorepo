@@ -44,6 +44,8 @@ async function bootstrap() {
         'http://localhost:3000',
         'https://svgvr0cl-3000.brs.devtunnels.ms',
         'https://canchas-bertaca-monorepo-web.vercel.app',
+        'https://reservasfutbol.com.ar',
+        'https://www.reservasfutbol.com.ar',
         process.env.FRONT_END_URL,
       ].filter(Boolean); // Elimina valores undefined/null
 
