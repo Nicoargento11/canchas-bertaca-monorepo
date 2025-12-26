@@ -179,7 +179,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
             </span>
           </div>
           <div className="flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg bg-white/5 backdrop-blur-sm border border-white/10">
-            <Shield className="text-Success" size={16} />
+            <img src="/images/Insignia.png" alt="Checkout Pro" className="h-4 sm:h-5 w-auto" />
             <span className="font-semibold text-white/90 text-xs sm:text-sm">Pago seguro</span>
           </div>
         </m.div>
@@ -206,7 +206,7 @@ const PremiumShortcutCards = React.memo(
           {/* Premium Card Bertaca (F5) */}
           <button
             onClick={() => onOpenModal("bertaca")}
-            className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2"
+            className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2 active:scale-[0.98] cursor-pointer"
             style={{
               background: "rgba(15, 23, 42, 0.6)",
               backdropFilter: "blur(20px)",
@@ -266,17 +266,6 @@ const PremiumShortcutCards = React.memo(
                 </p>
               </div>
             </div>
-
-            <div
-              className="absolute top-3 right-3 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider"
-              style={{
-                background: "linear-gradient(135deg, #3B82F6 0%, #FBBF24 100%)",
-                boxShadow: "0 4px 12px rgba(59, 130, 246, 0.4)",
-              }}
-            >
-              ACCESO DIRECTO
-            </div>
-
             <div
               className="absolute bottom-4 right-4 w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse"
               style={{
@@ -288,7 +277,7 @@ const PremiumShortcutCards = React.memo(
           {/* Premium Card Seven (F7) */}
           <button
             onClick={() => onOpenModal("seven")}
-            className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2"
+            className="group relative overflow-hidden rounded-3xl transition-all duration-500 hover:scale-[1.05] hover:-translate-y-2 active:scale-[0.98] cursor-pointer"
             style={{
               background: "rgba(15, 23, 42, 0.6)",
               backdropFilter: "blur(20px)",
@@ -348,17 +337,6 @@ const PremiumShortcutCards = React.memo(
                 </p>
               </div>
             </div>
-
-            <div
-              className="absolute top-3 right-3 px-3 py-1.5 rounded-full text-[10px] sm:text-xs font-bold tracking-wider text-white"
-              style={{
-                background: "linear-gradient(135deg, #22C55E 0%, #10B981 100%)",
-                boxShadow: "0 4px 12px rgba(34, 197, 94, 0.4)",
-              }}
-            >
-              ACCESO DIRECTO
-            </div>
-
             <div
               className="absolute bottom-4 right-4 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"
               style={{

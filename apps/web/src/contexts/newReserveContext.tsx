@@ -179,6 +179,10 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
       day: reservationData.day instanceof Date ? reservationData.day.toISOString() : reservationData.day,
       hour: reservationData.hour,
       field: reservationData.field,
+      complexId: complexId, // Guardar el ID del complejo
+      complexName: complexName, // Guardar qué complejo se eligió
+      sportType: sportType, // Guardar el tipo de deporte
+      sportTypeId: sportTypeId, // Guardar el ID del deporte
       metadata: reservationData.metadata,
     };
     saveReservationData(reservationType, dataToSave);
@@ -227,6 +231,10 @@ export const ReserveProvider = ({ children }: { children: React.ReactNode }) => 
         day: updatedForm.day instanceof Date ? updatedForm.day.toISOString() : updatedForm.day,
         hour: updatedForm.hour,
         field: updatedForm.field,
+        complexId: complexId, // Guardar el ID del complejo
+        complexName: complexName, // Guardar qué complejo se eligió
+        sportType: sportType, // Guardar el tipo de deporte
+        sportTypeId: prev.currentReservation.sportTypeId, // Guardar el ID del deporte
         metadata: updatedForm.metadata,
       };
       saveReservationData(reservationType, dataToSave);

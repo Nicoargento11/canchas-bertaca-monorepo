@@ -19,6 +19,10 @@ interface ReservationFormData {
     day?: string; // ISO string de la fecha
     hour?: string;
     field?: string;
+    complexId?: string; // ID del complejo seleccionado
+    complexName?: string; // 'bertaca' | 'seven' - para recordar qué complejo se eligió
+    sportTypeId?: string; // ID del tipo de deporte
+    sportType?: string; // Tipo de deporte (FUTBOL_5, FUTBOL_7)
     metadata?: Record<string, any>;
 }
 

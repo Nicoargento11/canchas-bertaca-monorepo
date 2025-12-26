@@ -26,9 +26,29 @@ export const Footer = React.memo(() => {
             <p className="text-white/60 text-sm">Canchas de fútbol profesionales</p>
           </div>
 
+          {/* Certifications */}
+          <div className="flex items-center gap-4">
+            <img
+              src="/images/Insignia.png"
+              alt="Checkout Pro Certified"
+              className="h-10 w-auto opacity-80 hover:opacity-100 transition-opacity"
+            />
+          </div>
+
           {/* Copyright */}
-          <div className="text-white/40 text-sm text-center">
+          <div className="text-white/40 text-sm text-center space-y-1">
             <p>© 2025 Bertaca & Seven. Todos los derechos reservados.</p>
+            <p className="text-white/25 text-xs">
+              Desarrollado por{" "}
+              <a
+                href="https://www.linkedin.com/in/nicoeduvaldes/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-white/40 hover:text-Primary-light transition-colors"
+              >
+                NV Development
+              </a>
+            </p>
           </div>
         </div>
       </div>
