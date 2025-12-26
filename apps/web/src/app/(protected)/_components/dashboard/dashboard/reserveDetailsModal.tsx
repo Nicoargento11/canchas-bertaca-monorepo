@@ -162,10 +162,10 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
                       className="h-7 px-2 bg-green-600/10 hover:bg-green-600/20 border-green-600/30 text-green-400 hover:text-green-300"
                       onClick={() => {
                         // Format phone for WhatsApp (remove spaces, dashes, etc)
-                        const cleanPhone = reserve.phone!.replace(/[^0-9+]/g, '');
-                        const message = `Hola ${reserve.clientName || reserve.user.name}, te contacto sobre tu reserva del ${date ? format(new Date(date), 'dd/MM/yyyy') : ''} a las ${reserve.schedule} en Cancha ${reserve.court.courtNumber}.`;
+                        const cleanPhone = reserve.phone!.replace(/[^0-9+]/g, "");
+                        const message = `Hola ${reserve.clientName || reserve.user.name}, te contacto sobre tu reserva del ${date ? format(new Date(date), "dd/MM/yyyy") : ""} a las ${reserve.schedule} en Cancha ${reserve.court.courtNumber}.`;
                         const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
-                        window.open(url, '_blank');
+                        window.open(url, "_blank");
                       }}
                     >
                       <MessageCircle className="w-3 h-3 mr-1" />
@@ -288,71 +288,78 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
         </Card>
 
         {/* Promoción Aplicada */}
-        {reserve.promotion && (() => {
-          const promo = reserve.promotion;
-          const originalPrice = reserve.price ?? 0;
+        {reserve.promotion &&
+          (() => {
+            const promo = reserve.promotion;
+            const originalPrice = reserve.price ?? 0;
 
-          // Calcular descuento
-          let discount = 0;
-          let discountedPrice = originalPrice;
-          let promoDescription = "";
+            // Calcular descuento
+            let discount = 0;
+            let discountedPrice = originalPrice;
+            let promoDescription = "";
 
-          if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
-            discount = originalPrice * (promo.value / 100);
-            discountedPrice = originalPrice - discount;
-            promoDescription = `${promo.value}% de descuento`;
-          } else if (promo.type === "FIXED_AMOUNT" && promo.value) {
-            discount = promo.value;
-            discountedPrice = Math.max(0, originalPrice - discount);
-            promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
-          } else if (promo.type === "GIFT_PRODUCT") {
-            // Para productos gratis, mostrar qué se regala
-            if (promo.giftProducts && promo.giftProducts.length > 0) {
-              promoDescription = promo.giftProducts
-                .map((gp: any) => `${gp.quantity}x ${gp.product?.name || 'Producto'}`)
-                .join(", ");
-            } else {
-              promoDescription = "Producto de regalo incluido";
+            if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
+              discount = originalPrice * (promo.value / 100);
+              discountedPrice = originalPrice - discount;
+              promoDescription = `${promo.value}% de descuento`;
+            } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
+              discount = promo.value;
+              discountedPrice = Math.max(0, originalPrice - discount);
+              promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
+            } else if (promo.type === "GIFT_PRODUCT") {
+              // Para productos gratis, mostrar qué se regala
+              if (promo.giftProducts && promo.giftProducts.length > 0) {
+                promoDescription = promo.giftProducts
+                  .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
+                  .join(", ");
+              } else {
+                promoDescription = "Producto de regalo incluido";
+              }
             }
-          }
 
-          return (
-            <Card className="bg-amber-500/10 border-amber-500/30">
-              <CardContent className="p-4 space-y-3">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-full bg-amber-500/20">
-                    <Gift className="text-amber-400" size={24} />
-                  </div>
-                  <div>
-                    <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
-                    <p className="font-medium text-amber-300">{promo.name}</p>
-                    <p className="text-xs text-amber-400/60">{promoDescription}</p>
-                  </div>
-                </div>
-
-                {/* Mostrar precio con descuento si aplica */}
-                {discount > 0 && (
-                  <div className="flex items-center justify-between bg-green-500/10 rounded-lg p-3 mt-2">
+            return (
+              <Card className="bg-amber-500/10 border-amber-500/30">
+                <CardContent className="p-4 space-y-3">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-amber-500/20">
+                      <Gift className="text-amber-400" size={24} />
+                    </div>
                     <div>
-                      <p className="text-xs text-green-400/60">Ahorrás</p>
-                      <p className="text-green-400 font-bold">
-                        {discount.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-white/40 line-through">
-                        {originalPrice.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
-                      </p>
-                      <p className="text-green-400 font-bold text-lg">
-                        {discountedPrice.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
-                      </p>
+                      <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
+                      <p className="font-medium text-amber-300">{promo.name}</p>
+                      <p className="text-xs text-amber-400/60">{promoDescription}</p>
                     </div>
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          );
-        })()}
+
+                  {/* Mostrar precio con descuento si aplica */}
+                  {discount > 0 && (
+                    <div className="flex items-center justify-between bg-green-500/10 rounded-lg p-3 mt-2">
+                      <div>
+                        <p className="text-xs text-green-400/60">Ahorrás</p>
+                        <p className="text-green-400 font-bold">
+                          {discount.toLocaleString("es-AR", { style: "currency", currency: "ARS" })}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-white/40 line-through">
+                          {originalPrice.toLocaleString("es-AR", {
+                            style: "currency",
+                            currency: "ARS",
+                          })}
+                        </p>
+                        <p className="text-green-400 font-bold text-lg">
+                          {discountedPrice.toLocaleString("es-AR", {
+                            style: "currency",
+                            currency: "ARS",
+                          })}
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
         {canEditReservation(new Date(reserve.date)) && (
           <Button
