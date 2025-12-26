@@ -38,6 +38,9 @@ import { reserveTurnSchema } from "@/schemas/reserve";
 import { SportType } from "@/services/sport-types/sport-types";
 import { createPaymentOnline } from "@/services/payment/payment";
 import { Input } from "../ui/input";
+import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
+import { PromoSummary } from "@/components/promotions/PromoSummary";
+import { Promotion } from "@/services/promotion/promotion";
 
 initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY as string, {
   locale: "es-AR",
@@ -47,9 +50,10 @@ interface ReserveTurnProps {
   currentUser?: SessionPayload | null;
   complex: Complex;
   sportType: SportType;
+  promotions?: Promotion[];
 }
 
-const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportType }) => {
+const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportType, promotions }) => {
   const { state, updateReservationForm, getCurrentReservation } = useReserve();
   const reservationData = getCurrentReservation();
   const { closeModal, openModal } = useModal();
@@ -62,6 +66,15 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
   const [user, setUser] = useState<User | undefined>(undefined);
 
   const courtData = complex.courts.find((court) => court.id === reservationData?.form.field);
+
+  // Calcular promoción aplicable
+  const { bestPromotion, calculateFinalPrice } = useApplicablePromotions({
+    promotions,
+    date: reservationData?.form.day,
+    schedule: reservationData?.form.hour,
+    courtId: reservationData?.form.field,
+    sportTypeId: sportType.id,
+  });
   const form = useForm<z.infer<typeof reserveTurnSchema>>({
     resolver: zodResolver(reserveTurnSchema),
     defaultValues: reservationData && {
@@ -230,7 +243,22 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
         });
       }
 
-      const data = await createPaymentOnline(values, complex.id);
+      // Calculamos el precio final y la seña proporcional para enviar al servidor
+      const priceInfo = calculateFinalPrice(values.price);
+      const finalPrice = priceInfo.finalPrice;
+
+      const discountRatio = values.price > 0 ? finalPrice / values.price : 1;
+      const adjustedReservationAmount = Math.round(values.reservationAmount * discountRatio);
+
+      // Agregar promotionId si hay promoción aplicable
+      const paymentData = {
+        ...values,
+        price: finalPrice,
+        reservationAmount: adjustedReservationAmount,
+        ...(bestPromotion && { promotionId: bestPromotion.id }),
+      };
+
+      const data = await createPaymentOnline(paymentData, complex.id);
 
       setError(data?.error);
 
@@ -318,36 +346,64 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                 <FormField
                   control={form.control}
                   name="reservationAmount"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-4">
-                      <Coins className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-white">
-                        Reserva/seña $
-                        {field.value.toLocaleString("es-AR", {
-                          currency: "ARS",
-                        })}
-                      </span>
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const priceInfo = calculateFinalPrice(form.getValues("price"));
+                    const discountRatio = priceInfo.originalPrice > 0 ? priceInfo.finalPrice / priceInfo.originalPrice : 1;
+                    const adjustedAmount = Math.round(field.value * discountRatio);
+
+                    return (
+                      <FormItem className="flex items-center gap-4">
+                        <Coins className="text-Complementary" size={30} />
+                        <span className="text-lg font-semibold text-white">
+                          Reserva/seña $
+                          {adjustedAmount.toLocaleString("es-AR")}
+                        </span>
+                      </FormItem>
+                    );
+                  }}
                 />
                 <FormField
                   control={form.control}
                   name="price"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center gap-4">
-                      <Receipt className="text-Complementary" size={30} />
-                      <span className="text-lg font-semibold text-white">
-                        Precio &nbsp;
-                        <span className="">
-                          $
-                          {field.value.toLocaleString("es-AR", {
-                            currency: "ARS",
-                          })}
+                  render={({ field }) => {
+                    const priceInfo = calculateFinalPrice(field.value);
+                    const hasDiscount = priceInfo.discount > 0;
+
+                    return (
+                      <FormItem className="flex items-center gap-4">
+                        <Receipt className="text-Complementary" size={30} />
+                        <span className="text-lg font-semibold text-white">
+                          Precio &nbsp;
+                          {hasDiscount ? (
+                            <>
+                              <span className="line-through text-white/50">
+                                ${field.value.toLocaleString("es-AR")}
+                              </span>
+                              <span className="ml-2 text-green-400">
+                                ${priceInfo.finalPrice.toLocaleString("es-AR")}
+                              </span>
+                            </>
+                          ) : (
+                            <span>
+                              ${field.value.toLocaleString("es-AR")}
+                            </span>
+                          )}
                         </span>
-                      </span>
-                    </FormItem>
-                  )}
+                      </FormItem>
+                    )
+                  }}
                 />
+
+                {/* Resumen de promoción aplicada */}
+                {bestPromotion && (
+                  <PromoSummary
+                    originalPrice={form.getValues("price")}
+                    discount={calculateFinalPrice(form.getValues("price")).discount}
+                    finalPrice={calculateFinalPrice(form.getValues("price")).finalPrice}
+                    promotion={bestPromotion}
+                  />
+                )}
+
                 {/* {beerService(reservationData.form.hour) && (
                   <div className="flex items-center gap-4">
                     <Gift className="text-Complementary" size={25} />
@@ -425,20 +481,27 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
 
               {/* Botón de reserva mejorado */}
               {!preferenceId && (
-                <Button
-                  type="submit"
-                  disabled={isProcessingPayment}
-                  className="bg-Primary hover:bg-Primary-dark text-white w-full py-3 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
-                >
-                  {isProcessingPayment ? (
-                    <div className="flex items-center justify-center gap-2">
-                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      Procesando pago...
-                    </div>
-                  ) : (
-                    "Reservar horario"
-                  )}
-                </Button>
+                <div className="space-y-3">
+                  <Button
+                    type="submit"
+                    disabled={isProcessingPayment}
+                    className="bg-Primary hover:bg-Primary-dark text-white w-full py-3 text-lg font-bold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    {isProcessingPayment ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        Procesando pago...
+                      </div>
+                    ) : (
+                      "Reservar horario"
+                    )}
+                  </Button>
+                  {/* Checkout Pro badge */}
+                  <div className="flex items-center justify-center gap-2 text-white/60 text-sm">
+                    <img src="/images/Insignia.png" alt="Checkout Pro" className="h-5 w-auto" />
+                    <span>Pago seguro con Mercado Pago</span>
+                  </div>
+                </div>
               )}
 
               {/* Estado de loading para MercadoPago */}

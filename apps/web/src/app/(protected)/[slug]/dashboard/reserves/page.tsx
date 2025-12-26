@@ -24,6 +24,7 @@ import {
   PartyPopper,
   Repeat,
   HelpCircle,
+  Gift,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { usePathname } from "next/navigation";
@@ -213,6 +214,9 @@ const PageDashboardReserves = () => {
               <TableCell className="font-medium text-muted-foreground text-center">
                 Origen
               </TableCell>
+              <TableCell className="font-medium text-muted-foreground text-center">
+                Promo
+              </TableCell>
               <TableCell className="font-medium text-muted-foreground text-right">Fechas</TableCell>
             </TableRow>
           </TableHeader>
@@ -267,9 +271,8 @@ const PageDashboardReserves = () => {
                   <TableCell className="align-top text-center">
                     <Badge
                       variant="outline"
-                      className={`gap-1.5 pr-2.5 pl-1.5 py-0.5 font-normal ${
-                        statusConfig[reserve.status].className
-                      }`}
+                      className={`gap-1.5 pr-2.5 pl-1.5 py-0.5 font-normal ${statusConfig[reserve.status].className
+                        }`}
                     >
                       <StatusIcon className="h-3.5 w-3.5" />
                       {statusConfig[reserve.status].label}
@@ -304,6 +307,20 @@ const PageDashboardReserves = () => {
                       <TypeIcon className="h-3 w-3" />
                       {typeConfig.label}
                     </Badge>
+                  </TableCell>
+
+                  <TableCell className="align-top text-center">
+                    {reserve.promotion ? (
+                      <Badge
+                        variant="outline"
+                        className="gap-1 font-normal bg-amber-50 text-amber-700 border-amber-200"
+                      >
+                        <Gift className="h-3 w-3" />
+                        {reserve.promotion.name}
+                      </Badge>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">-</span>
+                    )}
                   </TableCell>
 
                   <TableCell className="align-top text-right">

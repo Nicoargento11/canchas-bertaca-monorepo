@@ -71,4 +71,7 @@ export class ReserveEntity implements PrismaReserve {
 
   @ApiProperty()
   expiresAt: Date | null;
+
+  @ApiProperty({ required: false, description: 'ID de la promoción aplicada' })
+  promotionId: string | null;
 }

@@ -29,7 +29,7 @@ export class ReportsService {
     private pdfGenerator: PdfGeneratorService,
     private scheduleHelper: ScheduleHelper,
     private schedules: SchedulesService,
-  ) {}
+  ) { }
 
   /**
    * Obtiene el resumen diario completo de un complejo
@@ -101,7 +101,7 @@ export class ReportsService {
     const reserves = await this.prisma.reserve.findMany({
       where: {
         complexId,
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
         OR: [
           { date: reserveDate },
           {
@@ -283,8 +283,8 @@ export class ReportsService {
       const revenue = productSale.isGift
         ? 0
         : productSale.price *
-          productSale.quantity *
-          (1 - (productSale.discount || 0) / 100);
+        productSale.quantity *
+        (1 - (productSale.discount || 0) / 100);
 
       productData.totalRevenue += revenue;
 
@@ -422,7 +422,7 @@ export class ReportsService {
           lte: end,
         },
         complexId,
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
       },
       _sum: {
         price: true,
@@ -549,6 +549,18 @@ export class ReportsService {
         .toISOString()
         .split('T')[0];
 
+    // Calcular fechas actuales (ajustadas a horario operativo / UTC)
+    const currentStart = new Date(startDateStr + 'T03:00:00.000Z');
+
+    // El endDate necesita +1 día para incluir el día completo
+    const currentEnd = new Date(endDateStr + 'T02:59:59.999Z');
+    currentEnd.setDate(currentEnd.getDate() + 1);
+
+    // Calcular fechas del período anterior
+    const durationTime = currentEnd.getTime() - currentStart.getTime();
+    const prevEnd = new Date(currentStart.getTime()); // Termina donde empieza el actual
+    const prevStart = new Date(prevEnd.getTime() - durationTime);
+
     const [
       dailyData,
       weeklyData,
@@ -557,6 +569,15 @@ export class ReportsService {
       paymentMethods,
       canchas,
       horarios,
+      egresos,
+      promotionsUsed,
+      reservasByType,
+      // Datos de comparación
+      previousIngresos,
+      previousReservas,
+      previousEgresos,
+      // Nuevos datos
+      recentTransactions,
     ] = await Promise.all([
       this.getDailyData(complexId, startDateStr, endDateStr, cashSessionId),
       this.getWeeklyData(complexId, startDateStr, endDateStr, cashSessionId),
@@ -570,6 +591,15 @@ export class ReportsService {
       ),
       this.getCanchasData(complexId, startDateStr, endDateStr),
       this.getHorariosData(complexId, startDateStr, endDateStr),
+      this.getEgresosTotal(complexId, currentStart, currentEnd),
+      this.getPromotionsUsedCount(complexId, currentStart, currentEnd),
+      this.getReservasByType(complexId, currentStart, currentEnd),
+      // Calls para comparación
+      this.getIngresosTotalInRange(complexId, prevStart, prevEnd, cashSessionId),
+      this.getReservasTotalInRange(complexId, prevStart, prevEnd),
+      this.getEgresosTotal(complexId, prevStart, prevEnd),
+      // Call para transacciones
+      this.getRecentTransactions(complexId),
     ]);
 
     return {
@@ -580,6 +610,16 @@ export class ReportsService {
       paymentMethods,
       canchas,
       horarios,
+      totalEgresos: egresos,
+      promotionsUsed,
+      reservasFijas: reservasByType.fijas,
+      reservasNormales: reservasByType.normales,
+      // Comparación
+      previousIngresos,
+      previousReservas,
+      previousEgresos,
+      // Transacciones
+      recentTransactions,
     };
   }
 
@@ -659,10 +699,10 @@ export class ReportsService {
       );
       const totalSlots = scheduleInfo?.schedules
         ? scheduleInfo.schedules.reduce((sum, schedule) => {
-            return (
-              sum + this.calculateSlots(schedule.startTime, schedule.endTime)
-            );
-          }, 0)
+          return (
+            sum + this.calculateSlots(schedule.startTime, schedule.endTime)
+          );
+        }, 0)
         : 0;
 
       const ocupacion =
@@ -1029,7 +1069,7 @@ export class ReportsService {
           gte: startOfPeriod,
           lte: endOfPeriod,
         },
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
       },
       _count: {
         id: true,
@@ -1078,7 +1118,7 @@ export class ReportsService {
           gte: startOfPeriod,
           lte: endOfPeriod,
         },
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
       },
       _count: {
         id: true,
@@ -1137,7 +1177,7 @@ export class ReportsService {
           gte: startDate,
           lt: endDate,
         },
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
       },
     });
     return count;
@@ -1186,22 +1226,22 @@ export class ReportsService {
             createdAt: {
               gte: Math.max(startDate.getTime(), cashSession.startAt.getTime())
                 ? new Date(
-                    Math.max(
-                      startDate.getTime(),
-                      cashSession.startAt.getTime(),
-                    ),
-                  )
+                  Math.max(
+                    startDate.getTime(),
+                    cashSession.startAt.getTime(),
+                  ),
+                )
                 : startDate,
               lt: Math.min(
                 endDate.getTime(),
                 (cashSession.endAt || new Date()).getTime(),
               )
                 ? new Date(
-                    Math.min(
-                      endDate.getTime(),
-                      (cashSession.endAt || new Date()).getTime(),
-                    ),
-                  )
+                  Math.min(
+                    endDate.getTime(),
+                    (cashSession.endAt || new Date()).getTime(),
+                  ),
+                )
                 : endDate,
             },
           },
@@ -1259,7 +1299,7 @@ export class ReportsService {
           gte: startDate,
           lt: endDate,
         },
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
       },
       select: {
         phone: true,
@@ -1286,5 +1326,196 @@ export class ReportsService {
     }
 
     return reallyNewClients;
+  }
+
+  /**
+   * Obtiene el total de egresos (pagos negativos) en un rango de fechas
+   */
+  async getEgresosTotal(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const result = await this.prisma.payment.aggregate({
+      where: {
+        complexId,
+        transactionType: 'EGRESO',
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+    // Egresos se guardan como negativos, así que Math.abs
+    return Math.abs(result._sum.amount || 0);
+  }
+
+  /**
+   * Cuenta el número de promociones usadas en un rango de fechas
+   */
+  async getPromotionsUsedCount(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const count = await this.prisma.reserve.count({
+      where: {
+        complexId,
+        promotionId: { not: null },
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+    return count;
+  }
+
+  /**
+   * Cuenta las reservas fijas vs normales usando el campo reserveType
+   */
+  async getReservasByType(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<{ fijas: number; normales: number }> {
+    const [fijas, normales] = await Promise.all([
+      this.prisma.reserve.count({
+        where: {
+          complexId,
+          reserveType: 'FIJO',
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+          status: { notIn: ['RECHAZADO', 'CANCELADO'] },
+        },
+      }),
+      this.prisma.reserve.count({
+        where: {
+          complexId,
+          reserveType: { not: 'FIJO' },
+          date: {
+            gte: startDate,
+            lte: endDate,
+          },
+          status: { notIn: ['RECHAZADO', 'CANCELADO'] },
+        },
+      }),
+    ]);
+    return { fijas, normales };
+  }
+
+  /**
+   * Obtiene el total de ingresos en un rango
+   */
+  async getIngresosTotalInRange(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+    cashSessionId?: string,
+  ): Promise<number> {
+    // 1. Pagos de reservas
+    const payments = await this.prisma.payment.aggregate({
+      where: {
+        complexId,
+        transactionType: { not: 'EGRESO' }, // Todo lo que no sea egreso cuenta como ingreso o movimiento neutral
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+        ...(cashSessionId ? { cashSessionId } : {}),
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    return payments._sum.amount || 0;
+  }
+
+  /**
+   * Obtiene el total de reservas en un rango
+   */
+  async getReservasTotalInRange(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    return this.prisma.reserve.count({
+      where: {
+        complexId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
+      },
+    });
+  }
+
+  /**
+   * Obtiene las últimas transacciones (reservas, ventas, egresos)
+   */
+  async getRecentTransactions(complexId: string, limit: number = 10) {
+    // Buscar pagos recientes (incluye señas, ventas, egresos)
+    // Definimos el include de forma que TypeScript infiera correctamente
+    const payments = await this.prisma.payment.findMany({
+      where: { complexId },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      include: {
+        reserve: {
+          select: {
+            court: { select: { name: true } },
+            schedule: true, // schedule es un string en Reserve
+          },
+        },
+        sale: {
+          include: {
+            productSales: {
+              include: {
+                product: {
+                  select: { name: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return payments.map((p) => {
+      let type: 'reserva' | 'venta' | 'egreso' | 'pago' = 'pago';
+      let description = 'Pago o Movimiento';
+
+      if (p.transactionType === 'EGRESO') {
+        type = 'egreso';
+        description = 'Salida de caja'; // No hay campo notes en Payment actualmente
+      } else if (p.transactionType === 'RESERVA' && p.reserve) {
+        type = 'reserva';
+        // @ts-ignore: schedule es string en el modelo
+        description = `${p.reserve.court.name} - ${p.reserve.schedule}`;
+      } else if (p.transactionType === 'VENTA_PRODUCTO' && p.sale) {
+        type = 'venta';
+        const productsCount = p.sale.productSales.reduce((acc, curr) => acc + curr.quantity, 0);
+        const firstProduct = p.sale.productSales[0]?.product.name || 'Producto';
+        description = productsCount > 1
+          ? `${firstProduct} +${productsCount - 1}`
+          : `${firstProduct} (x${productsCount})`;
+      }
+
+      return {
+        id: p.id,
+        type,
+        description,
+        amount: p.transactionType === 'EGRESO' ? -p.amount : p.amount,
+        date: p.createdAt,
+        status: 'completed',
+      };
+    });
   }
 }

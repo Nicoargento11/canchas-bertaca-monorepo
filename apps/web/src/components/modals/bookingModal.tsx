@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Building2, CheckCircle2 } from "lucide-react";
 import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
@@ -8,6 +8,8 @@ import { useReserve } from "@/contexts/newReserveContext";
 import { getDailyAvailability } from "@/services/reserve/reserve";
 import { format } from "date-fns";
 import { SessionPayload } from "@/services/auth/session";
+import { hasPromotionForSchedule, getPromotionForSchedule } from "@/hooks/useApplicablePromotions";
+import { formatPromotionValue } from "@/services/promotion/promotion";
 
 // Import reserve components
 import DateTimePicker from "../reserve/date-time-picker";
@@ -21,6 +23,7 @@ interface BookingModalProps {
   sevenComplex?: Complex;
   sevenSportTypes?: Partial<Record<SportTypeKey, SportType>>;
   preSelectedComplex: "bertaca" | "seven" | null;
+  initialSelectedComplex?: "bertaca" | "seven" | null; // Complejo ya seleccionado (de localStorage) cuando es flujo general
   currentUser: SessionPayload | null;
 }
 
@@ -31,6 +34,7 @@ const BookingModal = ({
   sevenComplex,
   sevenSportTypes,
   preSelectedComplex,
+  initialSelectedComplex,
   currentUser,
 }: BookingModalProps) => {
   const {
@@ -45,8 +49,9 @@ const BookingModal = ({
     preloadReservation,
   } = useReserve();
 
+  // Usar initialSelectedComplex si existe (viene de localStorage), sino preSelectedComplex
   const [selectedComplex, setSelectedComplex] = useState<"bertaca" | "seven" | null>(
-    preSelectedComplex
+    initialSelectedComplex || preSelectedComplex
   );
 
   const currentReservation = getCurrentReservation();
@@ -54,6 +59,19 @@ const BookingModal = ({
 
   const [generalAvailability, setGeneralAvailability] = useState<any[] | null>(null);
   const [loadingGeneral, setLoadingGeneral] = useState(false);
+
+  // Combinar promociones de ambos complejos para mostrar en horarios (paso 0)
+  const allPromotions = useMemo(() => {
+    const bertacaPromos = complex.promotions?.filter(p => p.isActive) || [];
+    const sevenPromos = sevenComplex?.promotions?.filter(p => p.isActive) || [];
+
+    // Si hay preselección, solo usamos las promos de ese complejo
+    if (preSelectedComplex === "bertaca") return bertacaPromos;
+    if (preSelectedComplex === "seven") return sevenPromos;
+
+    // Si es modal general, combinamos ambas (para paso 0 - mostrar que hay promos en esa hora)
+    return [...bertacaPromos, ...sevenPromos];
+  }, [complex.promotions, sevenComplex?.promotions, preSelectedComplex]);
 
   // Complex data
   const complexData = {
@@ -110,6 +128,13 @@ const BookingModal = ({
           // don't do anything - let the current state remain
         }
       }
+
+      // FIX: Si hay preselección y el step es mayor que el máximo permitido (2),
+      // ajustar a step 0 para evitar mostrar nada
+      // Esto puede pasar si vienes del modal general (4 steps) al individual (3 steps)
+      if (currentStep > 2) {
+        goToPreviousStep(); // Ir al step anterior hasta que esté en rango
+      }
     }
   }, [
     preSelectedComplex,
@@ -119,6 +144,7 @@ const BookingModal = ({
     sevenSportTypes,
     state.currentReservation.sportType,
     state.currentReservation.sportTypeId,
+    currentStep,
   ]);
 
   // Fetch general availability
@@ -239,6 +265,27 @@ const BookingModal = ({
 
   // Ajustar títulos y steps según si hay preselección
   const hasPreselection = preSelectedComplex !== null;
+
+  // Promociones filtradas por el complejo activo (para pasos 1+)
+  const activeComplexPromotions = useMemo(() => {
+    // Si hay preselección, usar las promos de ese complejo
+    if (hasPreselection) {
+      return preSelectedComplex === "seven"
+        ? sevenComplex?.promotions?.filter(p => p.isActive) || []
+        : complex.promotions?.filter(p => p.isActive) || [];
+    }
+
+    // Si no hay preselección pero hay un complejo seleccionado en paso 1
+    if (selectedComplex) {
+      return selectedComplex === "seven"
+        ? sevenComplex?.promotions?.filter(p => p.isActive) || []
+        : complex.promotions?.filter(p => p.isActive) || [];
+    }
+
+    // Fallback vacío
+    return [];
+  }, [hasPreselection, preSelectedComplex, selectedComplex, complex.promotions, sevenComplex?.promotions]);
+
   const stepTitles = hasPreselection
     ? ["Elige fecha y horario", "Elige una cancha", "Confirma tu reserva"]
     : ["Elige fecha y horario", "Elige tu complejo", "Elige una cancha", "Confirma tu reserva"];
@@ -470,6 +517,7 @@ const BookingModal = ({
                   sportType={currentSportType}
                   availabilityOverride={generalAvailability || undefined}
                   loadingOverride={loadingGeneral}
+                  promotions={allPromotions}
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center py-12 text-center">
@@ -508,6 +556,16 @@ const BookingModal = ({
 
                     if (!isAvailable) return null;
 
+                    // Verificar si el complejo tiene promos para la HORA seleccionada (no solo promos en general)
+                    const complexPromos = key === "bertaca"
+                      ? complex.promotions?.filter(p => p.isActive)
+                      : sevenComplex?.promotions?.filter(p => p.isActive);
+
+                    // Obtener la promo específica para esta hora
+                    const promoForHour = currentReservation?.form?.day && currentReservation?.form?.hour
+                      ? getPromotionForSchedule(complexPromos, currentReservation.form.day, currentReservation.form.hour)
+                      : null;
+
                     return (
                       <button
                         key={key}
@@ -545,6 +603,22 @@ const BookingModal = ({
                               </p>
                             ))}
                           </div>
+                          {/* Indicador de promociones con detalle */}
+                          {promoForHour && (
+                            <div className="mt-4 bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 rounded-lg p-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-amber-400 text-lg">🎁</span>
+                                <div className="flex flex-col">
+                                  <span className="text-amber-300 text-sm font-medium">
+                                    {promoForHour.name}
+                                  </span>
+                                  <span className="text-amber-200/70 text-xs">
+                                    {formatPromotionValue(promoForHour)}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
                         </div>
                         {isSelected && (
                           <div className="absolute top-3 right-3">
@@ -568,6 +642,7 @@ const BookingModal = ({
                   sportTypes={activeSportTypes}
                   targetStep={hasPreselection ? 2 : 3}
                   complexName={preSelectedComplex || undefined}
+                  promotions={activeComplexPromotions}
                 />
               )}
             </motion.div>
@@ -581,6 +656,7 @@ const BookingModal = ({
                   currentUser={currentUser}
                   complex={activeComplex}
                   sportType={currentSportType}
+                  promotions={activeComplexPromotions}
                 />
               )}
             </motion.div>

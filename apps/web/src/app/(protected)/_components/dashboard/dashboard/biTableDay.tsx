@@ -32,6 +32,9 @@ import { Complex } from "@/services/complex/complex";
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { ReserveType, Status } from "@/services/reserve/reserve";
 import { SportType } from "@/services/sport-types/sport-types";
+import { hasPromotionForSchedule } from "@/hooks/useApplicablePromotions";
+import { DashboardKPIs } from "./DashboardKPIs";
+import { SideBarButton } from "../sideBarButton";
 
 export interface ReserveData {
   date: Date;
@@ -165,9 +168,12 @@ const BiTableDay: React.FC<TableReservesProps> = ({
   }
 
   return (
-    <div className="flex flex-col w-full h-full">
-      {/* Encabezado con selector de fecha y botón de sidebar */}
-      <div className="flex justify-between px-2 py-4 gap-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-lg mb-4">
+    <div className="flex flex-col w-full h-full p-4">
+      {/* KPIs Operativos */}
+      <DashboardKPIs />
+
+      {/* Encabezado con selector de fecha */}
+      <div className="flex justify-between py-3 gap-2 mb-4">
         <Popover>
           <PopoverTrigger asChild>
             <Button
@@ -227,40 +233,37 @@ const BiTableDay: React.FC<TableReservesProps> = ({
             />
           </PopoverContent>
         </Popover>
-        {/* <SideBarButton /> */}
+        {/* Botón sidebar */}
+        <SideBarButton />
       </div>
 
-      <div className="bg-white rounded-lg shadow-md border border-gray-300 overflow-hidden">
+      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
         <table className="w-full text-left table-fixed border-separate border-spacing-0">
           <thead>
-            <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-              <th className="border-b border-blue-700 p-4 sticky top-0 z-10">
-                <h6 className="font-semibold leading-none text-white text-center hidden md:block">
-                  Horarios
-                </h6>
-                <div className="flex justify-center">
-                  <Clock9 className="block md:hidden text-white" size={30} />
+            <tr className="bg-gray-900 text-white">
+              {/* Columna horario - angosta en mobile */}
+              <th className="w-[50px] md:w-[120px] p-1 md:p-3 sticky top-0 z-10 bg-gray-900">
+                <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center">
+                  Horario
+                </span>
+                <div className="flex justify-center md:hidden">
+                  <Clock9 className="text-gray-300" size={14} />
                 </div>
               </th>
               {complex.courts
                 .filter((court) => court.sportTypeId === state.sportType?.id)
-                .sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0)) // Ordenar por número de cancha
-                .map((court, index) => (
+                .sort((a, b) => (a.courtNumber || 0) - (b.courtNumber || 0))
+                .map((court) => (
                   <th
                     key={court.id}
-                    className="border-b border-blue-700 p-2 sticky top-0 z-10 text-center"
+                    className="p-1 md:p-3 sticky top-0 z-10 text-center bg-gray-900"
                   >
-                    <div className="flex flex-col items-center md:hidden">
-                      <div className="relative text-white">
-                        <GiSoccerField size={40} />
-                      </div>
-                      <div className="pt-2 absolute">
-                        <p className="font-extrabold text-white">{court.courtNumber}</p>
-                      </div>
-                    </div>
-                    <h6 className="font-semibold leading-none text-white hidden md:block">
-                      {`Cancha ${court.courtNumber}` || court.name}
-                    </h6>
+                    <span className="text-xs font-semibold uppercase tracking-wider hidden md:block">
+                      Cancha {court.courtNumber}
+                    </span>
+                    <span className="text-[10px] font-semibold md:hidden">
+                      C{court.courtNumber}
+                    </span>
                   </th>
                 ))}
             </tr>
@@ -272,13 +275,15 @@ const BiTableDay: React.FC<TableReservesProps> = ({
               state?.reservationsByDay.map((scheduleReserve, index) => (
                 <tr
                   key={index}
-                  className="hover:bg-gray-50 border-b border-gray-200 transition-colors"
+                  className="border-b border-gray-100"
                 >
-                  <td className="h-[61.804px] text-center font-semibold hidden md:flex md:justify-center md:items-center text-gray-700 bg-gray-50">
+                  {/* Celda de horario - desktop */}
+                  <td className="w-[50px] md:w-[120px] h-[44px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
                     {scheduleReserve.schedule}
                   </td>
-                  <td className="h-[61.804px] text-center font-semibold flex justify-center md:hidden items-center text-gray-700 bg-gray-50">
-                    {scheduleReserve.schedule.split(" ")[0]}
+                  {/* Celda de horario - mobile: solo hora inicio */}
+                  <td className="w-[50px] h-[44px] text-center font-medium text-gray-700 bg-gray-50 border-r border-gray-100 text-[10px] md:hidden align-middle">
+                    {scheduleReserve.schedule.split(" ")[0].replace(":00", "")}
                   </td>
                   {complex.courts
                     .filter((court) => court.sportTypeId === state.sportType?.id)
@@ -338,36 +343,36 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                   }
                                 }
                               }}
-                              className={`rounded-md w-full h-full flex flex-col p-2 font-bold text-xs relative transition-all ${
-                                isReserved.reserveType === "FIJO"
-                                  ? `${isReserved.date ? "cursor-pointer" : "cursor-default"} bg-blue-100 border-2 border-dashed border-blue-400`
+                              className={`rounded-lg w-full h-full flex flex-col p-2 md:p-3 relative transition-all cursor-pointer hover:shadow-md border-l-4 min-h-[44px]
+                              ${isReserved.reserveType === "FIJO"
+                                  ? "bg-white border-l-violet-500 hover:bg-violet-50"
                                   : isReserved.status === "PENDIENTE"
-                                    ? "cursor-default bg-yellow-100 border-2 border-dashed border-yellow-400"
-                                    : isReserved.status === "APROBADO"
-                                      ? "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 cursor-pointer"
-                                      : isReserved.status === "COMPLETADO"
-                                        ? "cursor-pointer bg-emerald-100 border-2 border-solid border-emerald-600 hover:bg-emerald-200"
-                                        : "bg-green-100 border-2 border-dashed border-green-500 hover:bg-green-200 hover:cursor-pointer"
-                              }`}
+                                    ? "bg-white border-l-amber-500 hover:bg-amber-50"
+                                    : isReserved.status === "COMPLETADO"
+                                      ? "bg-white border-l-emerald-600 hover:bg-emerald-50"
+                                      : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0
+                                        ? "bg-white border-l-amber-500 hover:bg-amber-50"
+                                        : "bg-white border-l-emerald-500 hover:bg-emerald-50"
+                                }`}
                             >
-                              <div className="flex gap-0.5 items-center text-gray-800">
-                                <UserRound className="hidden sm:block text-gray-900" size={14} />
-                                <p className="truncate text-xs">
-                                  {isReserved.clientName.split(" ")[0] ||
-                                    isReserved.user?.name.split(" ")[0]}
-                                </p>
+                              {/* Nombre del cliente */}
+                              <p className="font-semibold text-xs md:text-sm text-gray-900 truncate leading-tight">
+                                {isReserved.clientName?.split(" ")[0] ||
+                                  isReserved.user?.name?.split(" ")[0] || "Cliente"}
+                              </p>
+
+                              {/* Info de pago o FIJO - compacto */}
+                              <div className="flex items-center gap-1 mt-0.5">
+                                {isReserved.reserveType === "FIJO" ? (
+                                  <span className="text-[10px] md:text-xs text-violet-600 font-medium">FIJO</span>
+                                ) : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0 ? (
+                                  <span className="text-[10px] md:text-xs text-amber-600 font-medium">
+                                    ${((isReserved.price || 0) - (isReserved.reservationAmount || 0)).toLocaleString()}
+                                  </span>
+                                ) : (
+                                  <span className="text-[10px] md:text-xs text-emerald-600 font-medium">✓</span>
+                                )}
                               </div>
-                              {isReserved.reserveType !== "FIJO" && (
-                                <div className="flex gap-0.5 items-center text-gray-700">
-                                  <Coins className="hidden sm:block text-green-600" size={12} />
-                                  <p className="text-xs">
-                                    {isReserved.reservationAmount?.toLocaleString("es-AR", {
-                                      style: "currency",
-                                      currency: "ARS",
-                                    })}
-                                  </p>{" "}
-                                </div>
-                              )}
                               {/* Botón de completar */}
                               {isReserved.status === "APROBADO" && (
                                 <div className="flex gap-1 mt-1">
@@ -410,16 +415,25 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                         );
                       }
 
+                      // Verificar si hay promo para esta cancha/horario
+                      const activePromos = complex.promotions?.filter(p => p.isActive) || [];
+                      const hasPromoForSchedule = date && hasPromotionForSchedule(activePromos, date, scheduleReserve.schedule);
+                      const courtPromo = hasPromoForSchedule && activePromos.find(p => {
+                        if (!p.isActive) return false;
+                        if (p.courtId && p.courtId !== court.id) return false;
+                        if (p.sportTypeId && p.sportTypeId !== sportType.id) return false;
+                        return true;
+                      });
+
                       return (
                         <td
-                          key={`${scheduleReserve.schedule}-${court.courtNumber}`} // Usar court.courtNumber en lugar de index + 1
-                          className="w-[100px] h-[61.804px]"
+                          key={`${scheduleReserve.schedule}-${court.courtNumber}`}
+                          className="w-[100px] h-[52px] p-1"
                         >
-                          <div className="bg-gray-50 border border-gray-300 text-gray-700 p-4 w-full h-full rounded-sm flex flex-col justify-center items-center font-bold text-lg hover:bg-gray-100 transition-colors">
-                            {scheduleReserve.courtInfo.courts.find(
-                              (courtData) => courtData.courtId === court.id
-                            ) && (
-                              <Button
+                          {scheduleReserve.courtInfo.courts.find(
+                            (courtData) => courtData.courtId === court.id
+                          ) && (
+                              <div
                                 onClick={() => {
                                   if (date) {
                                     setCreateReserve({
@@ -438,13 +452,11 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                     handleChangeReserve();
                                   }
                                 }}
-                                className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1 px-2 rounded-md text-xs flex items-center gap-1 shadow-sm"
+                                className={`w-full h-full rounded-lg border border-dashed border-gray-200 flex items-center justify-center cursor-pointer transition-all group hover:border-gray-400 hover:bg-gray-50 ${courtPromo ? 'border-amber-200 bg-amber-50/30' : 'bg-white'}`}
                               >
-                                <Edit size={20} />
-                                <p className="hidden md:block">Reservar</p>
-                              </Button>
+                                <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
+                              </div>
                             )}
-                          </div>
                         </td>
                       );
                     })}

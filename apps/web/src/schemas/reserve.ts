@@ -12,6 +12,7 @@ export const reserveTurnSchema = z.object({
     .regex(/^\d{10}$/, {
       message: "Por favor, ingrese un número de teléfono válido",
     }),
+  promotionId: z.string().optional(),
 });
 
 export const createReserveAdminSchema = z.object({
@@ -26,6 +27,7 @@ export const createReserveAdminSchema = z.object({
   reserveType: z.string().optional(),
   courtId: z.string(),
   complexId: z.string(),
+  promotionId: z.string().optional(),
 });
 
 export const editReserveAdminSchema = z.object({

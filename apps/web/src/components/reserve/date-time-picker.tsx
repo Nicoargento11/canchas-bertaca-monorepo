@@ -4,18 +4,23 @@ import { useReserve } from "@/contexts/newReserveContext";
 import { Complex } from "@/services/complex/complex";
 import { SportType } from "@/services/sport-types/sport-types";
 import { format, addDays, isSameDay, getDay, isAfter } from "date-fns";
+import { createAdjustedDateTime } from "@/utils/timeValidation";
 import { es } from "date-fns/locale";
 import Calendar from "./calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { PromoBadge } from "@/components/promotions/PromoBadge";
+import { hasPromotionForSchedule } from "@/hooks/useApplicablePromotions";
+import { Promotion } from "@/services/promotion/promotion";
 
 interface DateTimePickerProps {
   complex: Complex;
   sportType: SportType;
   availabilityOverride?: any[];
   loadingOverride?: boolean;
+  promotions?: Promotion[];
 }
 
 const DateTimePicker = ({
@@ -23,6 +28,7 @@ const DateTimePicker = ({
   sportType,
   availabilityOverride,
   loadingOverride,
+  promotions,
 }: DateTimePickerProps) => {
   const { updateReservationForm, getCurrentReservation, fetchAvailability, state } = useReserve();
   const currentReservation = getCurrentReservation();
@@ -66,20 +72,39 @@ const DateTimePicker = ({
   // Obtener disponibilidad del contexto (horarios reales del backend)
   const availabilityByDay = availabilityOverride || currentReservation?.availability?.byDay || [];
 
-  // Filtrar horarios pasados si es hoy
+  // Filtrar horarios pasados si es hoy y ordenar (madrugada al final)
   const filteredAvailability = useMemo(() => {
     const currentTime = new Date();
     const isToday = selectedDate === format(today, "yyyy-MM-dd");
 
-    if (!isToday) return availabilityByDay;
+    let filtered = availabilityByDay;
 
-    return availabilityByDay.filter((horario: any) => {
-      const startTimeStr = horario.schedule.split(" - ")[0];
-      const [hours, minutes] = startTimeStr.split(":").map(Number);
-      const horarioTime = new Date(today);
-      horarioTime.setHours(hours, minutes, 0, 0);
+    if (isToday) {
+      filtered = availabilityByDay.filter((horario: any) => {
+        const startTimeStr = horario.schedule.split(" - ")[0];
+        // Usar createAdjustedDateTime para manejar horarios de madrugada (00:00-05:59)
+        // que pertenecen al día siguiente
+        const horarioTime = createAdjustedDateTime(today, startTimeStr);
 
-      return isAfter(horarioTime, currentTime);
+        return isAfter(horarioTime, currentTime);
+      });
+    }
+
+    // Ordenar: horarios normales (06:00-23:59) primero, madrugada (00:00-05:59) al final
+    return [...filtered].sort((a: any, b: any) => {
+      const getHour = (schedule: string) => parseInt(schedule.split(" - ")[0].split(":")[0]);
+      const hourA = getHour(a.schedule);
+      const hourB = getHour(b.schedule);
+
+      // Si uno es de madrugada (0-5) y el otro no, el de madrugada va al final
+      const isNightA = hourA >= 0 && hourA < 6;
+      const isNightB = hourB >= 0 && hourB < 6;
+
+      if (isNightA && !isNightB) return 1;  // A va después
+      if (!isNightA && isNightB) return -1; // B va después
+
+      // Ambos son del mismo tipo, ordenar normalmente
+      return hourA - hourB;
     });
   }, [availabilityByDay, selectedDate, today]);
 
@@ -172,23 +197,25 @@ const DateTimePicker = ({
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {filteredAvailability.map((horario: any) => {
                 const hasAvailableCourts = horario.court && horario.court.length > 0;
+                const selectedDateObj = new Date(selectedDate + "T00:00:00");
+                const hasPromo = promotions && hasPromotionForSchedule(promotions, selectedDateObj, horario.schedule);
+
                 return (
                   <button
                     key={horario.schedule}
                     onClick={() => handleTimeSelect(horario.schedule)}
                     disabled={!hasAvailableCourts}
-                    className={`px-4 py-3 rounded-xl font-semibold transition-all ${
-                      selectedTime === horario.schedule
-                        ? "bg-Primary text-white scale-105 shadow-lg"
-                        : hasAvailableCourts
-                          ? "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20 hover:scale-105"
-                          : "bg-white/5 text-white/30 border border-white/10 cursor-not-allowed"
-                    }`}
+                    className={`relative px-4 py-3 rounded-xl font-semibold transition-all ${selectedTime === horario.schedule
+                      ? "bg-Primary text-white scale-105 shadow-lg"
+                      : hasAvailableCourts
+                        ? "bg-white/10 text-white/70 hover:bg-white/20 border border-white/20 hover:scale-105"
+                        : "bg-white/5 text-white/30 border border-white/10 cursor-not-allowed"
+                      } ${hasPromo ? "ring-2 ring-amber-400/50" : ""}`}
                   >
                     <span className="block text-sm sm:text-base">{horario.schedule}</span>
-                    {hasAvailableCourts && (
-                      <span className="block text-xs text-white/50 mt-1">
-                        {horario.court.length} {horario.court.length === 1 ? "cancha" : "canchas"}
+                    {hasPromo && (
+                      <span className="block text-xs text-amber-400 mt-1 font-medium">
+                        🎁 Promo disponible
                       </span>
                     )}
                   </button>

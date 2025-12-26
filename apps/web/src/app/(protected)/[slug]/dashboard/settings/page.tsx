@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import DisabledDays from "./disabled-days/disabledDays";
 import EditUnavailableDays from "./disabled-days/editUnavailableDays";
 import FixedReservesClient from "./fixed-reserves/FixedReservesClient";
-import { Activity, CalendarDays, Clock, DollarSign, Lock, Repeat } from "lucide-react";
+import { Activity, CalendarDays, Clock, DollarSign, Lock, Percent, Repeat } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Icon } from "lucide-react";
 import { getComplexBySlug } from "@/services/complex/complex";
@@ -18,6 +18,7 @@ import { getSession } from "@/services/auth/session";
 import { CanchaSection } from "./courts/canchaSection";
 import { SportTypeSection } from "./sport-types/sportTypeSection";
 import { DashboardHeader } from "../DashboardHeader";
+import { PromotionSection } from "./promotions/promotionSection";
 
 const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
@@ -71,6 +72,13 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
               >
                 <DollarSign className="h-4 w-4" />
                 <span>Tarifas</span>
+              </TabsTrigger>
+              <TabsTrigger
+                value="Promociones"
+                className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
+              >
+                <Percent className="h-4 w-4" />
+                <span>Promos</span>
               </TabsTrigger>
               <TabsTrigger
                 value="Desabilitar dias"
@@ -149,6 +157,10 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
               </h2>
               <EditRates complex={complejo} />
             </div>
+          </TabsContent>
+
+          <TabsContent value="Promociones" className="space-y-4 md:space-y-8">
+            <PromotionSection complex={complejo} />
           </TabsContent>
 
           <TabsContent value="Desabilitar dias" className="space-y-4 md:space-y-8">

@@ -80,14 +80,19 @@ export function ProductForm({ complex }: ProductFormProps) {
 
   const onSubmit = async (data: ProductFormValues) => {
     try {
-      // Create the new product object
+      // Limpiar campos opcionales vacíos para evitar conflictos de unique constraint
+      const cleanedData = {
+        ...data,
+        barcode: data.barcode?.trim() || undefined,
+        description: data.description?.trim() || undefined,
+        supplier: data.supplier?.trim() || undefined,
+      };
 
-      // Add to global state
       const {
         success,
         data: newProduct,
         error,
-      } = await createProduct({ complexId: complex.id, ...data });
+      } = await createProduct({ complexId: complex.id, ...cleanedData });
       if (!success || !newProduct) {
         toast.error("Error al agregar producto", {
           description: error || "Ocurrió un error al intentar agregar el producto.",

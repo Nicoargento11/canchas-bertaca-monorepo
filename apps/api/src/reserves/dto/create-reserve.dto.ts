@@ -97,4 +97,12 @@ export class CreateReserveDto {
   @Type(() => Date)
   @IsOptional()
   expiresAt?: Date;
+
+  @ApiPropertyOptional({
+    description: 'ID of the promotion to apply',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsOptional()
+  @IsString()
+  promotionId?: string;
 }

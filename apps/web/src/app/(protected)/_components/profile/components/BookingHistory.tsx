@@ -4,7 +4,7 @@ import { Reserve } from "@/services/reserve/reserve";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CalendarDays, Clock, XCircle, CheckCircle2, History, Building2 } from "lucide-react";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 
 interface BookingHistoryProps {
@@ -60,6 +60,10 @@ interface HistoryCardProps {
 }
 
 const HistoryCard = ({ reserve }: HistoryCardProps) => {
+  // Fix timezone: parse only date portion
+  const dateString = reserve.date.toString().split('T')[0];
+  const reserveDate = parseISO(dateString);
+
   const getStatusConfig = (status: string) => {
     switch (status) {
       case "APROBADO":
@@ -99,10 +103,10 @@ const HistoryCard = ({ reserve }: HistoryCardProps) => {
           <div className="flex items-center gap-3 flex-shrink-0">
             <div className="text-center">
               <div className="text-2xl sm:text-3xl font-black text-Primary">
-                {format(new Date(reserve.date), "dd", { locale: es })}
+                {format(reserveDate, "dd", { locale: es })}
               </div>
               <div className="text-xs text-white/70 font-semibold uppercase">
-                {format(new Date(reserve.date), "MMM", { locale: es })}
+                {format(reserveDate, "MMM", { locale: es })}
               </div>
             </div>
 
@@ -119,14 +123,20 @@ const HistoryCard = ({ reserve }: HistoryCardProps) => {
               {reserve.court.name}
             </h4>
             <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
-              <Building2 className="w-3 h-3" />
+              {reserve.complex?.name?.toLowerCase().includes('seven') ? (
+                <img src="/images/seven_logo.png" alt="Seven" className="w-3 h-3 object-contain" />
+              ) : reserve.complex?.name?.toLowerCase().includes('bertaca') ? (
+                <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-3 h-3 object-contain" />
+              ) : (
+                <Building2 className="w-3 h-3" />
+              )}
               <span className="truncate">{reserve.complex?.name || "Complejo"}</span>
             </div>
             <div className="flex items-center gap-2 text-xs sm:text-sm text-white/70">
               <CalendarDays className="w-3 h-3 sm:w-4 sm:h-4 flex-shrink-0" />
               <span className="sm:hidden">{reserve.schedule}</span>
               <span className="hidden sm:inline">
-                {format(new Date(reserve.date), "EEEE", { locale: es })}
+                {format(reserveDate, "EEEE", { locale: es })}
               </span>
             </div>
           </div>

@@ -9,6 +9,7 @@ import { useReserve } from "@/contexts/newReserveContext";
 import { SessionPayload } from "@/services/auth/session";
 import { TurnByDay } from "@/services/reserve/reserve";
 import { Court } from "@/services/court/court";
+import { loadReservationData } from "@/utils/reservationStorage";
 
 interface SportData {
   reserves: TurnByDay | undefined;
@@ -64,6 +65,7 @@ export const MainSectionImproved = React.memo(
     const { initReservation, resetReservation, preloadReservation, state } = useReserve();
     const [showBookingModal, setShowBookingModal] = useState(false);
     const [preSelectedComplex, setPreSelectedComplex] = useState<"bertaca" | "seven" | null>(null);
+    const [initialSelectedComplex, setInitialSelectedComplex] = useState<"bertaca" | "seven" | null>(null);
 
     // Listen for global modal state to open local BookingModal
     React.useEffect(() => {
@@ -143,8 +145,33 @@ export const MainSectionImproved = React.memo(
     // };
 
     const handleOpenBookingModal = React.useCallback((complexType?: "bertaca" | "seven") => {
+      // Si no se pasa complexType, intentar leer del localStorage para mantener el complejo anterior
+      let effectiveComplexType = complexType;
+      if (!effectiveComplexType) {
+        // Revisar si hay datos guardados - primero el 'general' porque es el flujo sin preselección
+        const generalData = loadReservationData('general');
+        const sevenData = loadReservationData('seven');
+        const bertacaData = loadReservationData('bertaca');
+
+        // Si hay datos en 'general' con un complexId, usar ese
+        if (generalData?.complexId && generalData?.hour) {
+          // Verificar si el complexId corresponde a Seven
+          if (sevenComplex && generalData.complexId === sevenComplex.id) {
+            effectiveComplexType = 'seven';
+          } else if (generalData.complexId === complex.id) {
+            effectiveComplexType = 'bertaca';
+          }
+        }
+        // Si no hay en general, revisar los específicos
+        else if (sevenData?.complexName === 'seven' && sevenData?.hour) {
+          effectiveComplexType = 'seven';
+        } else if (bertacaData?.complexName === 'bertaca' && bertacaData?.hour) {
+          effectiveComplexType = 'bertaca';
+        }
+      }
+
       // Inicializar la reserva antes de abrir el modal
-      const isSeven = complexType === "seven";
+      const isSeven = effectiveComplexType === "seven";
       const targetComplex = isSeven && sevenComplex ? sevenComplex : complex;
       const targetSportTypes = isSeven && sevenSportTypes ? sevenSportTypes : sportTypes;
       const sportType = isSeven ? "FUTBOL_7" : "FUTBOL_5";
@@ -152,24 +179,43 @@ export const MainSectionImproved = React.memo(
       // Verificar si el deporte existe en los tipos disponibles
       const targetSport = targetSportTypes[sportType as SportTypeKey];
 
-      if (targetSport) {
+      // Solo reinicializar si NO hay reserva actual con el mismo complexId
+      // O si el usuario está cambiando de complejo explícitamente
+      const currentComplexId = state.currentReservation.complexId;
+      const shouldInit = !currentComplexId || currentComplexId !== targetComplex.id;
+
+      // IMPORTANTE: Si los datos vinieron de 'general', debemos mantener 'general' como complexName
+      // para que siga usando el storage correcto
+      const generalData = loadReservationData('general');
+      const dataFromGeneral = generalData?.complexId && generalData?.hour;
+      const complexNameToUse = dataFromGeneral && !complexType ? undefined : effectiveComplexType;
+
+      if (shouldInit && targetSport) {
         // NO llamar resetReservation - initReservation carga datos guardados si existen
-        initReservation(targetComplex.id, sportType as SportTypeKey, targetSport.id, complexType);
-      } else if (isSeven) {
+        initReservation(targetComplex.id, sportType as SportTypeKey, targetSport.id, complexNameToUse);
+      } else if (shouldInit && isSeven) {
         // Si es Seven y no tiene F7, inicializar vacío
-        initReservation(targetComplex.id, "FUTBOL_5" as SportTypeKey, "", complexType);
-      } else {
+        initReservation(targetComplex.id, "FUTBOL_5" as SportTypeKey, "", complexNameToUse);
+      } else if (shouldInit) {
         // Caso default (General o Bertaca): Si no hay F5, intentamos fallback (raro)
         const fallbackSport = targetSportTypes.FUTBOL_5;
         if (fallbackSport) {
-          initReservation(targetComplex.id, "FUTBOL_5", fallbackSport.id, complexType);
+          initReservation(targetComplex.id, "FUTBOL_5", fallbackSport.id, complexNameToUse);
         }
       }
+      // Si no shouldInit, simplemente abre el modal con el estado actual
 
+      // IMPORTANTE: Si los datos vinieron de 'general', mantener preSelectedComplex en null
+      // para que el modal siga siendo de 4 pasos y no cambie a 3 pasos
+      const preSelectToUse = dataFromGeneral && !complexType ? null : (effectiveComplexType || null);
+      setPreSelectedComplex(preSelectToUse);
 
-      setPreSelectedComplex(complexType || null);
+      // Si los datos vinieron de general pero hay un complejo elegido, pasarlo como initialSelectedComplex
+      // para que el BookingModal sepa cuál era el complejo seleccionado
+      setInitialSelectedComplex(dataFromGeneral && !complexType ? (effectiveComplexType || null) : null);
+
       setShowBookingModal(true);
-    }, [complex, sevenComplex, sportTypes, sevenSportTypes, initReservation]);
+    }, [complex, sevenComplex, sportTypes, sevenSportTypes, initReservation, state.currentReservation.complexId]);
 
     const handleReserveFromTable = React.useCallback((
       complexId: string,
@@ -223,7 +269,7 @@ export const MainSectionImproved = React.memo(
           <BookingModal
             onClose={() => {
               setShowBookingModal(false);
-              setPreSelectedComplex(null);
+              // No resetear preSelectedComplex para mantener consistencia con localStorage
             }}
             complex={preSelectedComplex === "seven" && sevenComplex ? sevenComplex : complex}
             sportTypes={
@@ -232,6 +278,7 @@ export const MainSectionImproved = React.memo(
             sevenComplex={sevenComplex}
             sevenSportTypes={sevenSportTypes}
             preSelectedComplex={preSelectedComplex}
+            initialSelectedComplex={initialSelectedComplex}
             currentUser={currentUser}
           />
         )}

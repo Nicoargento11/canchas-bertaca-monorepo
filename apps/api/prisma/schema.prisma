@@ -69,6 +69,7 @@ enum TransactionType {
   GASTO
   ESCUELA_FUTBOL
   EVENTO
+  EGRESO
 }
 
 enum PaymentMethod {
@@ -99,6 +100,20 @@ enum MovementType {
   REGALO
 }
 
+enum PromotionType {
+  // Para reservas de canchas
+  PERCENTAGE_DISCOUNT // Ej: 20% OFF en reserva
+  FIXED_AMOUNT_DISCOUNT // Ej: $500 menos en reserva
+  FIXED_PRICE // Ej: Precio final fijo $2000
+  GIFT_PRODUCT // Ej: Te regalamos una Coca-Cola con la reserva
+
+  // Para productos (independiente de reservas)
+  PRODUCT_PERCENTAGE // Ej: 50% en Gatorade
+  PRODUCT_FIXED_DISCOUNT // Ej: $100 menos en Coca
+  PRODUCT_BUY_X_PAY_Y // Ej: 2x1 en aguas
+  PRODUCT_FIXED_PRICE // Ej: Cualquier agua a $500
+}
+
 // =============================================
 // ORGANIZACIONES (CLUBES, EMPRESAS, ETC.)
 // =============================================
@@ -108,6 +123,14 @@ enum OrganizationType {
   MUNICIPALIDAD
   PARTICULAR
   OTRO
+}
+
+enum NotificationType {
+  RESERVATION
+  PAYMENT
+  SYSTEM
+  PROMOTION
+  REMINDER
 }
 
 // =============================================
@@ -178,29 +201,28 @@ model Organization {
   sales     Sale[]
 
   @@index([name])
-
 }
 
 // Gestión de complejos y canchas
 model Complex {
   id       String   @id @default(cuid())
   name     String
-  email    String?  // Removed @unique to allow same email for multiple complexes
+  email    String? // Removed @unique to allow same email for multiple complexes
   address  String
   slug     String   @unique
   isActive Boolean  @default(true)
   services String[]
 
   // Social media and contact information
-  phone          String? // WhatsApp number in international format: +5493624895303
-  instagram      String? // Instagram profile URL
-  facebook       String? // Facebook page URL
-  googleMapsUrl  String? // Google Maps location URL
-  latitude       Float? // Latitude for map embed
-  longitude      Float? // Longitude for map embed
-  description    String? // Complex description
-  logo           String? // Logo URL or path
-  coverImage     String? // Cover image URL or path
+  phone         String? // WhatsApp number in international format: +5493624895303
+  instagram     String? // Instagram profile URL
+  facebook      String? // Facebook page URL
+  googleMapsUrl String? // Google Maps location URL
+  latitude      Float? // Latitude for map embed
+  longitude     Float? // Longitude for map embed
+  description   String? // Complex description
+  logo          String? // Logo URL or path
+  coverImage    String? // Cover image URL or path
 
   managers        User[]
   courts          Court[]
@@ -229,6 +251,7 @@ model Complex {
   updatedAt    DateTime       @updatedAt
   CashRegister CashRegister[]
   sales        Sale[]
+  promotions   Promotion[]
 
   @@index([organizationId])
   @@index([slug])
@@ -268,8 +291,9 @@ model SportType {
   imageUrl String? // Icono o imagen representativa
   isActive Boolean @default(true)
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+  promotions Promotion[]
 }
 
 model Court {
@@ -291,6 +315,7 @@ model Court {
   fixedSchedules  FixedReserve[]
   unavailableDays UnavailableDay[]
   posts           Post[]
+  promotions      Promotion[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -362,6 +387,75 @@ model Rate {
   @@index([complexId])
 }
 
+model Promotion {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+  code        String? @unique // cupones
+  isActive    Boolean @default(true)
+
+  validFrom DateTime? // Fecha inicio promo
+  validTo   DateTime? // Fecha fin promo
+
+  daysOfWeek Int[] // Días que aplica: [1, 3] (Lunes y Miércoles)
+  startTime  String? // Hora inicio: "14:00"
+  endTime    String? // Hora fin: "17:00"
+
+  complexId String
+  complex   Complex @relation(fields: [complexId], references: [id])
+
+  sportTypeId String? // Opcional: Si es null aplica a todos, si no, solo a Padel o Fútbol
+  sportType   SportType? @relation(fields: [sportTypeId], references: [id])
+
+  courtId String? // Opcional: Solo para una cancha específica
+  court   Court?  @relation(fields: [courtId], references: [id])
+
+  // --- Beneficio (Qué gana el usuario) ---
+  type PromotionType
+
+  // Si es descuento monetario
+  value Float? // Valor numérico: 20 (para %), 500 (para monto fijo)
+
+  // Si es regalo de producto (GIFT_PRODUCT)
+  giftProductId String?
+  giftProduct   Product? @relation(fields: [giftProductId], references: [id])
+
+  // Nueva relación many-to-many para múltiples productos regalo
+  giftProducts PromotionGiftProduct[]
+
+  // Para promociones de PRODUCTO (PRODUCT_*)
+  targetProductId String?
+  targetProduct   Product? @relation("PromotionTarget", fields: [targetProductId], references: [id])
+
+  // Para 2x1, 3x2, etc (PRODUCT_BUY_X_PAY_Y)
+  buyQuantity Int? // Cantidad que lleva (ej: 2)
+  payQuantity Int? // Cantidad que paga (ej: 1)
+
+  // Relación inversa para historial
+  reserves      Reserve[]
+  fixedReserves FixedReserve[]
+  productSales  ProductSale[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+// Tabla intermedia para múltiples productos regalo por promoción
+model PromotionGiftProduct {
+  id          String    @id @default(cuid())
+  promotionId String
+  promotion   Promotion @relation(fields: [promotionId], references: [id], onDelete: Cascade)
+  productId   String
+  product     Product   @relation("PromotionGifts", fields: [productId], references: [id])
+  quantity    Int       @default(1)
+
+  createdAt DateTime @default(now())
+
+  @@unique([promotionId, productId])
+  @@index([promotionId])
+  @@index([productId])
+}
+
 // Reservas normales y fijas
 model Reserve {
   id                String       @id @default(cuid())
@@ -392,15 +486,16 @@ model Reserve {
 
   payment Payment[]
 
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  expiresAt DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  expiresAt    DateTime?
+  promotion    Promotion?    @relation(fields: [promotionId], references: [id])
+  promotionId  String?
+  productSales ProductSale[]
 
   @@index([courtId])
   @@index([userId, date])
-
   @@index([fixedReserveId])
-
   @@index([complexId, date])
 }
 
@@ -426,6 +521,9 @@ model FixedReserve {
   complexId String
 
   reserves Reserve[]
+
+  promotion   Promotion? @relation(fields: [promotionId], references: [id])
+  promotionId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -508,7 +606,7 @@ model Payment {
 // Inhabilitación de días
 model UnavailableDay {
   id     String   @id @default(cuid())
-  date   DateTime @unique
+  date   DateTime
   reason String?
 
   court   Court?  @relation(fields: [courtId], references: [id])
@@ -532,8 +630,8 @@ model Notification {
 
   title     String
   message   String
-  isRead    Boolean @default(false)
-  type      String // "RESERVATION", "PAYMENT", "SYSTEM"
+  isRead    Boolean          @default(false)
+  type      NotificationType
   relatedId String? // ID del recurso relacionado
 
   complex   Complex? @relation(fields: [complexId], references: [id])
@@ -567,8 +665,11 @@ model Product {
   complex   Complex @relation(fields: [complexId], references: [id])
   complexId String
 
-  sales     ProductSale[]
-  movements InventoryMovement[]
+  sales            ProductSale[]
+  movements        InventoryMovement[]
+  promotions       Promotion[]
+  promotionGifts   PromotionGiftProduct[] @relation("PromotionGifts")
+  promotionTargets Promotion[]            @relation("PromotionTarget")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -577,12 +678,13 @@ model Product {
 }
 
 model ProductSale {
-  id        String  @id @default(cuid())
+  id        String   @id @default(cuid())
+  reserve   Reserve? @relation(fields: [reserveId], references: [id])
   reserveId String?
   quantity  Int
   price     Float // Precio unitario en venta
-  discount  Float?  @default(0)
-  isGift    Boolean @default(false)
+  discount  Float?   @default(0)
+  isGift    Boolean  @default(false)
 
   product   Product @relation(fields: [productId], references: [id])
   productId String
@@ -590,8 +692,11 @@ model ProductSale {
   sale   Sale   @relation(fields: [saleId], references: [id])
   saleId String
 
-  complex   Complex @relation(fields: [complexId], references: [id]) // Relación añadida
+  complex   Complex @relation(fields: [complexId], references: [id])
   complexId String
+
+  promotion   Promotion? @relation(fields: [promotionId], references: [id])
+  promotionId String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -618,7 +723,6 @@ model Sale {
   updatedAt      DateTime      @updatedAt
   organization   Organization? @relation(fields: [organizationId], references: [id])
   organizationId String?
-
 
   @@index([createdById])
   @@index([complexId, createdAt])
@@ -716,7 +820,6 @@ model Tournament {
   @@index([sportTypeId])
   @@index([complexId])
   @@index([winnerTeamId])
-
 }
 
 model TournamentRegistration {

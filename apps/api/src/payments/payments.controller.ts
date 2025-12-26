@@ -90,6 +90,9 @@ export class PaymentsController {
         ...(createPaymentDto.fixedReserveId && {
           fixedReserveId: createPaymentDto.fixedReserveId,
         }),
+        ...(createPaymentDto.promotionId && {
+          promotionId: createPaymentDto.promotionId,
+        }),
         expiresAt: expiresAt,
       };
 

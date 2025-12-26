@@ -207,22 +207,23 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
       </div>
 
       {/* Grid Table */}
-      <div className="bg-white rounded-lg shadow-md border border-gray-300 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         {isLoading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+            <Loader2 className="w-8 h-8 animate-spin text-gray-600" />
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left table-fixed border-separate border-spacing-0">
               <thead>
-                <tr className="bg-gradient-to-r from-blue-600 to-blue-500">
-                  <th className="border-b border-blue-700 p-4 sticky top-0 z-10">
-                    <h6 className="font-semibold leading-none text-white text-center hidden md:block">
-                      Horarios
-                    </h6>
-                    <div className="flex justify-center">
-                      <Clock9 className="block md:hidden text-white" size={24} />
+                <tr className="bg-gray-900 text-white">
+                  {/* Columna horario - angosta en mobile */}
+                  <th className="w-[50px] md:w-[120px] p-1 md:p-3 sticky top-0 z-10 bg-gray-900">
+                    <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center">
+                      Horario
+                    </span>
+                    <div className="flex justify-center md:hidden">
+                      <Clock9 className="text-gray-300" size={14} />
                     </div>
                   </th>
                   {complex.courts
@@ -231,19 +232,14 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                     .map((court) => (
                       <th
                         key={court.id}
-                        className="border-b border-blue-700 p-2 sticky top-0 z-10 text-center"
+                        className="p-1 md:p-3 sticky top-0 z-10 text-center bg-gray-900"
                       >
-                        <div className="flex flex-col items-center md:hidden">
-                          <div className="relative text-white">
-                            <GiSoccerField size={40} />
-                          </div>
-                          <div className="pt-2 absolute">
-                            <p className="font-extrabold text-white">{court.courtNumber ?? "-"}</p>
-                          </div>
-                        </div>
-                        <h6 className="font-semibold leading-none text-white hidden md:block">
-                          {court.courtNumber ? `Cancha ${court.courtNumber}` : court.name}
-                        </h6>
+                        <span className="text-xs font-semibold uppercase tracking-wider hidden md:block">
+                          Cancha {court.courtNumber ?? "-"}
+                        </span>
+                        <span className="text-[10px] font-semibold md:hidden">
+                          C{court.courtNumber ?? "-"}
+                        </span>
                       </th>
                     ))}
                 </tr>
@@ -254,13 +250,14 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                   const slotStartHour = parseInt(startTime.split(":")[0]);
 
                   return (
-                    <tr key={timeSlot} className="hover:bg-gray-50 transition-colors">
-                      {/* Horario Label */}
-                      <td className="h-[80px] text-center font-semibold hidden md:flex md:justify-center md:items-center text-gray-700 bg-gray-50 border-r border-b border-gray-300">
+                    <tr key={timeSlot} className="border-b border-gray-100">
+                      {/* Horario Label - Desktop */}
+                      <td className="w-[50px] md:w-[120px] h-[44px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
                         {timeSlot}
                       </td>
-                      <td className="h-[80px] text-center font-semibold flex justify-center md:hidden items-center text-gray-700 bg-gray-50 border-r border-b border-gray-300">
-                        {startTime}
+                      {/* Horario Label - Mobile: solo hora */}
+                      <td className="w-[50px] h-[44px] text-center font-medium text-gray-700 bg-gray-50 border-r border-gray-100 text-[10px] md:hidden align-middle">
+                        {startTime.replace(":00", "")}
                       </td>
 
                       {/* Cells */}
@@ -296,7 +293,7 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                     <td
                                       key={`${timeSlot}-${court.id}`}
                                       rowSpan={duration}
-                                      className="border-r border-b border-gray-300 bg-gray-50/50 opacity-20 pointer-events-none"
+                                      className="bg-gray-50/50 opacity-20 pointer-events-none p-1"
                                     ></td>
                                   );
                               }
@@ -306,70 +303,57 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                   key={fixedReserve.id}
                                   rowSpan={duration}
                                   onClick={() => handleCellClick(timeSlot, court.id)}
-                                  className="border-r border-b border-gray-300 p-1 cursor-pointer align-top bg-white"
+                                  className="p-1 cursor-pointer align-top"
                                 >
-                                  <div className="h-full w-full bg-white border border-gray-200 rounded-md p-2 hover:border-blue-400 hover:shadow-md transition-all flex flex-col relative overflow-hidden">
-                                    <div
-                                      className={`absolute top-0 left-0 w-1 h-full ${fixedReserve.isActive ? "bg-green-500" : "bg-red-500"}`}
-                                    />
+                                  <div className={`h-full w-full bg-white rounded-lg p-2 md:p-3 hover:shadow-md transition-all flex flex-col relative overflow-hidden border-l-4 ${fixedReserve.isActive ? "border-l-violet-500" : "border-l-gray-400"}`}>
 
-                                    <div className="absolute top-1 right-1 z-10 flex gap-1">
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className="h-8 w-8 text-gray-500 hover:text-blue-600 hover:bg-blue-50"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          setEditingReserve(fixedReserve);
-                                          setModalInitialData({
-                                            courtId: fixedReserve.courtId,
-                                            startTime: fixedReserve.startTime,
-                                            endTime: fixedReserve.endTime,
-                                            dayOfWeek: selectedDay,
-                                            sportType: complex.sportTypes[0],
-                                          });
-                                          setIsModalOpen(true);
-                                        }}
-                                      >
-                                        <Pencil className="h-4 w-4" />
-                                      </Button>
-                                      <Button
-                                        size="icon"
-                                        variant="ghost"
-                                        className={`h-8 w-8 ${fixedReserve.isActive ? "text-green-600 hover:text-red-600 hover:bg-red-50" : "text-red-600 hover:text-green-600 hover:bg-green-50"}`}
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleToggleStatus(fixedReserve.id);
-                                        }}
-                                      >
-                                        <Power className="h-5 w-5" />
-                                      </Button>
-                                    </div>
-
-                                    <div className="pl-2 flex-1">
-                                      <div className="flex justify-between items-start">
-                                        <p className="font-semibold text-gray-900 text-sm truncate">
-                                          {fixedReserve.user.name}
-                                        </p>
-                                        {fixedReserve.isActive && (
-                                          <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
-                                        )}
-                                      </div>
-                                      <p className="text-xs text-gray-500 truncate mt-1">
-                                        {fixedReserve.user.phone || "-"}
+                                    {/* Contenido principal - compacto */}
+                                    <div className="flex-1">
+                                      <p className="font-semibold text-gray-900 text-xs md:text-sm truncate leading-tight">
+                                        {fixedReserve.user.name.split(" ")[0]}
                                       </p>
-
-                                      <div className="mt-2 text-xs text-gray-600 bg-gray-50 p-1 rounded">
-                                        <Clock9 className="w-3 h-3 inline mr-1" />
-                                        {fixedReserve.startTime.slice(0, 5)} -{" "}
-                                        {fixedReserve.endTime.slice(0, 5)}
-                                      </div>
+                                      <p className="text-[10px] md:text-xs text-gray-500 truncate mt-0.5">
+                                        {fixedReserve.startTime.slice(0, 5)} - {fixedReserve.endTime.slice(0, 5)}
+                                      </p>
                                     </div>
 
-                                    <div className="pl-2 mt-2 pt-2 border-t border-gray-100 flex items-center justify-between">
-                                      <span className="text-xs font-bold text-gray-700">
-                                        ${fixedReserve.rate?.price || "-"}
+                                    {/* Footer: Precio + Botones */}
+                                    <div className="mt-1 pt-1 border-t border-gray-100 flex items-center justify-between">
+                                      <span className="text-[10px] md:text-xs font-bold text-gray-700">
+                                        ${fixedReserve.rate?.price?.toLocaleString() || "-"}
                                       </span>
+                                      <div className="flex gap-0.5">
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-6 w-6 text-gray-400 hover:text-gray-600"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            setEditingReserve(fixedReserve);
+                                            setModalInitialData({
+                                              courtId: fixedReserve.courtId,
+                                              startTime: fixedReserve.startTime,
+                                              endTime: fixedReserve.endTime,
+                                              dayOfWeek: selectedDay,
+                                              sportType: complex.sportTypes[0],
+                                            });
+                                            setIsModalOpen(true);
+                                          }}
+                                        >
+                                          <Pencil className="h-3 w-3" />
+                                        </Button>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className={`h-6 w-6 ${fixedReserve.isActive ? "text-green-500" : "text-gray-400"}`}
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleStatus(fixedReserve.id);
+                                          }}
+                                        >
+                                          <Power className="h-3 w-3" />
+                                        </Button>
+                                      </div>
                                     </div>
                                   </div>
                                 </td>
@@ -386,10 +370,10 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                             <td
                               key={`${timeSlot}-${court.id}`}
                               onClick={() => handleCellClick(timeSlot, court.id)}
-                              className="border-r border-b border-gray-300 cursor-pointer hover:bg-blue-50 transition-all group relative p-0 bg-white"
+                              className="h-[56px] p-1 cursor-pointer transition-all group"
                             >
-                              <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                <Plus className="w-6 h-6 text-blue-400" />
+                              <div className="w-full h-full rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
+                                <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
                               </div>
                             </td>
                           );

@@ -7,7 +7,7 @@ import { Public } from 'src/auth/decorators/public.decorator';
 
 @Injectable()
 export class UnavailableDayService {
-  constructor(private prisma: PrismaService) {}
+  constructor(private prisma: PrismaService) { }
 
   async create(createUnavailableDayDto: CreateUnavailableDayDto) {
     return this.prisma.unavailableDay.create({
@@ -51,9 +51,22 @@ export class UnavailableDayService {
     });
   }
 
-  async removeByDate(date: Date) {
+  async removeByDate(date: Date, complexId?: string, courtId?: string) {
+    // Buscar primero el registro que coincide
+    const unavailableDay = await this.prisma.unavailableDay.findFirst({
+      where: {
+        date,
+        complexId: complexId ?? null,
+        courtId: courtId ?? null,
+      },
+    });
+
+    if (!unavailableDay) {
+      return null;
+    }
+
     return this.prisma.unavailableDay.delete({
-      where: { date },
+      where: { id: unavailableDay.id },
     });
   }
 }

@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/select";
 import { OpenCashRegister } from "./OpenCashRegister";
 import { CloseCashRegister } from "./CloseCashRegister";
+import { CashWithdrawal } from "./CashWithdrawal";
 import { CreateCashRegister } from "./CreateCashRegister";
 import { useCashRegisterStore } from "@/store/cash-register";
 import { useEffect, useState } from "react";
@@ -132,7 +133,8 @@ export function CashRegisterStatus({ complexId, userId }: CashRegisterStatusProp
                 </div>
               )}
 
-              <div className="pt-2">
+              <div className="pt-2 flex gap-2">
+                <CashWithdrawal cashSessionId={activeSession.id} complexId={complexId} />
                 <CloseCashRegister session={activeSession} complexId={complexId} />
               </div>
             </CardContent>

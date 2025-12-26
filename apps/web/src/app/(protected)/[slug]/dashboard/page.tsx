@@ -7,16 +7,14 @@ import EditReserveModal from "../../_components/dashboard/dashboard/editReserveM
 import { getComplexBySlug } from "@/services/complex/complex";
 import { notFound } from "next/navigation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { SidebarInset } from "@/components/ui/sidebar";
+import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { formatSportTypeName } from "@/services/sport-types/sport-types";
-import { DashboardHeader } from "./DashboardHeader";
 import CompletedReserveDetailsModal from "../../_components/dashboard/dashboard/completedReserveDetailsModal";
 import CompleteReserveModal from "../../_components/dashboard/dashboard/completeReserveModal";
 import { ComplexSelector } from "./ComplexSelector";
 import { getAvailableComplexes } from "@/lib/getAvailableComplexes";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { CalendarDays, MapPin, Trophy, Clock, Info, CalendarRange, Calendar } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Info } from "lucide-react";
 import { FijosGridView } from "../../_components/FijosGridView";
 
 const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) => {
@@ -49,121 +47,74 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
   const availableComplexes = await getAvailableComplexes(sessionUser);
 
   return (
-    <SidebarInset className="bg-gray-50/50 min-h-screen">
-      <div className="p-6 space-y-8 max-w-[1600px] mx-auto">
-        {/* Header Section */}
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <DashboardHeader title="Panel de Control">
-            <ComplexSelector
-              currentComplex={{ id: complejo.id, name: complejo.name, slug: complejo.slug }}
-              availableComplexes={availableComplexes.map((c) => ({
-                id: c.id,
-                name: c.name,
-                slug: c.slug,
-              }))}
-              userRole={sessionUser.user.role}
-            />
-          </DashboardHeader>
-          <div className="flex items-center gap-2">
-            <Badge variant="outline" className="px-3 py-1.5 bg-white text-sm font-normal shadow-sm">
-              <CalendarDays className="mr-2 h-3.5 w-3.5 text-muted-foreground" />
+    <SidebarInset className="bg-gray-50 min-h-screen">
+      <div className="max-w-[1600px] mx-auto">
+        {/* Header unificado - una sola línea */}
+        <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
+          <div className="px-4 md:px-6 py-3 flex items-center justify-between">
+            {/* Izquierda: Sidebar trigger + Complejo + Selector */}
+            <div className="flex items-center gap-2">
+              <SidebarTrigger className="text-gray-700 hover:bg-gray-100" />
+              <ComplexSelector
+                currentComplex={{ id: complejo.id, name: complejo.name, slug: complejo.slug }}
+                availableComplexes={availableComplexes.map((c) => ({
+                  id: c.id,
+                  name: c.name,
+                  slug: c.slug,
+                }))}
+                userRole={sessionUser.user.role}
+              />
+            </div>
+
+            {/* Derecha: Fecha */}
+            <span className="hidden sm:block text-sm text-gray-500">
               {new Date().toLocaleDateString("es-AR", {
                 weekday: "long",
                 day: "numeric",
                 month: "long",
               })}
-            </Badge>
+            </span>
           </div>
         </div>
 
-        {/* Quick Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Complejo Activo
-              </CardTitle>
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold truncate">{complejo.name}</div>
-              <p className="text-xs text-muted-foreground truncate">
-                {complejo.address || "Dirección no configurada"}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Deportes Habilitados
-              </CardTitle>
-              <Trophy className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{complejo.sportTypes?.length || 0}</div>
-              <p className="text-xs text-muted-foreground">Categorías disponibles para reserva</p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-border/60">
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Estado del Sistema
-              </CardTitle>
-              <Clock className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-600 flex items-center gap-2">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                Operativo
-              </div>
-              <p className="text-xs text-muted-foreground">Calendario actualizado en tiempo real</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Content Area */}
-        <div className="space-y-4">
-          <Tabs defaultValue="reservas" className="w-full space-y-6">
-            <div className="flex items-center justify-between border-b pb-4">
-              <TabsList className="h-auto p-1 bg-gray-100/80 rounded-lg">
+        {/* Contenido principal */}
+        <div className="p-4 md:p-6">
+          <Tabs defaultValue="reservas" className="w-full">
+            {/* Navigation tabs con mejor contraste */}
+            <div className="flex flex-wrap items-center gap-3 mb-4">
+              <TabsList className="h-10 p-1 bg-gray-200 rounded-lg">
                 <TabsTrigger
                   value="reservas"
-                  className="px-6 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200/50"
+                  className="h-8 px-4 text-sm font-medium rounded-md text-gray-600 data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-md"
                 >
-                  <Calendar className="w-4 h-4" />
                   Reservas
                 </TabsTrigger>
                 <TabsTrigger
                   value="fijos"
-                  className="px-6 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200/50"
+                  className="h-8 px-4 text-sm font-medium rounded-md text-gray-600 data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-md"
                 >
-                  <CalendarRange className="w-4 h-4" />
                   Fijos
                 </TabsTrigger>
               </TabsList>
             </div>
 
-            <TabsContent value="reservas" className="mt-0 space-y-6">
+            <TabsContent value="reservas" className="mt-0">
               {complejo.sportTypes && complejo.sportTypes.length > 0 ? (
-                <Tabs defaultValue={complejo.sportTypes[0]?.name} className="w-full space-y-6">
-                  <div className="flex items-center justify-between border-b pb-4">
-                    <TabsList className="h-auto p-1 bg-gray-100/80 rounded-lg">
+                <Tabs defaultValue={complejo.sportTypes[0]?.name} className="w-full">
+                  {/* Solo mostrar tabs de deportes si hay más de 1 */}
+                  {complejo.sportTypes.length > 1 && (
+                    <TabsList className="h-10 p-1 bg-gray-200 rounded-lg mb-4">
                       {complejo.sportTypes.map((sport) => (
                         <TabsTrigger
                           key={sport.id}
                           value={sport.name}
-                          className="px-6 py-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200/50"
+                          className="h-8 px-4 text-sm font-medium rounded-md text-gray-600 data-[state=active]:bg-gray-900 data-[state=active]:text-white data-[state=active]:shadow-md"
                         >
-                          <span className="capitalize">{formatSportTypeName(sport.name)}</span>
+                          {formatSportTypeName(sport.name)}
                         </TabsTrigger>
                       ))}
                     </TabsList>
-                  </div>
+                  )}
 
                   {complejo.sportTypes.map((sport) => (
                     <TabsContent
@@ -171,17 +122,13 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
                       value={sport.name}
                       className="mt-0 focus-visible:outline-none"
                     >
-                      <Card className="border-border/60 shadow-sm overflow-hidden">
-                        <CardContent className="p-0">
-                          <BiTableDay
-                            complex={complejo}
-                            userEmail={sessionUser?.user.email}
-                            userId={sessionUser?.user.id}
-                            schedules={complejo.schedules}
-                            sportType={sport}
-                          />
-                        </CardContent>
-                      </Card>
+                      <BiTableDay
+                        complex={complejo}
+                        userEmail={sessionUser?.user.email}
+                        userId={sessionUser?.user.id}
+                        schedules={complejo.schedules}
+                        sportType={sport}
+                      />
                     </TabsContent>
                   ))}
                 </Tabs>

@@ -104,7 +104,8 @@ export class UsersService {
         reserves: {
           include: {
             court: true,
-            complex: { select: { id: true, name: true } },
+            complex: { select: { id: true, name: true, slug: true } },
+            promotion: true,
           },
         },
       },

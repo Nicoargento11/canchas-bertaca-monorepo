@@ -199,7 +199,8 @@ export const UnifiedComplexSection = React.memo(
             onValueChange={(val) => onTabChange(val as "bertaca" | "seven")}
             className="w-full"
           >
-            <div className="flex justify-center mb-12">
+            {/* Original Tabs - hidden on mobile, visible on desktop */}
+            <div className="hidden lg:flex justify-center mb-12">
               <TabsList className="grid w-full max-w-md grid-cols-2 bg-slate-900/50 border border-white/10 p-1 h-auto rounded-xl">
                 <TabsTrigger
                   value="bertaca"
@@ -217,6 +218,29 @@ export const UnifiedComplexSection = React.memo(
                 </TabsTrigger>
               </TabsList>
             </div>
+
+            {/* Mobile Tabs - fixed at bottom of screen */}
+            <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-3 pb-[env(safe-area-inset-bottom,12px)] bg-slate-950/95 backdrop-blur-md border-t border-white/10 lg:hidden">
+              <TabsList className="grid w-full max-w-md mx-auto grid-cols-2 bg-slate-900/80 border border-white/10 p-1 h-auto rounded-xl shadow-2xl">
+                <TabsTrigger
+                  value="bertaca"
+                  className="text-sm py-3 data-[state=active]:bg-Primary data-[state=active]:text-white rounded-lg transition-all flex items-center gap-2 justify-center font-semibold"
+                >
+                  <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-5 h-5 object-contain" />
+                  <span>Bertaca (F5)</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="seven"
+                  className="text-sm py-3 data-[state=active]:bg-green-600 data-[state=active]:text-white rounded-lg transition-all flex items-center gap-2 justify-center font-semibold"
+                >
+                  <img src="/images/seven_logo.png" alt="Seven" className="w-5 h-5 object-contain" />
+                  <span>Seven (F7)</span>
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            {/* Spacer for bottom tabs on mobile */}
+            <div className="h-24 lg:hidden" />
 
             {/* BERTACA CONTENT */}
             <TabsContent value="bertaca" className="mt-0 focus-visible:outline-none space-y-16">
@@ -290,21 +314,19 @@ export const UnifiedComplexSection = React.memo(
                 <ServicesSection
                   title="Servicios Bertaca"
                   color="blue"
-                  prices={[
-                    { label: "Lun-Vie (08:00-18:00)", price: "$12.000" },
-                    { label: "Lun-Vie (18:00-24:00)", price: "$15.000" },
-                    { label: "Sáb-Dom", price: "$18.000" },
-                  ]}
+                  rates={complex.rates}
+                  schedules={complex.schedules}
                 />
               </div>
 
               {/* 4. Location & Contact (Bertaca) */}
               <div id="Contacto-bertaca" className="scroll-mt-32">
                 <LocationSection
-                  address="Fray Bertaca 1642, Resistencia, Chaco"
-                  whatsapp="+54 9 3624 895303"
-                  instagram="https://www.instagram.com/canchasbertaca"
-                  mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540.367636837866!2d-59.0234567!3d-27.4583456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjfCsDI3JzMwLjAiUyA1OcKwMDEnMjQuNCJX!5e0!3m2!1ses!2sar!4v1635789012345!5m2!1ses!2sar"
+                  address={complex.address}
+                  whatsapp={complex.phone || undefined}
+                  instagram={complex.instagram || undefined}
+                  latitude={complex.latitude}
+                  longitude={complex.longitude}
                   color="blue"
                 />
               </div>
@@ -379,21 +401,19 @@ export const UnifiedComplexSection = React.memo(
                 <ServicesSection
                   title="Servicios Seven"
                   color="green"
-                  prices={[
-                    { label: "Lun-Vie (08:00-18:00)", price: "$14.000" },
-                    { label: "Lun-Vie (18:00-24:00)", price: "$18.000" },
-                    { label: "Sáb-Dom", price: "$22.000" },
-                  ]}
+                  rates={sevenComplex?.rates || []}
+                  schedules={sevenComplex?.schedules || []}
                 />
               </div>
 
               {/* 4. Location & Contact (Seven) */}
               <div id="Contacto-seven" className="scroll-mt-32">
                 <LocationSection
-                  address="Ruta 16 KM 13.6, Resistencia, Chaco 3500"
-                  whatsapp="+54 9 3624 160843"
-                  instagram="https://www.instagram.com/canchaseven7"
-                  mapSrc="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540.367636837866!2d-59.0234567!3d-27.4583456!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMjfCsDI3JzMwLjAiUyA1OcKwMDEnMjQuNCJX!5e0!3m2!1ses!2sar!4v1635789012345!5m2!1ses!2sar"
+                  address={sevenComplex?.address || "Ruta 16 KM 13.6, Resistencia, Chaco 3500"}
+                  whatsapp={sevenComplex?.phone || undefined}
+                  instagram={sevenComplex?.instagram || undefined}
+                  latitude={sevenComplex?.latitude}
+                  longitude={sevenComplex?.longitude}
                   color="green"
                 />
               </div>
@@ -415,15 +435,77 @@ const FeatureItem = ({ icon: Icon, text, color }: { icon: any; text: string; col
 const ServicesSection = ({
   title,
   color,
-  prices,
+  rates,
+  schedules,
 }: {
   title: string;
   color: "blue" | "green";
-  prices: { label: string; price: string }[];
+  rates: { id: string; name: string; price: number; reservationAmount: number }[];
+  schedules: {
+    id: string;
+    startTime: string;
+    endTime: string;
+    scheduleDay?: { dayOfWeek: number; name?: string } | null;
+    rates?: { id: string; name: string; price: number }[];
+  }[];
 }) => {
   const colorClass = color === "blue" ? "text-blue-400" : "text-green-400";
   const borderClass = color === "blue" ? "border-blue-500/30" : "border-green-500/30";
   const bgClass = color === "blue" ? "bg-blue-500" : "bg-green-500";
+
+  // Format price for display
+  const formatPrice = (price: number) => {
+    return `$${price.toLocaleString('es-AR')}`;
+  };
+
+  // Group schedules by rate and aggregate days/times
+  const groupedByRate = React.useMemo(() => {
+    const grouped: Map<string, {
+      rate: { id: string; name: string; price: number };
+      days: Set<number>;
+      timeRanges: Set<string>;
+    }> = new Map();
+
+    schedules.forEach(schedule => {
+      schedule.rates?.forEach(rate => {
+        if (!grouped.has(rate.id)) {
+          grouped.set(rate.id, {
+            rate,
+            days: new Set(),
+            timeRanges: new Set(),
+          });
+        }
+        const group = grouped.get(rate.id)!;
+        if (schedule.scheduleDay?.dayOfWeek !== undefined) {
+          group.days.add(schedule.scheduleDay.dayOfWeek);
+        }
+        group.timeRanges.add(`${schedule.startTime} - ${schedule.endTime}`);
+      });
+    });
+
+    return Array.from(grouped.values());
+  }, [schedules]);
+
+  // Helper to format days
+  const formatDays = (days: Set<number>) => {
+    const dayArray = Array.from(days).sort((a, b) => a - b);
+    const isWeekday = dayArray.every(d => d >= 1 && d <= 5);
+    const isWeekend = dayArray.every(d => d === 0 || d === 6);
+
+    if (isWeekday && dayArray.length === 5) return "Lun-Vie";
+    if (isWeekend && dayArray.length === 2) return "Sáb-Dom";
+    if (dayArray.length === 7) return "Todos los días";
+
+    const dayNames = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    return dayArray.map(d => dayNames[d]).join(", ");
+  };
+
+  // If we have grouped data, use it; otherwise fallback to simple rates
+  const displayData = groupedByRate.length > 0 ? groupedByRate : rates.map(r => ({
+    rate: r,
+    days: new Set<number>(),
+    timeRanges: new Set<string>(),
+  }));
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -459,15 +541,26 @@ const ServicesSection = ({
         <DollarSign className="text-yellow-400 mb-4" size={40} />
         <h3 className="text-2xl font-black text-white mb-6">Lista de Precios</h3>
         <div className="space-y-4 text-white/80">
-          {prices.map((p, i) => (
-            <div
-              key={i}
-              className="flex justify-between items-center border-b border-white/10 pb-2 last:border-0"
-            >
-              <span>{p.label}</span>
-              <span className="font-bold text-white">{p.price}</span>
-            </div>
-          ))}
+          {displayData.length > 0 ? (
+            displayData.map((item) => (
+              <div
+                key={item.rate.id}
+                className="border-b border-white/10 pb-3 last:border-0 last:pb-0"
+              >
+                <div className="flex justify-between items-center">
+                  <span className="font-medium">{item.rate.name}</span>
+                  <span className="font-bold text-white">{formatPrice(item.rate.price)}</span>
+                </div>
+                {item.days.size > 0 && (
+                  <p className="text-xs text-white/50 mt-1">
+                    {formatDays(item.days)} • {Array.from(item.timeRanges).join(", ")}
+                  </p>
+                )}
+              </div>
+            ))
+          ) : (
+            <p className="text-white/50">No hay tarifas configuradas</p>
+          )}
         </div>
       </div>
     </div>
@@ -478,13 +571,15 @@ const LocationSection = ({
   address,
   whatsapp,
   instagram,
-  mapSrc,
+  latitude,
+  longitude,
   color,
 }: {
   address: string;
   whatsapp?: string;
   instagram?: string;
-  mapSrc: string;
+  latitude?: number | null;
+  longitude?: number | null;
   color: "blue" | "green";
 }) => {
   const colorClass = color === "blue" ? "text-blue-500" : "text-green-500";
@@ -494,6 +589,11 @@ const LocationSection = ({
   const whatsappUrl = whatsapp ? `https://wa.me/${whatsapp.replace(/[^0-9]/g, '')}` : '#';
   // URL para abrir Google Maps con la ubicación marcada
   const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(address)}`;
+
+  // Generate map embed URL from coordinates or fallback to address-based search
+  const mapSrc = latitude && longitude
+    ? `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540!2d${longitude}!3d${latitude}!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2z${latitude},${longitude}!5e0!3m2!1ses!2sar`
+    : `https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3540!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2s${encodeURIComponent(address)}!5e0!3m2!1ses!2sar`;
 
   return (
     <div

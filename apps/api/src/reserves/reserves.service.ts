@@ -225,7 +225,7 @@ export class ReservesService implements OnModuleInit {
       date: dto.date instanceof Date ? dto.date : new Date(dto.date),
       schedule: dto.schedule,
       complexId: dto.complexId,
-      status: { not: 'RECHAZADO' },
+      status: { notIn: ['RECHAZADO', 'CANCELADO'] },
     };
 
     if (dto.id) {
@@ -315,6 +315,24 @@ export class ReservesService implements OnModuleInit {
         },
       },
       fixedReserve: true,
+      promotion: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          value: true,
+          giftProducts: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
     };
   }
 
@@ -332,6 +350,14 @@ export class ReservesService implements OnModuleInit {
           id: true,
           name: true,
           courtNumber: true,
+        },
+      },
+      promotion: {
+        select: {
+          id: true,
+          name: true,
+          type: true,
+          value: true,
         },
       },
     };
@@ -383,6 +409,14 @@ export class ReservesService implements OnModuleInit {
             slug: true,
           },
         },
+        promotion: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            value: true,
+          },
+        },
       },
     });
   }
@@ -397,7 +431,7 @@ export class ReservesService implements OnModuleInit {
       where: {
         date: new Date(date),
         schedule,
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
         complexId,
         court: sportTypeId ? { sportTypeId } : undefined,
       },
@@ -417,6 +451,14 @@ export class ReservesService implements OnModuleInit {
             phone: true,
           },
         },
+        promotion: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            value: true,
+          },
+        },
       },
     });
   }
@@ -425,7 +467,7 @@ export class ReservesService implements OnModuleInit {
     return this.prisma.reserve.findMany({
       where: {
         date: new Date(date),
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
         complexId,
         court: sportTypeId ? { sportTypeId } : undefined,
       },
@@ -444,6 +486,24 @@ export class ReservesService implements OnModuleInit {
             id: true,
             name: true,
             courtNumber: true,
+          },
+        },
+        promotion: {
+          select: {
+            id: true,
+            name: true,
+            type: true,
+            value: true,
+            giftProducts: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
           },
         },
       },
@@ -465,7 +525,7 @@ export class ReservesService implements OnModuleInit {
           gte: startOfMonth,
           lte: endOfMonth,
         },
-        NOT: { status: 'RECHAZADO' },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
         complexId,
         court: sportTypeId ? { sportTypeId } : undefined,
       },
@@ -509,5 +569,88 @@ export class ReservesService implements OnModuleInit {
         court: true,
       },
     });
+  }
+
+  // Deduct stock for gift products in a promotion and create sale record
+  async deductGiftProductStock(reserve: any) {
+    // Check if the reserve has a promotion
+    if (!reserve.promotionId) {
+      return { success: false, message: 'No promotion associated with this reserve' };
+    }
+
+    // Get the promotion with gift products
+    const promotion = await this.prisma.promotion.findUnique({
+      where: { id: reserve.promotionId },
+      include: {
+        giftProducts: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+
+    if (!promotion || promotion.type !== 'GIFT_PRODUCT' || !promotion.giftProducts.length) {
+      return { success: false, message: 'No gift products to deduct' };
+    }
+
+    // Create a Sale record for the gift products (total = 0 since they're free)
+    const sale = await this.prisma.sale.create({
+      data: {
+        totalAmount: 0,
+        complexId: reserve.complexId,
+        createdById: reserve.userId,
+      },
+    });
+
+    // Deduct stock and create ProductSale for each gift product
+    const deductions = await Promise.all(
+      promotion.giftProducts.map(async (gp) => {
+        const product = await this.prisma.product.findUnique({
+          where: { id: gp.productId },
+        });
+
+        if (!product) {
+          return { productId: gp.productId, success: false, message: 'Product not found' };
+        }
+
+        const newStock = Math.max(0, product.stock - gp.quantity);
+
+        // Update product stock
+        await this.prisma.product.update({
+          where: { id: gp.productId },
+          data: { stock: newStock },
+        });
+
+        // Create ProductSale record for traceability
+        await this.prisma.productSale.create({
+          data: {
+            productId: gp.productId,
+            quantity: gp.quantity,
+            price: 0, // Free because it's a gift
+            isGift: true,
+            reserveId: reserve.id,
+            promotionId: promotion.id,
+            saleId: sale.id,
+            complexId: reserve.complexId,
+          },
+        });
+
+        return {
+          productId: gp.productId,
+          productName: product.name,
+          quantityDeducted: gp.quantity,
+          newStock,
+          success: true,
+        };
+      })
+    );
+
+    return {
+      success: true,
+      message: 'Stock deducted and sale recorded successfully',
+      saleId: sale.id,
+      deductions,
+    };
   }
 }
