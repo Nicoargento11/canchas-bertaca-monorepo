@@ -1,9 +1,10 @@
 "use client";
-import { CheckCircle2, CreditCard, Banknote, UserRound, Coins } from "lucide-react";
+import { CheckCircle2, CreditCard, Banknote, UserRound, Coins, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useEffect, useState, useTransition } from "react";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { useDashboardCompleteReserveModalStore } from "@/store/completeReserveDashboardModalStore";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
@@ -12,10 +13,11 @@ import { toast } from "sonner";
 import { createPayment, PaymentMethod } from "@/services/payment/payment";
 import { getActiveCashSession } from "@/services/cash-session/cash-session";
 import { getAllCashRegisters } from "@/services/cash-register/cash-register";
-import { updateReserveStatus } from "@/services/reserve/reserve";
+import { updateReserveStatus, deductGiftProductStock } from "@/services/reserve/reserve";
 
 export const CompleteReserveForm = () => {
-  const [isPending, startTransition] = useTransition(); // Configuración dinámica de métodos de pago
+  const [isPending, startTransition] = useTransition();
+  const [deductGiftStock, setDeductGiftStock] = useState(true); // Por defecto activado // Configuración dinámica de métodos de pago
   const PAYMENT_METHODS = [
     {
       key: "efectivo",
@@ -63,11 +65,10 @@ export const CompleteReserveForm = () => {
   const selectedDate = date && format(date, "yyyy-MM-dd");
   useEffect(() => {
     if (reserve) {
-      // Calcular el monto restante (precio total - monto ya pagado)
-      const remainingAmount = reserve.price - (reserve.reservationAmount || 0);
+      // Inicializar todos los campos en vacío - el usuario presiona "Rest" en el que quiera
       const initialData = PAYMENT_METHODS.reduce(
         (acc, method) => {
-          acc[method.key] = method.key === "efectivo" ? remainingAmount.toString() : "";
+          acc[method.key] = "";
           return acc;
         },
         {} as Record<string, string>
@@ -161,6 +162,14 @@ export const CompleteReserveForm = () => {
           return;
         }
 
+        // Descontar stock de productos de regalo si aplica
+        if (deductGiftStock && reserve.promotion?.type === "GIFT_PRODUCT" && reserve.promotionId) {
+          const stockResult = await deductGiftProductStock(reserve.id);
+          if (!stockResult.success) {
+            toast.warning("Reserva completada pero no se pudo descontar el stock de productos");
+          }
+        }
+
         toast.success("Reserva marcada como completada y pagos registrados");
 
         // Refrescar los datos y cerrar modal
@@ -225,6 +234,43 @@ export const CompleteReserveForm = () => {
         </div>
       </div>
 
+      {/* Toggle para productos de regalo */}
+      {reserve.promotion?.type === "GIFT_PRODUCT" && reserve.promotion?.giftProducts && reserve.promotion.giftProducts.length > 0 && (
+        <div className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-amber-500/20">
+                <Gift className="h-5 w-5 text-amber-400" />
+              </div>
+              <div>
+                <p className="text-sm font-medium text-amber-300">Productos de regalo</p>
+                <p className="text-xs text-amber-400/70">
+                  {reserve.promotion.giftProducts.map((gp: any) =>
+                    `${gp.quantity}x ${gp.product?.name || 'Producto'}`
+                  ).join(", ")}
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="deduct-stock" className="text-xs text-amber-400/70">
+                Descontar stock
+              </Label>
+              <Switch
+                id="deduct-stock"
+                checked={deductGiftStock}
+                onCheckedChange={setDeductGiftStock}
+                className="data-[state=checked]:bg-amber-500"
+              />
+            </div>
+          </div>
+          {!deductGiftStock && (
+            <p className="text-xs text-amber-400/50 mt-2 italic">
+              ⚠️ No se descontará el stock de estos productos
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Métodos de pago */}
       <div className="space-y-4">
         <Label className="text-base font-semibold text-white">Métodos de pago utilizados:</Label>{" "}
@@ -240,23 +286,40 @@ export const CompleteReserveForm = () => {
                   <Icon className={`h-4 w-4 ${method.color}`} />
                   {method.label}
                 </Label>
-                <Input
-                  id={method.key}
-                  type="number"
-                  placeholder="0"
-                  value={paymentData[method.key]}
-                  onChange={(e) => handlePaymentChange(method.key, e.target.value)}
-                  className="text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30"
-                />
+                <div className="flex gap-1">
+                  <Input
+                    id={method.key}
+                    type="number"
+                    placeholder="0"
+                    value={paymentData[method.key]}
+                    onChange={(e) => handlePaymentChange(method.key, e.target.value)}
+                    className="text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
+                  />
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="px-2 text-xs text-white/60 hover:text-white"
+                    onClick={() => {
+                      // Calcular lo restante considerando otros métodos
+                      const otherPayments = Object.entries(paymentData)
+                        .filter(([key]) => key !== method.key)
+                        .reduce((sum, [, val]) => sum + (parseFloat(val) || 0), 0);
+                      const rest = remainingAmount - otherPayments;
+                      handlePaymentChange(method.key, rest > 0 ? rest.toString() : "");
+                    }}
+                    title="Cargar monto restante"
+                  >
+                    Rest
+                  </Button>
+                </div>
               </div>
             );
           })}
         </div>
         {/* Total */}
         <div
-          className={`flex justify-between items-center p-3 rounded-lg border-2 ${
-            isValidTotal ? "bg-green-900/20 border-green-900/30" : "bg-red-900/20 border-red-900/30"
-          }`}
+          className={`flex justify-between items-center p-3 rounded-lg border-2 ${isValidTotal ? "bg-green-900/20 border-green-900/30" : "bg-red-900/20 border-red-900/30"
+            }`}
         >
           <span className="text-base font-semibold text-white">Total pagos:</span>
           <span className={`text-lg font-bold ${isValidTotal ? "text-green-400" : "text-red-400"}`}>

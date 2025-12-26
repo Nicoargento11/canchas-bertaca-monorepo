@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useTransition } from "react";
+import React, { useState, useTransition, useMemo } from "react";
 import {
   Form,
   FormControl,
@@ -15,7 +15,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Input } from "@/components/ui/input";
-import { CalendarDays, Clock9, Coins, Mail, Phone, Receipt, UserCircle2 } from "lucide-react";
+import { CalendarDays, Clock9, Coins, Mail, Phone, Receipt, UserCircle2, Gift } from "lucide-react";
 import { Icon } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Button } from "@/components/ui/button";
@@ -38,6 +38,9 @@ import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { toast } from "sonner";
 import { getActiveCashSession } from "@/services/cash-session/cash-session";
 import { getAllCashRegisters } from "@/services/cash-register/cash-register";
+import { Switch } from "@/components/ui/switch";
+import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
+import { formatPromotionValue } from "@/services/promotion/promotion";
 
 const PAYMENT_METHODS = [
   { value: "EFECTIVO", label: "Efectivo", icon: "💵" },
@@ -49,27 +52,46 @@ const PAYMENT_METHODS = [
 export const ReserveForm = () => {
   const [isPending, startTransition] = useTransition();
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("EFECTIVO");
+  const [applyPromotion, setApplyPromotion] = useState(true); // Toggle para promo
 
   const { handleChangeReserve } = useDashboardReserveModalStore((state) => state);
   const { fetchReservationsByDay, state } = useReservationDashboard();
   const { createReserve: reserveData, date } = useDashboardDataStore();
 
+  // Calcular promoción aplicable
+  const { bestPromotion, calculateFinalPrice } = useApplicablePromotions({
+    promotions: state.currentComplex?.promotions,
+    date: reserveData?.date,
+    schedule: reserveData?.schedule,
+    courtId: reserveData?.courtId,
+    sportTypeId: state.sportType?.id,
+  });
+
+  // Precio final con o sin promo
+  const priceInfo = useMemo(() => {
+    if (!reserveData?.price) return { originalPrice: 0, finalPrice: 0, discount: 0 };
+    if (bestPromotion && applyPromotion) {
+      return calculateFinalPrice(reserveData.price);
+    }
+    return { originalPrice: reserveData.price, finalPrice: reserveData.price, discount: 0 };
+  }, [reserveData?.price, bestPromotion, applyPromotion, calculateFinalPrice]);
+
   const form = useForm<z.infer<typeof createReserveAdminSchema>>({
     resolver: zodResolver(createReserveAdminSchema),
     defaultValues: reserveData
       ? {
-          date: reserveData.date,
-          schedule: reserveData.schedule,
-          userId: reserveData.userId,
-          price: reserveData.price,
-          status: "APROBADO",
-          phone: "",
-          clientName: "",
-          reservationAmount: 0,
-          courtId: reserveData.courtId,
-          complexId: reserveData.complexId,
-          reserveType: reserveData.reserveType,
-        }
+        date: reserveData.date,
+        schedule: reserveData.schedule,
+        userId: reserveData.userId,
+        price: reserveData.price,
+        status: "APROBADO",
+        phone: "",
+        clientName: "",
+        reservationAmount: 0,
+        courtId: reserveData.courtId,
+        complexId: reserveData.complexId,
+        reserveType: reserveData.reserveType,
+      }
       : undefined,
   });
 
@@ -138,6 +160,8 @@ export const ReserveForm = () => {
         } = await createReserve({
           ...values,
           reservationAmount: Number(values.reservationAmount),
+          price: priceInfo.finalPrice, // Precio con descuento aplicado
+          ...(bestPromotion && applyPromotion && { promotionId: bestPromotion.id }),
         });
         if (error || !success) {
           toast.error(error || "Error al crear la reserva");
@@ -202,12 +226,46 @@ export const ReserveForm = () => {
                   <Receipt className="text-Primary" size={18} />
                   Precio
                 </Label>
-                <Input
-                  value={reserveData?.price || ""}
-                  disabled
-                  className="bg-white/10 border-white/10 text-white disabled:opacity-100"
-                />
+                {bestPromotion && applyPromotion ? (
+                  <div className="flex items-center gap-2">
+                    <span className="text-white/50 line-through text-sm">
+                      ${priceInfo.originalPrice}
+                    </span>
+                    <span className="text-green-400 font-bold text-lg">
+                      ${priceInfo.finalPrice}
+                    </span>
+                    <span className="text-amber-400 text-xs">
+                      (-${priceInfo.discount})
+                    </span>
+                  </div>
+                ) : (
+                  <Input
+                    value={reserveData?.price || ""}
+                    disabled
+                    className="bg-white/10 border-white/10 text-white disabled:opacity-100"
+                  />
+                )}
               </div>
+
+              {/* Toggle de Promoción */}
+              {bestPromotion && (
+                <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Gift className="text-amber-400" size={18} />
+                      <div>
+                        <p className="text-white font-medium text-sm">{bestPromotion.name}</p>
+                        <p className="text-amber-400 text-xs">{formatPromotionValue(bestPromotion)}</p>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={applyPromotion}
+                      onCheckedChange={setApplyPromotion}
+                      className="data-[state=checked]:bg-amber-500"
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </CardContent>
         </Card>

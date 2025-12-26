@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import { Search, Plus, Minus, Trash2, ShoppingCart, Gift, Loader2, Wallet } from "lucide-react";
+import { Search, Plus, Minus, Trash2, ShoppingCart, Gift, Loader2, Wallet, Tag } from "lucide-react";
 import { toast } from "sonner";
 import { useProductStore } from "@/store/stockManagementStore";
 import { useCartStore } from "@/store/cartStore";
@@ -34,8 +34,8 @@ import { CashRegisterSummary } from "./CashRegisterSummary";
 import { CashSession } from "@/services/cash-session/cash-session";
 import { CashRegister } from "@/services/cash-register/cash-register";
 import { DailySummaryResponse } from "@/services/reports/reports";
-import { set } from "date-fns";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Promotion } from "@/services/promotion/promotion";
 import {
   Sheet,
   SheetContent,
@@ -100,6 +100,8 @@ export function SaleSystem({
   const [customerName, setCustomerName] = useState("");
   const [payments, setPayments] = useState<SalePaymentDto[]>([]);
   const [paymentAmount, setPaymentAmount] = useState<string>("");
+  // Estado para promociones aplicadas por producto (productId -> Promotion)
+  const [appliedPromotions, setAppliedPromotions] = useState<Record<string, Promotion | null>>({});
 
   useEffect(() => {
     initializeProducts(complex.products);
@@ -129,6 +131,18 @@ export function SaleSystem({
     return activeSession && activeRegister && cart.length > 0;
   }, [activeSession, activeRegister, cart]);
 
+  // Filtrar promociones de producto activas
+  const productPromotions = useMemo(() => {
+    return (complex.promotions || []).filter(
+      (p) => p.isActive && p.type?.startsWith("PRODUCT_")
+    );
+  }, [complex.promotions]);
+
+  // Obtener promociones disponibles para un producto específico
+  const getPromotionsForProduct = useCallback((productId: string) => {
+    return productPromotions.filter(p => p.targetProductId === productId);
+  }, [productPromotions]);
+
   // Filtrar productos disponibles
   const availableProducts = useMemo(() => {
     return products.filter(
@@ -139,19 +153,76 @@ export function SaleSystem({
     );
   }, [products, searchTerm]);
 
-  const { subtotal, totalDiscount } = useMemo(() => {
-    const subtotal = cart.reduce((total, item) => {
-      if (item.isGift) return total;
-      return total + item.price * item.quantity * (1 - (item.discount || 0) / 100);
-    }, 0);
+  // Calcular precio con promoción aplicada
+  const calculatePromoPrice = useCallback((
+    unitPrice: number,
+    quantity: number,
+    promo: Promotion | null | undefined
+  ): { finalPrice: number; discountAmount: number } => {
+    if (!promo) {
+      return { finalPrice: unitPrice * quantity, discountAmount: 0 };
+    }
 
-    const totalDiscount = cart.reduce((total, item) => {
-      if (item.isGift) return total;
-      return total + (item.price * item.quantity * (item.discount || 0)) / 100;
-    }, 0);
+    const baseTotal = unitPrice * quantity;
+
+    switch (promo.type) {
+      case "PRODUCT_PERCENTAGE":
+        // Ej: 50% de descuento
+        const percentDiscount = baseTotal * ((promo.value || 0) / 100);
+        return { finalPrice: baseTotal - percentDiscount, discountAmount: percentDiscount };
+
+      case "PRODUCT_FIXED_DISCOUNT":
+        // Ej: $100 menos por unidad
+        const fixedDiscount = (promo.value || 0) * quantity;
+        return { finalPrice: Math.max(0, baseTotal - fixedDiscount), discountAmount: fixedDiscount };
+
+      case "PRODUCT_BUY_X_PAY_Y":
+        // Ej: 2x1 (lleva 2, paga 1)
+        const buyQty = promo.buyQuantity || 2;
+        const payQty = promo.payQuantity || 1;
+        const sets = Math.floor(quantity / buyQty);
+        const remainder = quantity % buyQty;
+        const paidUnits = (sets * payQty) + remainder;
+        const finalPrice = paidUnits * unitPrice;
+        return { finalPrice, discountAmount: baseTotal - finalPrice };
+
+      case "PRODUCT_FIXED_PRICE":
+        // Ej: Precio especial $500 por unidad
+        const specialPrice = (promo.value || unitPrice) * quantity;
+        return { finalPrice: specialPrice, discountAmount: baseTotal - specialPrice };
+
+      default:
+        return { finalPrice: baseTotal, discountAmount: 0 };
+    }
+  }, []);
+
+  const { subtotal, totalDiscount } = useMemo(() => {
+    let subtotal = 0;
+    let totalDiscount = 0;
+
+    cart.forEach((item) => {
+      if (item.isGift) return;
+
+      const promo = appliedPromotions[item.product.id];
+      const { finalPrice, discountAmount } = calculatePromoPrice(
+        item.price,
+        item.quantity,
+        promo
+      );
+
+      // Si no hay promo, usar el descuento manual
+      if (!promo && item.discount) {
+        const manualDiscount = (item.price * item.quantity * item.discount) / 100;
+        subtotal += item.price * item.quantity - manualDiscount;
+        totalDiscount += manualDiscount;
+      } else {
+        subtotal += finalPrice;
+        totalDiscount += discountAmount;
+      }
+    });
 
     return { subtotal, totalDiscount };
-  }, [cart]);
+  }, [cart, appliedPromotions, calculatePromoPrice]);
 
   const handleAddToCart = useCallback(
     (product: Product) => {
@@ -352,8 +423,8 @@ export function SaleSystem({
             </div>{" "}
           </Card>
         </div>
-        {/* Panel de productos */}
-        <div className="space-y-3 lg:space-y-4 order-2 lg:order-1">
+        {/* Panel de productos - PRIMERO en mobile */}
+        <div className="space-y-3 lg:space-y-4">
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-muted-foreground flex-shrink-0" />
             <Input
@@ -391,8 +462,8 @@ export function SaleSystem({
             ))}{" "}
           </div>
         </div>
-        {/* Panel del carrito */}
-        <div className="space-y-3 lg:space-y-4 order-1 lg:order-2">
+        {/* Panel del carrito - SEGUNDO en mobile */}
+        <div className="space-y-3 lg:space-y-4">
           <Card>
             <CardHeader className="pb-3 lg:pb-6">
               <CardTitle className="flex items-center gap-2 text-base lg:text-lg">
@@ -409,10 +480,24 @@ export function SaleSystem({
                 <div className="space-y-2 lg:space-y-3">
                   {cart.map((item) => {
                     const itemTotal = item.price * item.quantity;
-                    const discountAmount = item.isGift
-                      ? 0
-                      : (itemTotal * (item.discount || 0)) / 100;
-                    const finalPrice = item.isGift ? 0 : itemTotal - discountAmount;
+                    const appliedPromo = appliedPromotions[item.product.id];
+                    const availablePromos = getPromotionsForProduct(item.product.id);
+
+                    // Calcular precio con promo o descuento manual
+                    let finalPrice = itemTotal;
+                    let discountAmount = 0;
+
+                    if (item.isGift) {
+                      finalPrice = 0;
+                      discountAmount = itemTotal;
+                    } else if (appliedPromo) {
+                      const promoCalc = calculatePromoPrice(item.price, item.quantity, appliedPromo);
+                      finalPrice = promoCalc.finalPrice;
+                      discountAmount = promoCalc.discountAmount;
+                    } else if (item.discount) {
+                      discountAmount = (itemTotal * item.discount) / 100;
+                      finalPrice = itemTotal - discountAmount;
+                    }
 
                     return (
                       <div key={item.product.id} className="p-2 lg:p-3 border rounded space-y-2">
@@ -481,19 +566,18 @@ export function SaleSystem({
                           </div>
 
                           <div className="text-right flex-shrink-0">
-                            {!item.isGift && item.discount > 0 && (
+                            {!item.isGift && discountAmount > 0 && (
                               <p className="text-xs lg:text-sm line-through text-muted-foreground">
                                 ${itemTotal.toFixed(2)}
                               </p>
                             )}
                             <p
-                              className={`font-medium text-sm lg:text-base ${
-                                item.isGift
-                                  ? "text-purple-600"
-                                  : item.discount > 0
-                                    ? "text-green-600"
-                                    : ""
-                              }`}
+                              className={`font-medium text-sm lg:text-base ${item.isGift
+                                ? "text-purple-600"
+                                : discountAmount > 0
+                                  ? "text-green-600"
+                                  : ""
+                                }`}
                             >
                               {item.isGift ? "GRATIS" : `$${finalPrice.toFixed(2)}`}
                             </p>
@@ -502,30 +586,72 @@ export function SaleSystem({
                                 Regalo
                               </span>
                             )}
+                            {appliedPromo && (
+                              <span className="text-xs bg-teal-600 text-white px-1.5 py-0.5 rounded-full">
+                                {appliedPromo.name}
+                              </span>
+                            )}
                           </div>
                         </div>
 
+                        {/* Selector de promoción o descuento manual */}
                         <div className="flex items-center gap-2 flex-wrap">
-                          <Label
-                            htmlFor={`discount-${item.product.id}`}
-                            className="text-xs lg:text-sm whitespace-nowrap"
-                          >
-                            Descuento:
-                          </Label>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              id={`discount-${item.product.id}`}
-                              type="number"
-                              min="0"
-                              max="100"
-                              className="w-16 lg:w-20 h-8 text-sm"
-                              value={item.discount || 0}
-                              onChange={(e) =>
-                                handleDiscountChange(item.product.id, Number(e.target.value))
-                              }
-                            />
-                            <span className="text-sm">%</span>
-                          </div>
+                          {availablePromos.length > 0 ? (
+                            <Select
+                              value={appliedPromo?.id || "none"}
+                              onValueChange={(value) => {
+                                if (value === "none") {
+                                  setAppliedPromotions(prev => ({ ...prev, [item.product.id]: null }));
+                                } else {
+                                  const promo = availablePromos.find(p => p.id === value);
+                                  setAppliedPromotions(prev => ({ ...prev, [item.product.id]: promo || null }));
+                                }
+                              }}
+                            >
+                              <SelectTrigger className="h-8 text-xs flex-1">
+                                <Tag className="h-3 w-3 mr-1" />
+                                <SelectValue placeholder="Aplicar promo..." />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="none">Sin promoción</SelectItem>
+                                {availablePromos.map((promo) => (
+                                  <SelectItem key={promo.id} value={promo.id}>
+                                    {promo.name} ({promo.type === "PRODUCT_BUY_X_PAY_Y"
+                                      ? `${promo.buyQuantity}x${promo.payQuantity}`
+                                      : promo.type === "PRODUCT_PERCENTAGE"
+                                        ? `${promo.value}%`
+                                        : promo.type === "PRODUCT_FIXED_DISCOUNT"
+                                          ? `-$${promo.value}`
+                                          : `$${promo.value}`
+                                    })
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <>
+                              <Label
+                                htmlFor={`discount-${item.product.id}`}
+                                className="text-xs lg:text-sm whitespace-nowrap"
+                              >
+                                Descuento:
+                              </Label>
+                              <div className="flex items-center gap-1">
+                                <Input
+                                  id={`discount-${item.product.id}`}
+                                  type="number"
+                                  min="0"
+                                  max="100"
+                                  className="w-16 lg:w-20 h-8 text-sm"
+                                  value={item.discount || 0}
+                                  onChange={(e) =>
+                                    handleDiscountChange(item.product.id, Number(e.target.value))
+                                  }
+                                />
+                                <span className="text-sm">%</span>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     );
@@ -564,26 +690,27 @@ export function SaleSystem({
 
                 <div className="space-y-2">
                   <Label className="text-sm lg:text-base">Pagos</Label>
-                  <div className="flex gap-2">
+                  {/* Fila de método y monto */}
+                  <div className="flex flex-wrap gap-2">
                     <Select
                       value={paymentMethod}
                       onValueChange={(value: PaymentMethod) => setPaymentMethod(value)}
                     >
-                      <SelectTrigger className="flex-1 text-sm lg:text-base">
+                      <SelectTrigger className="w-28 sm:w-32 text-xs sm:text-sm">
                         <SelectValue placeholder="Método" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value={PaymentMethod.EFECTIVO}>Efectivo</SelectItem>
                         <SelectItem value={PaymentMethod.TARJETA_CREDITO}>Tarjeta</SelectItem>
-                        <SelectItem value={PaymentMethod.TRANSFERENCIA}>Transferencia</SelectItem>
-                        <SelectItem value={PaymentMethod.MERCADOPAGO}>Mercado Pago</SelectItem>
+                        <SelectItem value={PaymentMethod.TRANSFERENCIA}>Transfer.</SelectItem>
+                        <SelectItem value={PaymentMethod.MERCADOPAGO}>MP</SelectItem>
                         <SelectItem value={PaymentMethod.OTRO}>Otro</SelectItem>
                       </SelectContent>
                     </Select>
                     <Input
                       type="number"
-                      placeholder="Monto"
-                      className="w-24 lg:w-32"
+                      placeholder="$"
+                      className="w-20"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
                       onKeyDown={(e) => {
@@ -595,17 +722,42 @@ export function SaleSystem({
                         }
                       }}
                     />
-                    <Button
-                      variant="secondary"
-                      onClick={() => {
-                        const amount = parseFloat(paymentAmount);
-                        if (!amount || amount <= 0) return;
-                        setPayments([...payments, { method: paymentMethod, amount }]);
-                        setPaymentAmount("");
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
+                    {/* Botones rápidos + agregar */}
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="px-2 text-xs h-9"
+                        onClick={() => setPaymentAmount(subtotal.toFixed(0))}
+                        title="Cargar monto total"
+                      >
+                        Total
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="px-2 text-xs h-9"
+                        onClick={() => {
+                          const remaining = subtotal - payments.reduce((sum, p) => sum + p.amount, 0);
+                          setPaymentAmount(remaining > 0 ? remaining.toFixed(0) : "");
+                        }}
+                        title="Cargar monto restante"
+                      >
+                        Rest
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="h-9"
+                        onClick={() => {
+                          const amount = parseFloat(paymentAmount);
+                          if (!amount || amount <= 0) return;
+                          setPayments([...payments, { method: paymentMethod, amount }]);
+                          setPaymentAmount("");
+                        }}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </div>
 
                   {/* Lista de pagos agregados */}

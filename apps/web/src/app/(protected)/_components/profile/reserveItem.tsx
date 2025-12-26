@@ -8,6 +8,7 @@ import {
   TriangleAlert,
   MapPin,
   CreditCard,
+  Tag,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -148,6 +149,35 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
                 iconClass="text-Warning"
               />
             )}
+          </div>
+        )}
+
+        {/* Promoción aplicada */}
+        {reserve.promotion && (
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 rounded-xl bg-gradient-to-r from-purple-50 to-purple-100 border-2 border-purple-200">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center p-2 rounded-lg bg-purple-500 text-white shadow-md">
+                <Tag size={18} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-bold text-purple-700">
+                  {reserve.promotion.name}
+                </p>
+                <p className="text-xs text-purple-600">
+                  {reserve.promotion.type === 'PERCENTAGE_DISCOUNT'
+                    ? `${reserve.promotion.value}% de descuento`
+                    : reserve.promotion.type === 'FIXED_AMOUNT_DISCOUNT'
+                      ? `$${reserve.promotion.value?.toLocaleString("es-AR")} de descuento`
+                      : reserve.promotion.type === 'FIXED_PRICE'
+                        ? `Precio fijo: $${reserve.promotion.value?.toLocaleString("es-AR")}`
+                        : 'Promoción aplicada'
+                  }
+                </p>
+              </div>
+              <Badge className="bg-purple-500 text-white text-xs px-2 py-1">
+                Promo aplicada
+              </Badge>
+            </div>
           </div>
         )}
 

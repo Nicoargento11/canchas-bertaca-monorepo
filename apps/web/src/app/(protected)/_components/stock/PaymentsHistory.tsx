@@ -95,8 +95,8 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className="font-bold text-green-600">
-                      ${payment.amount.toLocaleString("es-AR")}
+                    <div className={`font-bold ${payment.transactionType === 'EGRESO' ? 'text-red-600' : 'text-green-600'}`}>
+                      {payment.transactionType === 'EGRESO' ? '-' : ''}${Math.abs(payment.amount).toLocaleString("es-AR")}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -116,6 +116,8 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
                           <span className="text-blue-600 font-medium">Reserva</span>
                         ) : payment.saleId ? (
                           <span className="text-purple-600 font-medium">Venta POS</span>
+                        ) : payment.transactionType === 'EGRESO' ? (
+                          <span className="text-red-600 font-medium">Egreso de caja</span>
                         ) : (
                           <span className="text-orange-500 font-medium">Sin referencia</span>
                         )}

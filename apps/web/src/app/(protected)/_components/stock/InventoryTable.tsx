@@ -136,15 +136,22 @@ export function InventoryTable({ complex }: InventoryTableProps) {
 
   const onSubmit = async (data: ProductFormValues) => {
     if (data.id) {
-      const { success, data: dataProduct, error } = await updateProductFetch(data?.id, data);
+      // Limpiar campos opcionales vacíos para evitar conflictos de unique constraint
+      const cleanedData = {
+        ...data,
+        barcode: data.barcode?.trim() || undefined,
+        supplier: data.supplier?.trim() || undefined,
+      };
+
+      const { success, data: dataProduct, error } = await updateProductFetch(data.id, cleanedData);
       if (!success || !dataProduct || error) {
         toast.error("Error al actualizar el producto", {
-          description: "Ocurrió un error al actualizar el producto.",
+          description: error || "Ocurrió un error al actualizar el producto.",
         });
         return;
       }
       // Actualizar producto existente
-      updateProduct(data.id, data);
+      updateProduct(data.id, cleanedData);
       toast.success("Producto actualizado", {
         description: "Los cambios han sido guardados correctamente.",
       });
@@ -222,13 +229,12 @@ export function InventoryTable({ complex }: InventoryTableProps) {
                     </TableCell>
                     <TableCell>
                       <div
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                          product.stock > 10
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.stock > 10
                             ? "bg-green-100 text-green-800"
                             : product.stock > 0
                               ? "bg-yellow-100 text-yellow-800"
                               : "bg-red-100 text-red-800"
-                        }`}
+                          }`}
                       >
                         {product.stock > 10
                           ? "Disponible"

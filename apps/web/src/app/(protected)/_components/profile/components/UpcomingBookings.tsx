@@ -107,13 +107,13 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
 
           <div className="flex items-center gap-3 bg-white/10 rounded-lg p-3 sm:col-span-2">
             <div className="p-2 rounded-full bg-green-500/20">
-              {nextMatch.complex?.slug === 'seven' ? (
+              {nextMatch.complex?.name?.toLowerCase().includes('seven') ? (
                 <img
                   src="/images/seven_logo.png"
                   alt="Seven"
                   className="w-5 h-5 object-contain"
                 />
-              ) : nextMatch.complex?.slug === 'bertaca' ? (
+              ) : nextMatch.complex?.name?.toLowerCase().includes('bertaca') ? (
                 <img
                   src="/images/bertaca_logo.png"
                   alt="Bertaca"
@@ -222,23 +222,30 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
           icon: <CheckCircle2 className="w-4 h-4" />,
           badge: "Confirmado",
           color: "bg-Success/20 text-Success-dark border-Success/30",
+          accentColor: "border-l-Success",
         };
       case "PENDIENTE":
         return {
           icon: <AlertCircle className="w-4 h-4" />,
           badge: "Pendiente",
           color: "bg-Warning/20 text-Warning-dark border-Warning/30",
+          accentColor: "border-l-Warning",
         };
       default:
         return {
           icon: <Clock className="w-4 h-4" />,
           badge: status,
           color: "bg-Info/20 text-Info-dark border-Info/30",
+          accentColor: "border-l-Info",
         };
     }
   };
 
   const statusConfig = getStatusConfig(reserve.status);
+
+  // Fix timezone: parse only date portion
+  const dateString = reserve.date.toString().split('T')[0];
+  const reserveDate = parseISO(dateString);
 
   return (
     <motion.div
@@ -246,84 +253,100 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card className="bg-white/5 backdrop-blur-sm border-white/10 overflow-hidden">
-        <div className="p-4 sm:p-5">
-          <div className="flex items-start justify-between mb-4">
+      <Card className={`bg-gray-900/90 backdrop-blur-sm border border-white/10 border-l-4 ${statusConfig.accentColor} overflow-hidden hover:border-white/20 transition-colors`}>
+        <div className="p-4">
+          <div className="flex items-center gap-4">
+            {/* Left: Date */}
+            <div className="flex-shrink-0 text-center bg-white/5 rounded-xl p-3 min-w-[60px]">
+              <div className="text-2xl font-black text-Primary">
+                {format(reserveDate, "dd", { locale: es })}
+              </div>
+              <div className="text-xs text-white/60 font-medium uppercase">
+                {format(reserveDate, "MMM", { locale: es })}
+              </div>
+            </div>
+
+            {/* Center: Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-2">
-                <Badge className={`${statusConfig.color} border text-xs`}>
-                  {statusConfig.icon}
-                  <span className="ml-1">{statusConfig.badge}</span>
+              <div className="flex items-center gap-2 mb-1">
+                <h4 className="text-base font-bold text-white truncate">
+                  {reserve.court.name}
+                </h4>
+                <Badge className={`${statusConfig.color} border text-[10px] px-1.5 py-0`}>
+                  {statusConfig.badge}
                 </Badge>
               </div>
-              <h4 className="text-base sm:text-lg font-bold text-white mb-1 truncate">
-                {reserve.court.name}
-              </h4>
-              <div className="flex items-center gap-1 text-xs text-white/60 mb-1">
-                <Building2 className="w-3 h-3" />
-                <span className="truncate">{reserve.complex?.name || "Complejo"}</span>
+
+              <div className="flex items-center gap-3 text-xs text-white/60">
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span className="font-semibold text-white/80">{reserve.schedule}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  {reserve.complex?.name?.toLowerCase().includes('seven') ? (
+                    <img src="/images/seven_logo.png" alt="Seven" className="w-3 h-3 object-contain" />
+                  ) : reserve.complex?.name?.toLowerCase().includes('bertaca') ? (
+                    <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-3 h-3 object-contain" />
+                  ) : (
+                    <Building2 className="w-3 h-3" />
+                  )}
+                  <span className="truncate">{reserve.complex?.name || "Complejo"}</span>
+                </div>
               </div>
-              <p className="text-sm text-white/70">
-                {format(new Date(reserve.date), "EEEE, dd 'de' MMMM", { locale: es })}
-              </p>
+
+              {reserve.promotion && (
+                <div className="flex items-center gap-1 text-xs text-amber-400 mt-1">
+                  <span>🎁</span>
+                  <span className="truncate">{reserve.promotion.name}</span>
+                </div>
+              )}
             </div>
 
-            <div className="text-right flex-shrink-0 ml-4">
-              <div className="text-2xl sm:text-3xl font-black text-Primary">{reserve.schedule}</div>
-            </div>
-          </div>
-
-          {/* Footer con acciones */}
-          <div className="flex flex-col sm:flex-row gap-2 pt-3 border-t border-white/10">
-            {reserve.status === "PENDIENTE" && reserve.paymentUrl && (
-              <Button
-                size="sm"
-                className="w-full sm:flex-1 bg-Success hover:bg-Success-dark text-white border border-Success/20"
-                onClick={() => (window.location.href = reserve.paymentUrl!)}
-              >
-                <CreditCard className="w-4 h-4 mr-2" />
-                Pagar
-              </Button>
-            )}
-            <Button
-              size="sm"
-              variant="ghost"
-              className="w-full sm:flex-1 text-Primary hover:text-Primary-light hover:bg-Primary/10"
-            >
-              Ver detalles
-            </Button>
-            {onCancel && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="w-full sm:w-auto text-red-500 hover:text-red-400 hover:bg-red-500/10"
-                  >
-                    Cancelar
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
-                    <AlertDialogDescription className="text-white/70">
-                      Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10">
-                      Cancelar
-                    </AlertDialogCancel>
-                    <AlertDialogAction
-                      className="bg-Error hover:bg-Error-dark text-white"
-                      onClick={() => onCancel(reserve.id)}
+            {/* Right: Actions */}
+            <div className="flex-shrink-0 flex items-center gap-2">
+              {reserve.status === "PENDIENTE" && reserve.paymentUrl && (
+                <Button
+                  size="sm"
+                  className="bg-Success hover:bg-Success-dark text-white text-xs px-3"
+                  onClick={() => (window.location.href = reserve.paymentUrl!)}
+                >
+                  <CreditCard className="w-3 h-3 mr-1" />
+                  Pagar
+                </Button>
+              )}
+              {onCancel && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs px-3"
                     >
-                      Confirmar Cancelación
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
+                      Cancelar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-white/70">
+                        Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10">
+                        Cancelar
+                      </AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-Error hover:bg-Error-dark text-white"
+                        onClick={() => onCancel(reserve.id)}
+                      >
+                        Confirmar Cancelación
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
           </div>
         </div>
       </Card>

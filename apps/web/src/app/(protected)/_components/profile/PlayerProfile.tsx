@@ -3,12 +3,15 @@
 import { User } from "@/services/user/user";
 import { useState, useMemo } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CalendarDays, User as UserIcon, Clock, ArrowLeft } from "lucide-react";
+import { CalendarDays, User as UserIcon, Clock, ArrowLeft, Tag, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { useRouter } from "next/navigation";
 import dateLocal from "@/utils/dateLocal";
-import { deleteReserve } from "@/services/reserve/reserve";
+import { deleteReserve, updateReserveStatus } from "@/services/reserve/reserve";
 import { toast } from "sonner";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 // Import new components
 import { PlayerHeader } from "./components/PlayerHeader";
@@ -31,11 +34,12 @@ export default function PlayerProfile({ userData }: PlayerProfileProps) {
 
   // Split reserves into active and history
   const { activeReserves, historyReserves } = useMemo(() => {
+    const cancelledStatuses = ["RECHAZADO", "CANCELADO"];
     const active = reserves.filter(
-      (reserve) => new Date(reserve.date) >= today && reserve.status !== "RECHAZADO"
+      (reserve) => new Date(reserve.date) >= today && !cancelledStatuses.includes(reserve.status)
     );
     const history = reserves.filter(
-      (reserve) => new Date(reserve.date) < today || reserve.status === "RECHAZADO"
+      (reserve) => new Date(reserve.date) < today || cancelledStatuses.includes(reserve.status)
     );
     return { activeReserves: active, historyReserves: history };
   }, [reserves, today]);
@@ -60,10 +64,13 @@ export default function PlayerProfile({ userData }: PlayerProfileProps) {
 
   const handleCancelBooking = async (id: string) => {
     try {
-      const result = await deleteReserve(id);
+      const result = await updateReserveStatus(id, "CANCELADO");
       if (result.success) {
         toast.success("Reserva cancelada exitosamente");
-        setReserves(reserves.filter((reserve) => reserve.id !== id));
+        // Actualizar el status localmente en vez de eliminar
+        setReserves(reserves.map((reserve) =>
+          reserve.id === id ? { ...reserve, status: "CANCELADO" } : reserve
+        ));
       } else {
         toast.error(result.error || "Error al cancelar la reserva");
       }
@@ -174,8 +181,63 @@ export default function PlayerProfile({ userData }: PlayerProfileProps) {
             </TabsContent>
 
             {/* Profile Form */}
-            <TabsContent value="profile" className="mt-0">
+            <TabsContent value="profile" className="mt-0 space-y-6">
               <ProfileForm user={userData} onUpdate={handleUpdateProfile} />
+
+              {/* Promociones usadas */}
+              <Card className="bg-white/5 backdrop-blur-sm border-white/10 p-4 sm:p-6">
+                <h3 className="text-xl font-bold text-white flex items-center gap-2 mb-4">
+                  <Award className="w-5 h-5 text-purple-400" />
+                  Mis Descuentos
+                </h3>
+
+                {(() => {
+                  const reservesWithPromo = reserves.filter(r => r.promotion);
+                  const promoCount = reservesWithPromo.length;
+
+                  if (promoCount === 0) {
+                    return (
+                      <div className="text-center py-6 text-white/50">
+                        <Tag className="w-12 h-12 mx-auto mb-2 opacity-40" />
+                        <p>Aún no has usado promociones</p>
+                        <p className="text-sm">Las promociones aplicadas aparecerán aquí</p>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between p-4 bg-purple-500/10 rounded-xl border border-purple-500/20">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-purple-500 text-white rounded-lg">
+                            <Award className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <p className="font-bold text-purple-300">Promociones usadas</p>
+                            <p className="text-sm text-purple-400">{promoCount} {promoCount === 1 ? 'vez' : 'veces'}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2 max-h-40 overflow-y-auto">
+                        {reservesWithPromo.slice(0, 5).map((reserve) => (
+                          <div
+                            key={reserve.id}
+                            className="flex items-center justify-between py-2 px-3 bg-purple-500/5 rounded-lg border border-purple-500/10"
+                          >
+                            <span className="text-sm font-medium text-purple-300">
+                              {reserve.promotion?.name}
+                            </span>
+                            <span className="text-xs text-purple-400">
+                              {format(new Date(reserve.date), "dd MMM", { locale: es })}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })()}
+              </Card>
             </TabsContent>
           </div>
         </Tabs>
