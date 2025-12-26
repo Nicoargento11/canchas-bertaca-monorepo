@@ -194,6 +194,14 @@ export class ComplexService {
           },
         },
         CashRegister: true,
+        promotions: {
+          include: {
+            sportType: { select: { id: true, name: true } },
+            court: { select: { id: true, name: true, courtNumber: true } },
+            giftProduct: { select: { id: true, name: true, salePrice: true } },
+          },
+          orderBy: { createdAt: 'desc' },
+        },
       },
     });
 
