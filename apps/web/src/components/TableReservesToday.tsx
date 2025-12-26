@@ -10,6 +10,7 @@ import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import { useReserve } from "@/contexts/newReserveContext";
 import { createAdjustedDateTime } from "@/utils/timeValidation";
 import { isAfter } from "date-fns";
+import { hasPromotionForSchedule } from "@/hooks/useApplicablePromotions";
 
 const tableHead = ["Cancha 1", "Cancha 2", "Cancha 3", "Cancha 4"];
 const courts = [1, 2, 3, 4];
@@ -165,40 +166,58 @@ const TableReservesToday: React.FC<TableReservesTodayProps> = ({
           </div>
 
           <div className="space-y-2">
-            {filteredDayReserves.map((turn, index) => (
-              <div
-                key={turn.schedule}
-                className="grid gap-2 items-center mb-2"
-                style={{ gridTemplateColumns: `56px repeat(${courts.length}, 1fr)` }}
-              >
-                <div className="text-center font-medium text-white flex items-center justify-center bg-black/20 rounded p-1 min-h-[32px] text-[13px] border border-white/5">
-                  {turn.schedule.split(" ")[0]}
-                </div>
+            {filteredDayReserves.map((turn, index) => {
+              // Verificar promo para este horario
+              const activePromos = complex.promotions?.filter(p => p.isActive) || [];
+              const hasPromoForSchedule = hasPromotionForSchedule(activePromos, new Date(), turn.schedule);
 
-                {courts.map((court) => {
-                  const isAvailable = turn.court.find((turnCourt) => turnCourt.id === court.id);
-                  return (
-                    <div
-                      key={`${turn.schedule}-${court.id}`}
-                      className={`rounded flex justify-center items-center shadow min-h-[40px] min-w-[52px] text-[15px] truncate border transition-transform duration-200 ${
-                        isAvailable
+              return (
+                <div
+                  key={turn.schedule}
+                  className="grid gap-2 items-center mb-2"
+                  style={{ gridTemplateColumns: `56px repeat(${courts.length}, 1fr)` }}
+                >
+                  <div className="text-center font-medium text-white flex items-center justify-center bg-black/20 rounded p-1 min-h-[32px] text-[13px] border border-white/5">
+                    {turn.schedule.split(" ")[0]}
+                  </div>
+
+                  {courts.map((court) => {
+                    const isAvailable = turn.court.find((turnCourt) => turnCourt.id === court.id);
+                    // Verificar si hay promo específica para esta cancha/horario
+                    const courtPromo = hasPromoForSchedule && activePromos.find(p => {
+                      if (!p.isActive) return false;
+                      // Si la promo tiene filtro de cancha, verificar que coincida
+                      if (p.courtId && p.courtId !== court.id) return false;
+                      // Si la promo tiene filtro de deporte, verificar
+                      if (p.sportTypeId && court.sportTypeId && p.sportTypeId !== court.sportTypeId) return false;
+                      return true;
+                    });
+
+                    return (
+                      <div
+                        key={`${turn.schedule}-${court.id}`}
+                        className={`rounded flex justify-center items-center gap-1 shadow min-h-[40px] min-w-[52px] text-[15px] truncate border transition-transform duration-200 ${isAvailable
                           ? "bg-green-500/20 border-green-500/30 cursor-pointer hover:bg-green-500/30 hover:scale-105 active:scale-95"
                           : "bg-red-500/20 border-red-500/30 cursor-not-allowed"
-                      }`}
-                      onClick={() =>
-                        isAvailable && handleCellClick(new Date(), turn.schedule, court.id)
-                      }
-                    >
-                      {isAvailable ? (
-                        <Check className="text-green-400" size={18} strokeWidth={2.5} />
-                      ) : (
-                        <X className="text-red-400" size={18} strokeWidth={2.5} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            ))}
+                          }`}
+                        onClick={() =>
+                          isAvailable && handleCellClick(new Date(), turn.schedule, court.id)
+                        }
+                      >
+                        {isAvailable ? (
+                          <>
+                            <Check className="text-green-400" size={18} strokeWidth={2.5} />
+                            {courtPromo && <span className="text-amber-400 text-[10px]">🎁</span>}
+                          </>
+                        ) : (
+                          <X className="text-red-400" size={18} strokeWidth={2.5} />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
           </div>
         </div>
         <div className="p-1 border-t border-white/10 bg-black/20">
@@ -240,9 +259,8 @@ const TableReservesToday: React.FC<TableReservesTodayProps> = ({
               {courts.map((court, index) => (
                 <th
                   key={court.id}
-                  className={`p-4 text-center text-white font-bold border-b border-white/10 bg-black/20 ${
-                    index === courts.length - 1 ? "rounded-tr-lg" : ""
-                  }`}
+                  className={`p-4 text-center text-white font-bold border-b border-white/10 bg-black/20 ${index === courts.length - 1 ? "rounded-tr-lg" : ""
+                    }`}
                 >
                   <div className="px-3 py-1 bg-white/10 rounded-full inline-flex items-center justify-center gap-2 border border-white/10">
                     <GiSoccerField size={16} className="text-white" />
@@ -254,48 +272,62 @@ const TableReservesToday: React.FC<TableReservesTodayProps> = ({
             </tr>
           </thead>
           <tbody className="divide-y divide-white/5">
-            {filteredDayReserves.map((turn, rowIndex) => (
-              <tr key={turn.schedule} className="hover:bg-white/5 transition-colors">
-                <td className="p-4 font-medium text-white bg-black/20">
-                  <div className="flex items-center gap-2">
-                    <Clock9 size={18} className="text-white/70" />
-                    <span>{turn.schedule.split(" ")[0]}</span>
-                  </div>
-                </td>
-                {courts.map((court) => {
-                  const isAvailable = turn.court.find((turnCourt) => turnCourt.id === court.id);
-                  return (
-                    <td
-                      key={`${turn.schedule}-${court.id}`}
-                      className="p-4 text-center bg-black/10"
-                    >
-                      <div
-                        onClick={() =>
-                          isAvailable && handleCellClick(new Date(), turn.schedule, court.id)
-                        }
-                        className={`rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all duration-200 border ${
-                          isAvailable
+            {filteredDayReserves.map((turn, rowIndex) => {
+              // Verificar promo para este horario
+              const activePromos = complex.promotions?.filter(p => p.isActive) || [];
+              const hasPromoForSchedule = hasPromotionForSchedule(activePromos, new Date(), turn.schedule);
+
+              return (
+                <tr key={turn.schedule} className="hover:bg-white/5 transition-colors">
+                  <td className="p-4 font-medium text-white bg-black/20">
+                    <div className="flex items-center gap-2">
+                      <Clock9 size={18} className="text-white/70" />
+                      <span>{turn.schedule.split(" ")[0]}</span>
+                    </div>
+                  </td>
+                  {courts.map((court) => {
+                    const isAvailable = turn.court.find((turnCourt) => turnCourt.id === court.id);
+                    // Verificar si hay promo específica para esta cancha/horario
+                    const courtPromo = hasPromoForSchedule && activePromos.find(p => {
+                      if (!p.isActive) return false;
+                      if (p.courtId && p.courtId !== court.id) return false;
+                      if (p.sportTypeId && court.sportTypeId && p.sportTypeId !== court.sportTypeId) return false;
+                      return true;
+                    });
+
+                    return (
+                      <td
+                        key={`${turn.schedule}-${court.id}`}
+                        className="p-4 text-center bg-black/10"
+                      >
+                        <div
+                          onClick={() =>
+                            isAvailable && handleCellClick(new Date(), turn.schedule, court.id)
+                          }
+                          className={`rounded-md py-2 px-4 inline-flex items-center justify-center gap-2 shadow-md cursor-pointer transition-all duration-200 border ${isAvailable
                             ? "bg-green-500/20 text-white border-green-500/30 hover:bg-green-500/30 hover:scale-105"
                             : "bg-red-500/20 text-white border-red-500/30 cursor-not-allowed"
-                        }`}
-                      >
-                        {isAvailable ? (
-                          <>
-                            <Check size={18} className="text-green-400" strokeWidth={2.5} />
-                            <span>Disponible</span>
-                          </>
-                        ) : (
-                          <>
-                            <X size={18} className="text-red-400" strokeWidth={2.5} />
-                            <span>Ocupado</span>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+                            }`}
+                        >
+                          {isAvailable ? (
+                            <>
+                              <Check size={18} className="text-green-400" strokeWidth={2.5} />
+                              <span>Disponible</span>
+                              {courtPromo && <span className="text-amber-400">🎁</span>}
+                            </>
+                          ) : (
+                            <>
+                              <X size={18} className="text-red-400" strokeWidth={2.5} />
+                              <span>Ocupado</span>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
