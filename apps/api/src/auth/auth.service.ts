@@ -18,7 +18,7 @@ export class AuthService {
     private usersService: UsersService,
     private jwtService: JwtService,
     private config: ConfigService,
-  ) {}
+  ) { }
 
   // Registro de nuevos usuarios
   async register(registerDto: RegisterDto): Promise<{
@@ -195,7 +195,7 @@ export class AuthService {
         },
         {
           secret: this.config.get('JWT_SECRET'),
-          expiresIn: this.config.get('JWT_EXPIRES_IN', '15m'),
+          expiresIn: this.config.get('JWT_EXPIRES_IN', '1h'),
         },
       ),
       this.jwtService.signAsync(
@@ -206,7 +206,7 @@ export class AuthService {
         },
         {
           secret: this.config.get('JWT_REFRESH_SECRET'),
-          expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '7d'),
+          expiresIn: this.config.get('JWT_REFRESH_EXPIRES_IN', '365d'),
         },
       ),
     ]);

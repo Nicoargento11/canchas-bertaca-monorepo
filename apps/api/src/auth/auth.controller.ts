@@ -47,7 +47,7 @@ export class AuthController {
     private usersService: UsersService,
     private jwtService: JwtService,
     private configService: ConfigService,
-  ) {}
+  ) { }
 
   @ApiOperation({ summary: 'Registro de nuevo usuario' })
   @ApiResponse({ status: 201, description: 'Usuario registrado exitosamente' })
@@ -190,8 +190,18 @@ export class AuthController {
     @Req() req: RequestExpress,
     @Res({ passthrough: true }) res: Response,
   ) {
+    // === DEBUG: Información de la request ===
+    console.log('\n🔄 [AUTH REFRESH] =============================');
+    console.log('📍 Origin:', req.get('origin') || 'No origin header');
+    console.log('🌐 Host:', req.get('host'));
+    console.log('🍪 Cookies recibidas:', {
+      access_token: req.cookies?.access_token ? '✅ Presente' : '❌ NULL/Undefined',
+      refresh_token: req.cookies?.refresh_token ? '✅ Presente' : '❌ NULL/Undefined',
+    });
+    console.log('📋 Authorization header:', req.get('Authorization') ? '✅ Presente' : '❌ No enviado');
+    console.log('===============================================\n');
+
     const refreshToken = this.extractRefreshToken(req);
-    console.log(refreshToken);
     if (!refreshToken) {
       throw new UnauthorizedException('Refresh token not found');
     }
