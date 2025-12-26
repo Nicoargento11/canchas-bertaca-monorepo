@@ -90,6 +90,17 @@ export class ReservesController {
     return this.reservesService.remove(id);
   }
 
+  // Deduct gift product stock from a reservation
+  @Post(':id/deduct-gift-stock')
+  async deductGiftStock(@Param('id') id: string) {
+    const reserve = await this.reservesService.findById(id);
+    if (!reserve) {
+      throw new NotFoundException('Reserva no encontrada');
+    }
+
+    return this.reservesService.deductGiftProductStock(reserve);
+  }
+
   // ----------------------------
   // CONSULTAS ESPECÍFICAS
   // ----------------------------
