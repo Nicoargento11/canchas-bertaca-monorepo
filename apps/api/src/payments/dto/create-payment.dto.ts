@@ -81,6 +81,14 @@ export class CreatePaymentOnlineDto {
   @IsOptional()
   @IsString()
   fixedReserveId?: string;
+
+  @ApiPropertyOptional({
+    description: 'ID de la promoción a aplicar',
+    example: 'cln3j8h4d00003b6q1q2q3q4q',
+  })
+  @IsOptional()
+  @IsString()
+  promotionId?: string;
 }
 
 export class CreatePaymentDto {
