@@ -6,6 +6,7 @@ import { FixedReserve } from "../fixed-reserve/fixed-reserve";
 import { Complex } from "../complex/complex";
 import { Payment } from "../payment/payment";
 import { Rate } from "../rate/rate";
+import { Promotion } from "../promotion/promotion";
 
 export type ReserveType = "MANUAL" | "FIJO" | "ONLINE" | "TORNEO" | "ESCUELA" | "EVENTO" | "OTRO";
 
@@ -36,6 +37,8 @@ export type Reserve = {
   createdAt: string;
   updatedAt: string;
   expiresAt?: string | null;
+  promotion?: Promotion | null;
+  promotionId?: string | null;
 };
 
 export type ReserveResult<T = any> = {
@@ -226,6 +229,16 @@ export const getDailyAvailability = async (
     const response = await api.get(
       `/reserves/availability/daily?date=${date}&complexId=${complexId}&sportTypeId=${sportTypeId}`
     );
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleReserveError(error);
+  }
+};
+
+// Deduct gift product stock from reserve's promotion
+export const deductGiftProductStock = async (reserveId: string): Promise<ReserveResult> => {
+  try {
+    const response = await api.post(`/reserves/${reserveId}/deduct-gift-stock`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleReserveError(error);

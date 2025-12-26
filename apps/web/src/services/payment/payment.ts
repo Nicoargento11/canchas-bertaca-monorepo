@@ -20,7 +20,8 @@ export type TransactionType =
   | "SERVICIO"
   | "GASTO"
   | "ESCUELA_FUTBOL"
-  | "EVENTO";
+  | "EVENTO"
+  | "EGRESO";
 
 export type Payment = {
   id: string;

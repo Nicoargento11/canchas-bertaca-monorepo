@@ -12,6 +12,7 @@ import { Product } from "../product/product";
 import { ProductSale } from "../product-sale.ts/product-sale";
 import { Payment } from "../payment/payment";
 import { CashRegister } from "../cash-register/cash-register";
+import { Promotion } from "../promotion/promotion";
 
 type ComplexResult<T = any> = {
   success: boolean;
@@ -29,6 +30,17 @@ export type Complex = {
   services: string[];
   organizationId: string | null;
   googleMapsUrl: string | null;
+
+  // Social media and contact information
+  phone: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  description: string | null;
+  logo: string | null;
+  coverImage: string | null;
+
   createdAt: string;
   updatedAt: string;
 
@@ -49,6 +61,7 @@ export type Complex = {
   payments: Payment[];
 
   cashRegisters: CashRegister[];
+  promotions?: Promotion[];
   // inventoryMovements: InventoryMovement[];
 };
 
