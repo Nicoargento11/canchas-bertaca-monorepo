@@ -55,6 +55,26 @@ export interface DashboardData {
   paymentMethods: PaymentMethodData[];
   canchas: CanchaData[];
   horarios: HorarioData[];
+  // Nuevas estadísticas
+  totalEgresos: number;
+  promotionsUsed: number;
+  reservasFijas: number;
+  reservasNormales: number;
+  // Comparaciones con período anterior
+  previousIngresos: number;
+  previousReservas: number;
+  previousEgresos: number;
+  // Transacciones recientes
+  recentTransactions: RecentTransaction[];
+}
+
+export interface RecentTransaction {
+  id: string;
+  type: "reserva" | "venta" | "egreso" | "pago";
+  description: string;
+  amount: number;
+  date: Date;
+  status: string;
 }
 
 // DTOs para los endpoints
