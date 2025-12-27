@@ -22,6 +22,14 @@ export const PlayerHeader = ({ user, stats }: PlayerHeaderProps) => {
     ? format(new Date(user.createdAt), "MMM yyyy", { locale: es })
     : "N/A";
 
+  // Debug: ver qué datos tiene el usuario
+  console.log('DEBUG PlayerHeader - user:', {
+    role: user?.role,
+    hasComplex: !!user?.Complex,
+    complex: user?.Complex,
+    fullUser: user
+  });
+
   const getReliabilityBadge = (score: number) => {
     if (score >= 95) return { label: "Elite", color: "bg-Warning" };
     if (score >= 85) return { label: "Confiable", color: "bg-Success" };
@@ -102,6 +110,34 @@ export const PlayerHeader = ({ user, stats }: PlayerHeaderProps) => {
               </>
             )}
           </div>
+
+          {/* Dashboard Access for Admin Roles */}
+          {(user?.role === "RECEPCION" ||
+            user?.role === "COMPLEJO_ADMIN" ||
+            user?.role === "ORGANIZACION_ADMIN" ||
+            user?.role === "SUPER_ADMIN") && user?.Complex && (
+              <div className="pt-2">
+                <a
+                  href={`/${user.Complex.slug}/dashboard`}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-Primary to-Primary-dark text-white text-sm font-medium rounded-full transition-all hover:shadow-lg hover:scale-105"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                    />
+                  </svg>
+                  <span>Ir al Panel</span>
+                </a>
+              </div>
+            )}
 
           {/* Stats Row - Mobile First */}
           <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 border-t border-white/10">
