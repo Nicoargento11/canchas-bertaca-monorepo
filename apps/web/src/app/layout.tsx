@@ -83,13 +83,6 @@ export const metadata: Metadata = {
     },
   },
 
-  // Viewport
-  viewport: {
-    width: 'device-width',
-    initialScale: 1,
-    maximumScale: 5,
-  },
-
   // Geo localización (importante para búsquedas locales)
   other: {
     'geo.region': 'AR-H',
@@ -104,6 +97,13 @@ export const metadata: Metadata = {
 
   // Canonical URL
   metadataBase: new URL('https://www.reservasfutbol.com.ar'),
+};
+
+// Viewport configuration (separated from metadata in Next.js 14+)
+export const viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 };
 
 

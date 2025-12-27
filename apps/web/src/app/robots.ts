@@ -5,8 +5,8 @@ export default function robots(): MetadataRoute.Robots {
         rules: {
             userAgent: '*',
             allow: '/',
-            disallow: ['/admin/', '/api/'],
+            disallow: ['/admin/', '/api/', '/(protected)/'],
         },
-        sitemap: 'https://canchasbertaca.com/sitemap.xml', // Cambiar por tu dominio
+        sitemap: 'https://www.reservasfutbol.com.ar/sitemap.xml',
     }
 }
