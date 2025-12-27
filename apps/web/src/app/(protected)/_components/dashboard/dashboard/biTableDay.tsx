@@ -35,6 +35,10 @@ import { SportType } from "@/services/sport-types/sport-types";
 import { hasPromotionForSchedule } from "@/hooks/useApplicablePromotions";
 import { DashboardKPIs } from "./DashboardKPIs";
 import { SideBarButton } from "../sideBarButton";
+import { getActiveCashSession } from "@/services/cash-session/cash-session";
+import { getAllCashRegisters } from "@/services/cash-register/cash-register";
+import { useCashSessionWarningModalStore } from "@/store/cashSessionWarningModalStore";
+import { CashSessionWarningModal } from "./cashSessionWarningModal";
 
 export interface ReserveData {
   date: Date;
@@ -71,6 +75,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
   const { handleChangeDetails } = useDashboardDetailsModalStore((state) => state);
   const { handleChangeCompleteReserve } = useDashboardCompleteReserveModalStore((state) => state);
   const { handleChangeCompletedDetails } = useCompletedReserveDetailsModalStore((state) => state);
+  const { handleOpen: handleOpenCashWarning } = useCashSessionWarningModalStore();
   const { date, setDate, getReserveById, setCreateReserve, setReserve } = useDashboardDataStore(
     (state) => state
   );
@@ -242,12 +247,12 @@ const BiTableDay: React.FC<TableReservesProps> = ({
           <thead>
             <tr className="bg-gray-900 text-white">
               {/* Columna horario - angosta en mobile */}
-              <th className="w-[50px] md:w-[120px] p-1 md:p-3 sticky top-0 z-10 bg-gray-900">
-                <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center">
+              <th className="w-[50px] md:w-[120px] p-2 md:p-3 sticky top-0 z-10 bg-slate-900">
+                <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center text-white">
                   Horario
                 </span>
                 <div className="flex justify-center md:hidden">
-                  <Clock9 className="text-gray-300" size={14} />
+                  <Clock9 className="text-white" size={16} />
                 </div>
               </th>
               {complex.courts
@@ -256,12 +261,12 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                 .map((court) => (
                   <th
                     key={court.id}
-                    className="p-1 md:p-3 sticky top-0 z-10 text-center bg-gray-900"
+                    className="p-2 md:p-3 sticky top-0 z-10 text-center bg-slate-900"
                   >
-                    <span className="text-xs font-semibold uppercase tracking-wider hidden md:block">
+                    <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-white">
                       Cancha {court.courtNumber}
                     </span>
-                    <span className="text-[10px] font-semibold md:hidden">
+                    <span className="text-xs font-semibold md:hidden text-white">
                       C{court.courtNumber}
                     </span>
                   </th>
@@ -278,11 +283,11 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                   className="border-b border-gray-100"
                 >
                   {/* Celda de horario - desktop */}
-                  <td className="w-[50px] md:w-[120px] h-[44px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
+                  <td className="w-[50px] md:w-[120px] min-h-[48px] md:h-[56px] text-center font-medium text-slate-900 bg-slate-100 border-r border-slate-200 hidden md:table-cell align-middle">
                     {scheduleReserve.schedule}
                   </td>
                   {/* Celda de horario - mobile: solo hora inicio */}
-                  <td className="w-[50px] h-[44px] text-center font-medium text-gray-700 bg-gray-50 border-r border-gray-100 text-[10px] md:hidden align-middle">
+                  <td className="w-[50px] min-h-[48px] text-center font-semibold text-slate-900 bg-slate-100 border-r border-slate-200 text-xs md:hidden align-middle py-2">
                     {scheduleReserve.schedule.split(" ")[0].replace(":00", "")}
                   </td>
                   {complex.courts
@@ -343,34 +348,34 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                   }
                                 }
                               }}
-                              className={`rounded-lg w-full h-full flex flex-col p-2 md:p-3 relative transition-all cursor-pointer hover:shadow-md border-l-4 min-h-[44px]
+                              className={`rounded-lg w-full h-full flex flex-col p-2 md:p-3 relative transition-all cursor-pointer hover:shadow-lg border-l-4 min-h-[48px]
                               ${isReserved.reserveType === "FIJO"
-                                  ? "bg-white border-l-violet-500 hover:bg-violet-50"
+                                  ? "bg-violet-50 border-l-violet-600 hover:bg-violet-100"
                                   : isReserved.status === "PENDIENTE"
-                                    ? "bg-white border-l-amber-500 hover:bg-amber-50"
+                                    ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
                                     : isReserved.status === "COMPLETADO"
-                                      ? "bg-white border-l-emerald-600 hover:bg-emerald-50"
+                                      ? "bg-blue-50 border-l-blue-600 hover:bg-blue-100"
                                       : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0
-                                        ? "bg-white border-l-amber-500 hover:bg-amber-50"
-                                        : "bg-white border-l-emerald-500 hover:bg-emerald-50"
+                                        ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
+                                        : "bg-emerald-50 border-l-emerald-600 hover:bg-emerald-100"
                                 }`}
                             >
                               {/* Nombre del cliente */}
-                              <p className="font-semibold text-xs md:text-sm text-gray-900 truncate leading-tight">
+                              <p className="font-semibold text-sm md:text-base text-slate-900 truncate leading-tight">
                                 {isReserved.clientName?.split(" ")[0] ||
                                   isReserved.user?.name?.split(" ")[0] || "Cliente"}
                               </p>
 
                               {/* Info de pago o FIJO - compacto */}
-                              <div className="flex items-center gap-1 mt-0.5">
+                              <div className="flex items-center gap-1 mt-1">
                                 {isReserved.reserveType === "FIJO" ? (
-                                  <span className="text-[10px] md:text-xs text-violet-600 font-medium">FIJO</span>
+                                  <span className="text-xs md:text-sm text-violet-700 font-semibold">FIJO</span>
                                 ) : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0 ? (
-                                  <span className="text-[10px] md:text-xs text-amber-600 font-medium">
+                                  <span className="text-xs md:text-sm text-amber-700 font-semibold">
                                     ${((isReserved.price || 0) - (isReserved.reservationAmount || 0)).toLocaleString()}
                                   </span>
                                 ) : (
-                                  <span className="text-[10px] md:text-xs text-emerald-600 font-medium">✓</span>
+                                  <span className="text-xs md:text-sm text-emerald-700 font-semibold">✓ Pagado</span>
                                 )}
                               </div>
                               {/* Botón de completar */}
@@ -382,9 +387,9 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                       handleOpenCompleteModal(isReserved);
                                     }}
                                     size="sm"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white p-1 h-6 text-xs"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 h-8 text-xs min-w-[44px]"
                                   >
-                                    <CheckCircle2 size={12} />
+                                    <CheckCircle2 size={14} />
                                     <span className="hidden md:inline ml-1">Completar</span>
                                   </Button>
                                 </div>
@@ -398,10 +403,10 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                       handleOpenCompletedDetailsModal(isReserved);
                                     }}
                                     size="sm"
-                                    className="bg-blue-600 hover:bg-blue-700 text-white p-1 h-6 text-xs"
+                                    className="bg-blue-600 hover:bg-blue-700 text-white px-2 py-1 h-8 text-xs min-w-[44px]"
                                   >
-                                    <Eye size={12} />
-                                    <span className="hidden md:inline ml-1">Ver Detalles</span>
+                                    <Eye size={14} />
+                                    <span className="hidden md:inline ml-1">Ver</span>
                                   </Button>
                                 </div>
                               )}
@@ -434,9 +439,9 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                             (courtData) => courtData.courtId === court.id
                           ) && (
                               <div
-                                onClick={() => {
+                                onClick={async () => {
                                   if (date) {
-                                    setCreateReserve({
+                                    const reserveData = {
                                       date: date,
                                       schedule: scheduleReserve.schedule,
                                       userId: userId!,
@@ -447,14 +452,37 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                         scheduleReserve.courtInfo.rates[0].price,
                                       courtId: court.id,
                                       complexId: complex.id,
-                                      reserveType: "MANUAL",
-                                    });
-                                    handleChangeReserve();
+                                      reserveType: "MANUAL" as const,
+                                    };
+
+                                    // Check if there's an active cash session
+                                    let hasActiveCashSession = false;
+                                    if (complex?.id) {
+                                      const { success: registersSuccess, data: cashRegisters } = await getAllCashRegisters(complex.id);
+                                      if (registersSuccess && cashRegisters && cashRegisters.length > 0) {
+                                        const activeCashRegister = cashRegisters.find((register) => register.isActive);
+                                        if (activeCashRegister) {
+                                          const { success, data: activeCashSession } = await getActiveCashSession(activeCashRegister.id);
+                                          if (success && activeCashSession) {
+                                            hasActiveCashSession = true;
+                                          }
+                                        }
+                                      }
+                                    }
+
+                                    setCreateReserve(reserveData);
+
+                                    // Show warning if no active session, otherwise open reserve form directly
+                                    if (!hasActiveCashSession) {
+                                      handleOpenCashWarning(reserveData);
+                                    } else {
+                                      handleChangeReserve();
+                                    }
                                   }
                                 }}
-                                className={`w-full h-full rounded-lg border border-dashed border-gray-200 flex items-center justify-center cursor-pointer transition-all group hover:border-gray-400 hover:bg-gray-50 ${courtPromo ? 'border-amber-200 bg-amber-50/30' : 'bg-white'}`}
+                                className={`w-full h-full min-h-[48px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all group active:scale-95 ${courtPromo ? 'border-amber-400 bg-amber-50 hover:border-amber-500 hover:bg-amber-100' : 'border-slate-300 bg-slate-50 hover:border-emerald-500 hover:bg-emerald-50'}`}
                               >
-                                <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
+                                <span className={`text-2xl font-light transition-colors ${courtPromo ? 'text-amber-500 group-hover:text-amber-700' : 'text-slate-400 group-hover:text-emerald-600'}`}>+</span>
                               </div>
                             )}
                         </td>

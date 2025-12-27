@@ -94,6 +94,13 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { id },
       include: {
+        Complex: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
         fixedSchedules: {
           include: {
             court: true,
