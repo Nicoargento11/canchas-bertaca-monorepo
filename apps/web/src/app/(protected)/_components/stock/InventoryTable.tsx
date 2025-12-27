@@ -230,10 +230,10 @@ export function InventoryTable({ complex }: InventoryTableProps) {
                     <TableCell>
                       <div
                         className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.stock > 10
-                            ? "bg-green-100 text-green-800"
-                            : product.stock > 0
-                              ? "bg-yellow-100 text-yellow-800"
-                              : "bg-red-100 text-red-800"
+                          ? "bg-green-100 text-green-800"
+                          : product.stock > 0
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
                           }`}
                       >
                         {product.stock > 10
@@ -277,7 +277,15 @@ export function InventoryTable({ complex }: InventoryTableProps) {
       </div>
 
       {/* Diálogo de edición */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+      <Dialog
+        open={isEditDialogOpen}
+        onOpenChange={(open) => {
+          setIsEditDialogOpen(open);
+          if (!open) {
+            form.reset();
+          }
+        }}
+      >
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>{form.getValues("id") ? "Editar Producto" : "Crear Producto"}</DialogTitle>
@@ -471,7 +479,14 @@ export function InventoryTable({ complex }: InventoryTableProps) {
               />
 
               <DialogFooter>
-                <Button variant="outline" type="button" onClick={() => form.reset()}>
+                <Button
+                  variant="outline"
+                  type="button"
+                  onClick={() => {
+                    setIsEditDialogOpen(false);
+                    form.reset();
+                  }}
+                >
                   Cancelar
                 </Button>
                 <Button type="submit">Guardar cambios</Button>

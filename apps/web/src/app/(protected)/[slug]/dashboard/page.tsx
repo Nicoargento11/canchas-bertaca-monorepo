@@ -16,6 +16,8 @@ import { getAvailableComplexes } from "@/lib/getAvailableComplexes";
 import { Card, CardContent } from "@/components/ui/card";
 import { Info } from "lucide-react";
 import { FijosGridView } from "../../_components/FijosGridView";
+import { CashSessionWarningModal } from "../../_components/dashboard/dashboard/cashSessionWarningModal";
+import { FinancialDetailsModal } from "../../_components/dashboard/dashboard/FinancialDetailsModal";
 
 const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const sessionUser = await getSession();
@@ -171,6 +173,8 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
         <EditReserveModal />
         <CompleteReserveModal />
         <CompletedReserveDetailsModal />
+        <CashSessionWarningModal />
+        <FinancialDetailsModal />
       </div>
     </SidebarInset>
   );

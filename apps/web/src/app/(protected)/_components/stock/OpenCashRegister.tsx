@@ -22,16 +22,18 @@ export function OpenCashRegister({
   complexId,
   userId,
   cashRegisterId,
+  onCashOpened,
 }: {
-  complexId: string;
-  userId: string;
-  cashRegisterId: string;
+  complexId?: string;
+  userId?: string;
+  cashRegisterId?: string;
+  onCashOpened?: () => void;
 }) {
   const [amount, setAmount] = useState("");
   const [observations, setObservations] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { setActiveSession } = useCashRegisterStore();
+  const { setActiveSession, activeRegister } = useCashRegisterStore();
 
   const parseAmount = (value: string) => {
     if (!value) return 0;
@@ -67,11 +69,19 @@ export function OpenCashRegister({
       return;
     }
 
+    // Use provided IDs or fallback to active register
+    const finalCashRegisterId = cashRegisterId || activeRegister?.id;
+
+    if (!finalCashRegisterId) {
+      toast.error("No hay una caja seleccionada");
+      return;
+    }
+
     setIsLoading(true);
     try {
       const result = await openCashSession({
-        cashRegisterId,
-        userId,
+        cashRegisterId: finalCashRegisterId,
+        userId: userId!,
         initialAmount: finalAmount,
         // observations: observations || undefined,
       });
@@ -84,6 +94,11 @@ export function OpenCashRegister({
         setIsOpen(false);
         setAmount("");
         setObservations("");
+
+        // Call callback if provided
+        if (onCashOpened) {
+          onCashOpened();
+        }
       } else {
         toast.error(result.error || "Ocurrió un error desconocido");
       }
