@@ -1,7 +1,7 @@
 import { MetadataRoute } from 'next'
 
 export default function sitemap(): MetadataRoute.Sitemap {
-    const baseUrl = 'https://canchasbertaca.com' // Cambiar por tu dominio real
+    const baseUrl = 'https://www.reservasfutbol.com.ar'
 
     return [
         {
@@ -11,16 +11,16 @@ export default function sitemap(): MetadataRoute.Sitemap {
             priority: 1,
         },
         {
-            url: `${baseUrl}/reservas`,
+            url: `${baseUrl}/bertaca`,
             lastModified: new Date(),
             changeFrequency: 'daily',
             priority: 0.9,
         },
         {
-            url: `${baseUrl}/torneos`,
+            url: `${baseUrl}/seven`,
             lastModified: new Date(),
-            changeFrequency: 'weekly',
-            priority: 0.8,
+            changeFrequency: 'daily',
+            priority: 0.9,
         },
     ]
 }

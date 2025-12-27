@@ -9,6 +9,7 @@ import { Court } from "@/services/court/court";
 import NavBar from "@/components/navbar/navBar";
 import ModalManager from "@/components/modals/modalManager";
 import { MainSectionImproved } from "@/components/home/mainSectionImproved";
+import { generateLocalBusinessSchema, generateOrganizationSchema } from "@/lib/seo";
 
 import { ClientLayout } from "@/components/home/ClientLayout";
 
@@ -101,8 +102,29 @@ export default async function HomePage() {
     {} as Record<SportTypeKey, SportData>
   );
 
+  // Generate structured data for SEO
+  const bertacaSchema = generateLocalBusinessSchema(complejo);
+  const organizationSchema = generateOrganizationSchema();
+  const sevenSchema = sevenComplex ? generateLocalBusinessSchema(sevenComplex) : null;
+
   return (
     <ClientLayout>
+      {/* Structured Data for SEO */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(bertacaSchema) }}
+      />
+      {sevenSchema && (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(sevenSchema) }}
+        />
+      )}
+
       <div className="">
         <NavBar currentUser={session} complex={complejo} />
         {/* <Home sportsData={sportsData} complex={complejo} sportTypes={sportTypes} /> */}
