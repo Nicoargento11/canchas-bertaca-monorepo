@@ -88,7 +88,7 @@ export function SalesHistory({ complex }: SalesHistoryProps) {
                   <TableCell className="capitalize">
                     {sale.sale?.payments?.map((p) => p.method).join(", ") || "-"}
                   </TableCell>
-                  <TableCell className="text-right font-medium">${sale.price.toFixed(2)}</TableCell>
+                  <TableCell className="text-right font-medium">${(sale.price * sale.quantity).toFixed(2)}</TableCell>
                   <TableCell className="text-right">
                     <Dialog>
                       <DialogTrigger asChild>

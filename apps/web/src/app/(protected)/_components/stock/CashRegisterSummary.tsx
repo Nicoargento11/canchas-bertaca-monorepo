@@ -164,9 +164,9 @@ export function CashRegisterSummary({ dailySummaryData }: CashRegisterSummaryPro
       </div>
 
       <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="overview">General</TabsTrigger>
-          <TabsTrigger value="details">Detalles</TabsTrigger>
+        <TabsList className="grid w-full grid-cols-2 bg-muted/50">
+          <TabsTrigger value="overview" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">General</TabsTrigger>
+          <TabsTrigger value="details" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">Detalles</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-4 mt-4">
@@ -259,11 +259,34 @@ export function CashRegisterSummary({ dailySummaryData }: CashRegisterSummaryPro
                   <div className="space-y-3">
                     {courts.map((court: any) => (
                       <Card key={court.courtId} className="overflow-hidden">
-                        <div className="bg-muted/30 p-3 border-b flex justify-between items-center">
-                          <span className="font-medium text-sm">{court.courtName}</span>
-                          <Badge variant="secondary" className="text-xs">
-                            ${court.totalRevenue.toFixed(2)}
-                          </Badge>
+                        <div className="bg-muted/30 p-3 border-b">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="font-medium text-sm">{court.courtName}</span>
+                            <Badge variant="secondary" className="text-xs">
+                              ${court.totalRevenue.toFixed(2)}
+                            </Badge>
+                          </div>
+                          {(() => {
+                            const totalExpected = court.totalRevenue;
+                            const totalPaid = court.reservations.reduce((sum: number, r: any) => sum + r.totalPaid, 0);
+                            const remaining = totalExpected - totalPaid;
+                            const isComplete = Math.abs(remaining) < 0.01;
+
+                            return (
+                              <div className="flex items-center gap-2 text-xs">
+                                {isComplete ? (
+                                  <Badge variant="default" className="bg-green-600 hover:bg-green-700 text-xs">
+                                    ✓ Completo
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="destructive" className="text-xs">
+                                    Falta: ${remaining.toFixed(2)}
+                                  </Badge>
+                                )}
+                                <span className="text-muted-foreground">({court.reservations.length} reserva{court.reservations.length !== 1 ? 's' : ''})</span>
+                              </div>
+                            );
+                          })()}
                         </div>
                         <CardContent className="p-3 space-y-2">
                           {court.reservations.map((res: any) => (

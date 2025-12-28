@@ -218,12 +218,12 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
               <thead>
                 <tr className="bg-gray-900 text-white">
                   {/* Columna horario - angosta en mobile */}
-                  <th className="w-[50px] md:w-[120px] p-1 md:p-3 sticky top-0 z-10 bg-gray-900">
+                  <th className="w-[50px] md:w-[120px] p-2 md:p-3 sticky top-0 z-10 bg-gray-900">
                     <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center">
                       Horario
                     </span>
                     <div className="flex justify-center md:hidden">
-                      <Clock9 className="text-gray-300" size={14} />
+                      <Clock9 className="text-gray-300" size={16} />
                     </div>
                   </th>
                   {complex.courts
@@ -232,12 +232,12 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                     .map((court) => (
                       <th
                         key={court.id}
-                        className="p-1 md:p-3 sticky top-0 z-10 text-center bg-gray-900"
+                        className="p-2 md:p-3 sticky top-0 z-10 text-center bg-gray-900"
                       >
                         <span className="text-xs font-semibold uppercase tracking-wider hidden md:block">
                           Cancha {court.courtNumber ?? "-"}
                         </span>
-                        <span className="text-[10px] font-semibold md:hidden">
+                        <span className="text-xs font-semibold md:hidden">
                           C{court.courtNumber ?? "-"}
                         </span>
                       </th>
@@ -252,11 +252,11 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                   return (
                     <tr key={timeSlot} className="border-b border-gray-100">
                       {/* Horario Label - Desktop */}
-                      <td className="w-[50px] md:w-[120px] h-[44px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
+                      <td className="w-[50px] md:w-[120px] min-h-[48px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
                         {timeSlot}
                       </td>
                       {/* Horario Label - Mobile: solo hora */}
-                      <td className="w-[50px] h-[44px] text-center font-medium text-gray-700 bg-gray-50 border-r border-gray-100 text-[10px] md:hidden align-middle">
+                      <td className="w-[50px] min-h-[48px] text-center font-semibold text-gray-700 bg-gray-50 border-r border-gray-100 text-xs md:hidden align-middle py-2">
                         {startTime.replace(":00", "")}
                       </td>
 
@@ -370,9 +370,9 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                             <td
                               key={`${timeSlot}-${court.id}`}
                               onClick={() => handleCellClick(timeSlot, court.id)}
-                              className="h-[56px] p-1 cursor-pointer transition-all group"
+                              className="h-[52px] p-1 cursor-pointer transition-all group"
                             >
-                              <div className="w-full h-full rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
+                              <div className="w-full h-full min-h-[48px] rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
                                 <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
                               </div>
                             </td>

@@ -17,6 +17,7 @@ import {
   DollarSign,
   CheckCircle2,
   History,
+  Gift,
 } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,6 +187,43 @@ const CompletedReserveDetailsModal = () => {
           </div>
         </CardContent>
       </Card>
+
+      {/* Promoción Aplicada */}
+      {reserve.promotion && (() => {
+        const promo = reserve.promotion;
+        let promoDescription = "";
+
+        if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
+          promoDescription = `${promo.value}% de descuento`;
+        } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
+          promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
+        } else if (promo.type === "GIFT_PRODUCT") {
+          if (promo.giftProducts && promo.giftProducts.length > 0) {
+            promoDescription = promo.giftProducts
+              .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
+              .join(", ");
+          } else {
+            promoDescription = "Producto de regalo incluido";
+          }
+        }
+
+        return (
+          <Card className="bg-amber-500/10 border-amber-500/30">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-4">
+                <div className="p-2 rounded-full bg-amber-500/20">
+                  <Gift className="text-amber-400" size={24} />
+                </div>
+                <div>
+                  <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
+                  <p className="font-medium text-amber-300">{promo.name}</p>
+                  <p className="text-xs text-amber-400/60">{promoDescription}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })()}
 
       {/* Resumen de Pagos */}
       <Card className="border border-green-900/30 bg-green-900/20">

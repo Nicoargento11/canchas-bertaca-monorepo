@@ -14,7 +14,9 @@ import {
   ChevronLeft,
   CheckCircle2,
   Eye,
+  Package,
 } from "lucide-react";
+import Link from "next/link";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { format } from "date-fns";
 
@@ -238,6 +240,13 @@ const BiTableDay: React.FC<TableReservesProps> = ({
             />
           </PopoverContent>
         </Popover>
+        {/* Botón a Stock */}
+        <Link href={`/${complex.slug}/dashboard/stock`}>
+          <Button variant="outline" className="border-gray-300 bg-white hover:bg-gray-50">
+            <Package className="mr-2 h-4 w-4 text-blue-600" />
+            Stock
+          </Button>
+        </Link>
         {/* Botón sidebar */}
         <SideBarButton />
       </div>

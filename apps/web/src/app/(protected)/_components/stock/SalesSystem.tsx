@@ -710,7 +710,7 @@ export function SaleSystem({
                     <Input
                       type="number"
                       placeholder="$"
-                      className="w-20"
+                      className="w-24 sm:w-32"
                       value={paymentAmount}
                       onChange={(e) => setPaymentAmount(e.target.value)}
                       onKeyDown={(e) => {
