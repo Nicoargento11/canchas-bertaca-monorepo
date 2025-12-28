@@ -29,10 +29,10 @@ interface StatsDashboardProps {
 
 export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) {
     const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: subDays(new Date(), 6),
+        from: new Date(),
         to: new Date(),
     });
-    const [period, setPeriod] = useState<PeriodType>("7d");
+    const [period, setPeriod] = useState<PeriodType>("today");
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>(null);
     const [error, setError] = useState<string | null>(null);
