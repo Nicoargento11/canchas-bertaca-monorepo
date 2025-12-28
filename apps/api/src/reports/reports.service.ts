@@ -1189,83 +1189,50 @@ export class ReportsService {
     endDate: Date,
     cashSessionId?: string,
   ): Promise<number> {
-    // Construir filtro dinámico
-    const paymentWhere: any = {
-      complexId,
-      reserveId: { not: null },
-    };
+    // NUEVA LÓGICA SIMPLIFICADA: Solo usar Payment con horario operativo 06:00-06:00
 
-    // Si hay sesión específica, priorizar su ID sobre las fechas genéricas
-    if (cashSessionId) {
-      paymentWhere.cashSessionId = cashSessionId;
-    } else {
-      paymentWhere.createdAt = {
-        gte: startDate,
-        lt: endDate,
-      };
+    // Ajustar a horario operativo real: 06:00 del día hasta 06:00 del día siguiente
+    const operationalStart = new Date(startDate);
+    operationalStart.setHours(6, 0, 0, 0);
+
+    const operationalEnd = new Date(startDate);
+    operationalEnd.setDate(operationalEnd.getDate() + 1);
+    operationalEnd.setHours(6, 0, 0, 0);
+
+    // Solo log para hoy
+    const isToday = startDate.toDateString() === new Date().toDateString();
+
+    if (isToday) {
+      console.log('🔍 [HOY - SIMPLIFICADO] Params:', {
+        complexId,
+        operationalStart: operationalStart.toISOString(),
+        operationalEnd: operationalEnd.toISOString()
+      });
     }
 
-    // Ingresos de reservas
-    const reserveIncome = await this.prisma.payment.aggregate({
-      where: paymentWhere,
+    // UNA SOLA CONSULTA: Sumar todos los pagos (reservas + productos)
+    // Excluir EGRESOS (retiros de caja)
+    const result = await this.prisma.payment.aggregate({
+      where: {
+        complexId,
+        transactionType: { not: 'EGRESO' },
+        createdAt: {
+          gte: operationalStart,
+          lt: operationalEnd,
+        },
+      },
       _sum: {
         amount: true,
       },
     });
 
-    // Ingresos de productos
-    let productIncome = { _sum: { price: 0 } };
-    if (cashSessionId) {
-      const cashSession = await this.prisma.cashSession.findUnique({
-        where: { id: cashSessionId },
-      });
-      if (cashSession) {
-        productIncome = await this.prisma.productSale.aggregate({
-          where: {
-            complexId,
-            createdAt: {
-              gte: Math.max(startDate.getTime(), cashSession.startAt.getTime())
-                ? new Date(
-                  Math.max(
-                    startDate.getTime(),
-                    cashSession.startAt.getTime(),
-                  ),
-                )
-                : startDate,
-              lt: Math.min(
-                endDate.getTime(),
-                (cashSession.endAt || new Date()).getTime(),
-              )
-                ? new Date(
-                  Math.min(
-                    endDate.getTime(),
-                    (cashSession.endAt || new Date()).getTime(),
-                  ),
-                )
-                : endDate,
-            },
-          },
-          _sum: {
-            price: true,
-          },
-        });
-      }
-    } else {
-      productIncome = await this.prisma.productSale.aggregate({
-        where: {
-          complexId,
-          createdAt: {
-            gte: startDate,
-            lt: endDate,
-          },
-        },
-        _sum: {
-          price: true,
-        },
-      });
+    const total = result._sum.amount || 0;
+
+    if (isToday) {
+      console.log('💵 [HOY - SIMPLIFICADO] TOTAL (06:00-06:00):', total);
     }
 
-    return (reserveIncome._sum.amount || 0) + (productIncome._sum.price || 0);
+    return total;
   }
 
   private async getCancelacionesPorDia(

@@ -27,7 +27,10 @@ import {
   TrendingUp,
   PieChart,
   CreditCard,
+  CalendarDays,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 export default async function Home({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
@@ -132,6 +135,13 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                 Resumen
               </TabsTrigger>
             </TabsList>
+            {/* Botón a Reservas */}
+            <Link href={`/${slug}/dashboard`}>
+              <Button variant="outline" className="border-gray-300 bg-white hover:bg-gray-50">
+                <CalendarDays className="mr-2 h-4 w-4 text-blue-600" />
+                Reservas
+              </Button>
+            </Link>
           </div>
 
           {mostrarVentas && (
@@ -149,7 +159,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                     userSession={userSession}
                     activeCashSession={activeCashSession.data || null}
                     cashRegisters={cashRegisters.data || null}
-                    // dailySummaryData={dailySummaryData || null}
+                  // dailySummaryData={dailySummaryData || null}
                   />
                 </CardContent>
               </Card>

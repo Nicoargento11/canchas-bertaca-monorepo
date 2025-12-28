@@ -79,7 +79,7 @@ export function PeriodSelector({ value, selectedPeriod, onChange }: PeriodSelect
     };
 
     return (
-        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg">
+        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg overflow-x-auto max-w-full">
             {/* Quick period buttons */}
             {PERIOD_OPTIONS.slice(0, 5).map((option) => (
                 <Button
@@ -87,7 +87,7 @@ export function PeriodSelector({ value, selectedPeriod, onChange }: PeriodSelect
                     variant={selectedPeriod === option.value ? "default" : "ghost"}
                     size="sm"
                     className={cn(
-                        "h-8 px-3 text-xs font-medium transition-all",
+                        "h-8 px-2 sm:px-3 text-xs font-medium transition-all whitespace-nowrap",
                         selectedPeriod === option.value
                             ? "bg-primary text-primary-foreground shadow-sm"
                             : "hover:bg-muted"
@@ -105,7 +105,7 @@ export function PeriodSelector({ value, selectedPeriod, onChange }: PeriodSelect
                         variant={selectedPeriod === "custom" ? "default" : "ghost"}
                         size="sm"
                         className={cn(
-                            "h-8 px-3 text-xs font-medium gap-1",
+                            "h-8 px-2 sm:px-3 text-xs font-medium gap-1 whitespace-nowrap",
                             selectedPeriod === "custom"
                                 ? "bg-primary text-primary-foreground"
                                 : "hover:bg-muted"
