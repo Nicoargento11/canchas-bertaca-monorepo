@@ -180,75 +180,78 @@ const BiTableDay: React.FC<TableReservesProps> = ({
       <DashboardKPIs />
 
       {/* Encabezado con selector de fecha */}
-      <div className="flex justify-between py-3 gap-2 mb-4">
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={cn(
-                "w-[240px] justify-start text-left font-normal border-gray-300 bg-white hover:bg-gray-50",
-                !date && "text-gray-500"
-              )}
-            >
-              <CalendarDays className="mr-2 h-4 w-4 text-blue-600" />{" "}
-              {date ? format(date, "PPP") : <span>Elige una fecha</span>}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 border-gray-300 shadow-md" align="start">
-            <Calendar
-              mode="single"
-              selected={date || undefined}
-              onSelect={(dateCalendar) => {
-                if (dateCalendar) {
-                  setDate(dateCalendar);
-                }
-              }}
-              initialFocus
-              className="border-2 border-gray-300 rounded-lg shadow-md p-2 bg-white"
-              classNames={{
-                months: "space-y-4",
-                month: "space-y-4",
-                caption: "flex justify-center pt-1 relative items-center",
-                caption_label: "text-lg font-bold text-gray-800",
-                nav: "space-x-1 flex items-center",
-                nav_button:
-                  "h-7 w-7 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center",
-                nav_button_previous: "absolute left-1",
-                nav_button_next: "absolute right-1",
-                table: "w-full border-collapse space-y-1",
-                head_row: "flex",
-                head_cell: "text-gray-600 rounded-md w-9 font-semibold text-sm",
-                row: "flex w-full mt-2",
-                cell: "text-center p-0 relative [&:has([aria-selected])]:bg-gray-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-                day: "h-9 w-9 p-0 font-medium rounded-md hover:bg-gray-200 transition-colors",
-                day_selected:
-                  "bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 font-bold",
-                day_today: "bg-gray-100 text-gray-900 font-semibold",
-                day_outside: "text-gray-400 opacity-50",
-                day_disabled: "text-gray-400 opacity-50",
-                day_range_middle: "aria-selected:bg-gray-100 aria-selected:text-gray-900",
-                day_hidden: "invisible",
-              }}
-              components={{
-                IconLeft: ({ ...props }) => (
-                  <ChevronLeft className="h-4 w-4 text-gray-600" {...props} />
-                ),
-                IconRight: ({ ...props }) => (
-                  <ChevronRight className="h-4 w-4 text-gray-600" {...props} />
-                ),
-              }}
-            />
-          </PopoverContent>
-        </Popover>
-        {/* Botón a Stock */}
-        <Link href={`/${complex.slug}/dashboard/stock`}>
-          <Button variant="outline" className="border-gray-300 bg-white hover:bg-gray-50">
+      <div className="flex flex-col gap-3 mb-4">
+        <div className="flex justify-between items-center gap-2">
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={cn(
+                  "w-[240px] justify-start text-left font-normal border-gray-300 bg-white hover:bg-gray-50",
+                  !date && "text-gray-500"
+                )}
+              >
+                <CalendarDays className="mr-2 h-4 w-4 text-blue-600" />{" "}
+                {date ? format(date, "PPP") : <span>Elige una fecha</span>}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 border-gray-300 shadow-md" align="start">
+              <Calendar
+                mode="single"
+                selected={date || undefined}
+                onSelect={(dateCalendar) => {
+                  if (dateCalendar) {
+                    setDate(dateCalendar);
+                  }
+                }}
+                initialFocus
+                className="border-2 border-gray-300 rounded-lg shadow-md p-2 bg-white"
+                classNames={{
+                  months: "space-y-4",
+                  month: "space-y-4",
+                  caption: "flex justify-center pt-1 relative items-center",
+                  caption_label: "text-lg font-bold text-gray-800",
+                  nav: "space-x-1 flex items-center",
+                  nav_button:
+                    "h-7 w-7 bg-gray-100 hover:bg-gray-200 rounded-md flex items-center justify-center",
+                  nav_button_previous: "absolute left-1",
+                  nav_button_next: "absolute right-1",
+                  table: "w-full border-collapse space-y-1",
+                  head_row: "flex",
+                  head_cell: "text-gray-600 rounded-md w-9 font-semibold text-sm",
+                  row: "flex w-full mt-2",
+                  cell: "text-center p-0 relative [&:has([aria-selected])]:bg-gray-100 first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
+                  day: "h-9 w-9 p-0 font-medium rounded-md hover:bg-gray-200 transition-colors",
+                  day_selected:
+                    "bg-blue-600 text-white hover:bg-blue-700 focus:bg-blue-700 font-bold",
+                  day_today: "bg-gray-100 text-gray-900 font-semibold",
+                  day_outside: "text-gray-400 opacity-50",
+                  day_disabled: "text-gray-400 opacity-50",
+                  day_range_middle: "aria-selected:bg-gray-100 aria-selected:text-gray-900",
+                  day_hidden: "invisible",
+                }}
+                components={{
+                  IconLeft: ({ ...props }) => (
+                    <ChevronLeft className="h-4 w-4 text-gray-600" {...props} />
+                  ),
+                  IconRight: ({ ...props }) => (
+                    <ChevronRight className="h-4 w-4 text-gray-600" {...props} />
+                  ),
+                }}
+              />
+            </PopoverContent>
+          </Popover>
+          {/* Botón sidebar */}
+          <SideBarButton />
+        </div>
+
+        {/* Botón a Stock - movido a su propia fila */}
+        <Link href={`/${complex.slug}/dashboard/stock`} className="w-full">
+          <Button variant="outline" className="w-full border-gray-300 bg-white hover:bg-gray-50">
             <Package className="mr-2 h-4 w-4 text-blue-600" />
             Stock
           </Button>
         </Link>
-        {/* Botón sidebar */}
-        <SideBarButton />
       </div>
 
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
