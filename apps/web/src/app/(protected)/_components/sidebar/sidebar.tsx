@@ -198,10 +198,10 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                   >
                     <div
                       onClick={() => handleClick(item.index, item.path)}
-                      className="flex items-center gap-3 cursor-pointer px-4 py-2 rounded-md transition-colors"
+                      className="flex items-center gap-2 md:gap-3 cursor-pointer px-2 md:px-4 py-2 rounded-md transition-colors"
                     >
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="text-sm md:text-base">{item.title}</span>
                     </div>
                   </SidebarMenuButton>
                 </SidebarMenuItem>

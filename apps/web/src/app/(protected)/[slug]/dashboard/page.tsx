@@ -14,11 +14,10 @@ import CompleteReserveModal from "../../_components/dashboard/dashboard/complete
 import { ComplexSelector } from "./ComplexSelector";
 import { getAvailableComplexes } from "@/lib/getAvailableComplexes";
 import { Card, CardContent } from "@/components/ui/card";
-import { Info, Package } from "lucide-react";
+import { Info } from "lucide-react";
 import { FijosGridView } from "../../_components/FijosGridView";
 import { CashSessionWarningModal } from "../../_components/dashboard/dashboard/cashSessionWarningModal";
 import { FinancialDetailsModal } from "../../_components/dashboard/dashboard/FinancialDetailsModal";
-import { QuickNavButton } from "@/components/navigation/QuickNavButton";
 
 const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const sessionUser = await getSession();
@@ -176,13 +175,6 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
         <CompletedReserveDetailsModal />
         <CashSessionWarningModal />
         <FinancialDetailsModal />
-
-        {/* Quick Navigation to Stock */}
-        <QuickNavButton
-          href={`/${slug}/dashboard/stock`}
-          icon={<Package size={20} />}
-          label="Stock"
-        />
       </div>
     </SidebarInset>
   );

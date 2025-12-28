@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { LayoutDashboard, Building2, Users, MapPin, Settings, LogOut, Home } from "lucide-react";
+import { LayoutDashboard, Building2, Users, MapPin, Settings, Home } from "lucide-react";
 
 export default function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -48,16 +48,6 @@ export default function SuperAdminLayout({ children }: { children: React.ReactNo
             </Link>
           ))}
         </nav>
-
-        <div className="md:absolute md:bottom-0 md:left-0 md:right-0 p-4 border-t border-gray-200">
-          <button
-            onClick={() => router.push("/logout")}
-            className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all w-full"
-          >
-            <LogOut className="w-5 h-5" />
-            <span className="font-medium">Salir</span>
-          </button>
-        </div>
       </aside>
 
       {/* Main Content */}
