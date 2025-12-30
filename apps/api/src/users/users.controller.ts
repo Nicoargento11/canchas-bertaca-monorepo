@@ -33,7 +33,7 @@ import { Role } from '@prisma/client';
 @Controller('users')
 // @UseGuards(JwtAuthGuard)
 export class UsersController {
-  constructor(private readonly usersService: UsersService) { }
+  constructor(private readonly usersService: UsersService) {}
 
   // CREATE
   @ApiOperation({ summary: 'Crear nuevo usuario (solo admin)' })

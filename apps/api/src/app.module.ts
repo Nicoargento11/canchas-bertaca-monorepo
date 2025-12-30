@@ -28,6 +28,7 @@ import { SalesModule } from './sales/sales.module';
 import { CacheModule } from '@nestjs/cache-manager';
 import { AdminMonitoringModule } from './admin-monitoring/admin-monitoring.module';
 import { PromotionsModule } from './promotions/promotions.module';
+import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
 
 @Module({
   imports: [
@@ -57,6 +58,7 @@ import { PromotionsModule } from './promotions/promotions.module';
     ReportsModule,
     AdminMonitoringModule,
     PromotionsModule,
+    PurchaseOrdersModule,
     CacheModule.register({
       isGlobal: true,
       ttl: 60000, // 1 minute default cache
