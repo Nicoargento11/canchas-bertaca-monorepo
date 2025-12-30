@@ -36,6 +36,7 @@ export interface FixedReserveData {
   userId: string;
   complexId: string;
   isActive?: boolean;
+  promotionId?: string;
 }
 
 type FixedReserveResult<T = any> = {
