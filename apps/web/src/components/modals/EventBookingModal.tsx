@@ -116,14 +116,17 @@ export const EventBookingModal = ({
     if (!selectedPackage) return [];
 
     const courtType = selectedPackage.courtType;
-    return (
-      complex.courts?.filter((c) => {
-        if (!c.isActive) return false;
-        // If courtType is null, "all", or empty, include all active courts
-        if (!courtType || courtType === "all" || courtType === "") return true;
-        return c.sportType?.name === courtType;
-      }) || []
-    );
+
+    // Filter active courts
+    const activeCourts = complex.courts?.filter((c) => c.isActive) || [];
+
+    // If courtType is null, "all", or empty, include all active courts
+    if (!courtType || courtType === "all" || courtType === "") {
+      return activeCourts;
+    }
+
+    // Filter by sport type name
+    return activeCourts.filter((c) => c.sportType?.name === courtType);
   }, [selectedPackage, complex.courts]);
 
   // Get courts to reserve - use manually selected or auto-assign
