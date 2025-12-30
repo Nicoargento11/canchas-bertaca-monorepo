@@ -92,6 +92,7 @@ export const CreateFixedReserveModal = ({
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [reserveType, setReserveType] = useState<"FIJO" | "ESCUELA">("FIJO");
 
   // User Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -311,6 +312,7 @@ export const CreateFixedReserveModal = ({
           complexId: complex.id,
           isActive: true,
           promotionId: bestPromotion?.id, // Use bestPromotion from hook
+          reserveType: reserveType, // FIJO or ESCUELA
         });
       });
 
@@ -450,6 +452,41 @@ export const CreateFixedReserveModal = ({
               <div className="flex justify-between text-sm items-center">
                 <span className="text-gray-500">Cliente:</span>
                 <span className="font-medium">{selectedUser?.name}</span>
+              </div>
+
+              {/* Reserve Type Selector */}
+              <div className="space-y-2">
+                <Label>Tipo de Reserva</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    className={`p-3 rounded-lg border-2 transition-all ${reserveType === "FIJO"
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    onClick={() => setReserveType("FIJO")}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">📅</div>
+                      <div className="font-semibold">Fijo</div>
+                      <div className="text-xs opacity-75">Turno regular</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    className={`p-3 rounded-lg border-2 transition-all ${reserveType === "ESCUELA"
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 hover:border-gray-300"
+                      }`}
+                    onClick={() => setReserveType("ESCUELA")}
+                  >
+                    <div className="text-center">
+                      <div className="text-lg mb-1">⚽</div>
+                      <div className="font-semibold">Escuelita</div>
+                      <div className="text-xs opacity-75">Entrenamiento</div>
+                    </div>
+                  </button>
+                </div>
               </div>
 
               {/* Time Selection */}

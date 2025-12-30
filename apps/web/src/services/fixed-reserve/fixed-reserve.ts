@@ -37,6 +37,7 @@ export interface FixedReserveData {
   complexId: string;
   isActive?: boolean;
   promotionId?: string;
+  reserveType?: "FIJO" | "ESCUELA";
 }
 
 type FixedReserveResult<T = any> = {

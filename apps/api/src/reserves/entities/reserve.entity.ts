@@ -74,4 +74,10 @@ export class ReserveEntity implements PrismaReserve {
 
   @ApiProperty({ required: false, description: 'ID de la promoción aplicada' })
   promotionId: string | null;
+
+  @ApiProperty({ required: false, description: 'ID del paquete de evento' })
+  eventPackageId: string | null;
+
+  @ApiProperty({ required: false, description: 'Notas/metadata (JSON string)' })
+  notes: string | null;
 }

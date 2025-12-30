@@ -122,4 +122,12 @@ export class UpdateReserveDto {
   })
   @IsString()
   complexId: string;
+
+  @ApiPropertyOptional({
+    description: 'Updated notes or metadata',
+    example: '{"eventGroupId": "event-123"}',
+  })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
