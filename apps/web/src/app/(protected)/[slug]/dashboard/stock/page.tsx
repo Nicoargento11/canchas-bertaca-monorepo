@@ -49,9 +49,16 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
   const activeCashSession = await getActiveCashSessionByUser(userSession?.user.id, complejo.id);
   const today = formatReportDate(new Date());
 
+  // Permisos por rol
+  const isRecepcion = userSession.user.role === "RECEPCION";
+
   const mostrarInventario = true;
   const mostrarVentas = true;
-  const mostrarReportes = true;
+  const mostrarHistorial = true; // RECEPCION puede ver historial
+  const mostrarPagos = true; // RECEPCION puede ver pagos
+  const mostrarReportes = !isRecepcion; // RECEPCION NO puede ver reportes
+  const mostrarMargen = !isRecepcion; // RECEPCION NO puede ver margen
+  const mostrarResumen = !isRecepcion; // RECEPCION NO puede ver resumen
   const mostrarUsuarios = true;
   return (
     <div className="flex min-h-screen w-full flex-col">
@@ -91,7 +98,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   Agregar
                 </TabsTrigger>
               )}
-              {mostrarReportes && (
+              {mostrarHistorial && (
                 <TabsTrigger
                   value="historial"
                   className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
@@ -109,7 +116,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   Reportes
                 </TabsTrigger>
               )}
-              {mostrarReportes && (
+              {mostrarPagos && (
                 <TabsTrigger
                   value="pagos"
                   className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
@@ -118,7 +125,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   Pagos
                 </TabsTrigger>
               )}
-              {mostrarReportes && (
+              {mostrarMargen && (
                 <TabsTrigger
                   value="margen"
                   className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
@@ -127,13 +134,15 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   Margen
                 </TabsTrigger>
               )}
-              <TabsTrigger
-                value="resumen"
-                className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
-              >
-                <PieChart className="w-4 h-4" />
-                Resumen
-              </TabsTrigger>
+              {mostrarResumen && (
+                <TabsTrigger
+                  value="resumen"
+                  className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
+                >
+                  <PieChart className="w-4 h-4" />
+                  Resumen
+                </TabsTrigger>
+              )}
             </TabsList>
             {/* Botón a Reservas */}
             <Link href={`/${slug}/dashboard`}>
@@ -159,7 +168,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                     userSession={userSession}
                     activeCashSession={activeCashSession.data || null}
                     cashRegisters={cashRegisters.data || null}
-                  // dailySummaryData={dailySummaryData || null}
+                    // dailySummaryData={dailySummaryData || null}
                   />
                 </CardContent>
               </Card>
@@ -193,7 +202,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
               </Card>
             </TabsContent>
           )}
-          {mostrarReportes && (
+          {mostrarHistorial && (
             <TabsContent value="historial" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -221,7 +230,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
               </Card>
             </TabsContent>
           )}
-          {mostrarReportes && (
+          {mostrarPagos && (
             <TabsContent value="pagos" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -236,7 +245,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
               </Card>
             </TabsContent>
           )}
-          {mostrarReportes && (
+          {mostrarMargen && (
             <TabsContent value="margen" className="space-y-4">
               <Card>
                 <CardHeader>
@@ -251,9 +260,11 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
               </Card>
             </TabsContent>
           )}
-          <TabsContent value="resumen" className="space-y-4">
-            <InventorySummary complex={complejo} />
-          </TabsContent>
+          {mostrarResumen && (
+            <TabsContent value="resumen" className="space-y-4">
+              <InventorySummary complex={complejo} />
+            </TabsContent>
+          )}
           {mostrarUsuarios && (
             <TabsContent value="usuarios" className="space-y-4">
               <Card>

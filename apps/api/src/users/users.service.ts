@@ -129,8 +129,19 @@ export class UsersService {
     const user = await this.prisma.user.findUnique({
       where: { email },
       include: {
-        Complex: true,
-        // Incluir relaciones necesarias para autenticación
+        Complex: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+          },
+        },
+        Organization: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
       },
     });
     return user ? new UserEntity(user) : null;
