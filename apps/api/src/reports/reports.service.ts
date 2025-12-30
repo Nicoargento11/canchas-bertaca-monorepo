@@ -578,10 +578,19 @@ export class ReportsService {
       previousEgresos,
       // Nuevos datos
       recentTransactions,
+      // KPIs de negocio
+      averageTicket,
+      revenuePerHour,
+      totalCourtHours,
+      cancellationRate,
+      // KPIs del período anterior
+      previousAverageTicket,
+      previousRevenuePerHour,
+      previousCancellationRate,
     ] = await Promise.all([
-      this.getDailyData(complexId, startDateStr, endDateStr, cashSessionId),
-      this.getWeeklyData(complexId, startDateStr, endDateStr, cashSessionId),
-      this.getMonthlyData(complexId, startDateStr, endDateStr, cashSessionId),
+      this.getDailyData(complexId, startDateStr, endDateStr),
+      this.getWeeklyData(complexId, startDateStr, endDateStr),
+      this.getMonthlyData(complexId, startDateStr, endDateStr),
       this.getProductsData(complexId, startDateStr, endDateStr, cashSessionId),
       this.getPaymentMethodsData(
         complexId,
@@ -595,11 +604,59 @@ export class ReportsService {
       this.getPromotionsUsedCount(complexId, currentStart, currentEnd),
       this.getReservasByType(complexId, currentStart, currentEnd),
       // Calls para comparación
-      this.getIngresosTotalInRange(complexId, prevStart, prevEnd, cashSessionId),
+      this.getIngresosTotalInRange(
+        complexId,
+        prevStart,
+        prevEnd,
+        cashSessionId,
+      ),
       this.getReservasTotalInRange(complexId, prevStart, prevEnd),
       this.getEgresosTotal(complexId, prevStart, prevEnd),
       // Call para transacciones
       this.getRecentTransactions(complexId),
+      // Calls para KPIs de negocio
+      this.getAverageTicket(complexId, currentStart, currentEnd),
+      this.getRevenuePerHour(complexId, currentStart, currentEnd),
+      this.getTotalCourtHours(complexId, currentStart, currentEnd),
+      this.getCancellationRate(complexId, currentStart, currentEnd),
+      // KPIs del período anterior para comparación
+      this.getAverageTicket(complexId, prevStart, prevEnd),
+      this.getRevenuePerHour(complexId, prevStart, prevEnd),
+      this.getCancellationRate(complexId, prevStart, prevEnd),
+    ]);
+
+    // Calcular ingresos totales del período actual
+    const totalIngresos = dailyData.reduce((sum, d) => sum + d.ingresos, 0);
+
+    // Calcular margen neto
+    const netMargin = totalIngresos - egresos;
+    const netMarginPercentage =
+      totalIngresos > 0 ? Math.round((netMargin / totalIngresos) * 100) : 0;
+
+    // Calcular margen neto del período anterior
+    const prevNetMargin = previousIngresos - previousEgresos;
+    const prevNetMarginPercentage =
+      previousIngresos > 0
+        ? Math.round((prevNetMargin / previousIngresos) * 100)
+        : 0;
+
+    // Obtener datos de inventario y clientes en paralelo
+    const [
+      lowStockProducts,
+      highMarginProducts,
+      deadStockProducts,
+      topCustomers,
+      customerSegmentation,
+      inactiveCustomers,
+      problematicCustomers,
+    ] = await Promise.all([
+      this.getLowStockProducts(complexId),
+      this.getHighMarginProducts(complexId),
+      this.getDeadStockProducts(complexId, startDateStr, endDateStr),
+      this.getTopCustomers(complexId, startDateStr, endDateStr),
+      this.getCustomerSegmentation(complexId, startDateStr, endDateStr),
+      this.getInactiveCustomers(complexId),
+      this.getProblematicCustomers(complexId, startDateStr, endDateStr),
     ]);
 
     return {
@@ -614,12 +671,34 @@ export class ReportsService {
       promotionsUsed,
       reservasFijas: reservasByType.fijas,
       reservasNormales: reservasByType.normales,
-      // Comparación
+      // Comparación básica
       previousIngresos,
       previousReservas,
       previousEgresos,
       // Transacciones
       recentTransactions,
+      // KPIs de Negocio
+      averageTicket,
+      revenuePerHour,
+      totalCourtHours,
+      cancellationRate,
+      netMargin,
+      netMarginPercentage,
+      // Comparación KPIs período anterior
+      previousAverageTicket,
+      previousRevenuePerHour,
+      previousCancellationRate,
+      previousNetMargin: prevNetMargin,
+      previousNetMarginPercentage: prevNetMarginPercentage,
+      // Inventario y análisis de productos
+      lowStockProducts,
+      highMarginProducts,
+      deadStockProducts,
+      // Análisis de clientes
+      topCustomers,
+      customerSegmentation,
+      inactiveCustomers,
+      problematicCustomers,
     };
   }
 
@@ -630,7 +709,6 @@ export class ReportsService {
     complexId: string,
     startDate: string,
     endDate: string,
-    cashSessionId?: string,
   ): Promise<DailyData[]> {
     const dailyData: DailyData[] = [];
     const days = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
@@ -671,7 +749,7 @@ export class ReportsService {
       const [reservasHoy, ingresos, cancelaciones, clientesNuevos] =
         await Promise.all([
           this.getReservasPorDia(complexId, startUtc, endUtc), // Usar rango UTC puro para reservas
-          this.getIngresosPorDia(complexId, startAr, endAr, cashSessionId), // Usar rango AR para dinero
+          this.getIngresosPorDia(complexId, startAr), // Usar rango AR para dinero
           this.getCancelacionesPorDia(complexId, startAr, endAr),
           this.getClientesNuevosPorDia(complexId, startAr, endAr),
         ]);
@@ -734,7 +812,6 @@ export class ReportsService {
     complexId: string,
     startDate: string,
     endDate: string,
-    cashSessionId?: string,
   ): Promise<WeeklyData[]> {
     const weeklyData: WeeklyData[] = [];
     const allSchedules = await this.schedules.findByComplex(complexId);
@@ -763,7 +840,7 @@ export class ReportsService {
       // Datos de la semana actual
       const [reservas, ingresos, clientesNuevos] = await Promise.all([
         this.getReservasPorDia(complexId, weekStart, weekEnd),
-        this.getIngresosPorDia(complexId, weekStart, weekEnd, cashSessionId),
+        this.getIngresosPorDia(complexId, weekStart),
         this.getClientesNuevosPorDia(complexId, weekStart, weekEnd),
       ]);
 
@@ -819,7 +896,6 @@ export class ReportsService {
     complexId: string,
     startDate: string,
     endDate: string,
-    cashSessionId?: string,
   ): Promise<MonthlyData[]> {
     const monthlyData: MonthlyData[] = [];
     const months = [
@@ -868,7 +944,7 @@ export class ReportsService {
       // Obtener datos del mes
       const [reservas, ingresos, clientesNuevos] = await Promise.all([
         this.getReservasPorDia(complexId, monthStart, monthEnd),
-        this.getIngresosPorDia(complexId, monthStart, monthEnd, cashSessionId),
+        this.getIngresosPorDia(complexId, monthStart),
         this.getClientesNuevosPorDia(complexId, monthStart, monthEnd),
       ]);
 
@@ -996,6 +1072,469 @@ export class ReportsService {
         category: product?.category || 'Sin categoría',
       };
     });
+  }
+
+  /**
+   * Obtiene productos con stock bajo (stock <= minStock)
+   */
+  private async getLowStockProducts(complexId: string) {
+    // Prisma no soporta comparación de campos en where, usamos queryRaw
+    const lowStockProducts = await this.prisma.$queryRaw<
+      Array<{
+        id: string;
+        name: string;
+        stock: number;
+        minStock: number;
+        category: string;
+      }>
+    >`
+      SELECT id, name, stock, "minStock", category
+      FROM "Product"
+      WHERE "complexId" = ${complexId}
+        AND "isActive" = true
+        AND stock <= "minStock"
+      ORDER BY stock ASC
+      LIMIT 10
+    `;
+
+    return lowStockProducts.map((product) => ({
+      id: product.id,
+      name: product.name,
+      stock: product.stock,
+      minStock: product.minStock,
+      category: product.category,
+      status: product.stock === 0 ? 'SIN_STOCK' : 'BAJO',
+    }));
+  }
+
+  /**
+   * Obtiene productos con mejor margen de ganancia
+   */
+  private async getHighMarginProducts(complexId: string) {
+    const products = await this.prisma.product.findMany({
+      where: {
+        complexId,
+        isActive: true,
+        costPrice: {
+          gt: 0, // Excluir productos sin costo definido
+        },
+      },
+      select: {
+        id: true,
+        name: true,
+        costPrice: true,
+        salePrice: true,
+        category: true,
+        stock: true,
+      },
+    });
+
+    // Calcular margen para cada producto
+    const productsWithMargin = products.map((product) => {
+      const margin = product.salePrice - product.costPrice;
+      const marginPercentage = (margin / product.costPrice) * 100;
+
+      return {
+        id: product.id,
+        name: product.name,
+        costPrice: product.costPrice,
+        salePrice: product.salePrice,
+        margin,
+        marginPercentage: Math.round(marginPercentage),
+        category: product.category,
+        stock: product.stock,
+      };
+    });
+
+    // Ordenar por margen porcentual y tomar top 5
+    return productsWithMargin
+      .sort((a, b) => b.marginPercentage - a.marginPercentage)
+      .slice(0, 5);
+  }
+
+  /**
+   * Obtiene productos sin ventas en el período (dead stock)
+   */
+  private async getDeadStockProducts(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    // Obtener todos los productos activos
+    const allProducts = await this.prisma.product.findMany({
+      where: {
+        complexId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        name: true,
+        stock: true,
+        category: true,
+        costPrice: true,
+        salePrice: true,
+      },
+    });
+
+    // Obtener productos que SÍ tuvieron ventas
+    const productsWithSales = await this.prisma.productSale.groupBy({
+      by: ['productId'],
+      where: {
+        complexId,
+        createdAt: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+      },
+    });
+
+    const soldProductIds = new Set(
+      productsWithSales.map((sale) => sale.productId),
+    );
+
+    // Filtrar productos sin ventas que tengan stock
+    const deadStock = allProducts
+      .filter(
+        (product) => !soldProductIds.has(product.id) && product.stock > 0,
+      )
+      .map((product) => ({
+        id: product.id,
+        name: product.name,
+        stock: product.stock,
+        category: product.category,
+        tiedUpCapital: product.stock * product.costPrice, // Capital inmovilizado
+      }))
+      .sort((a, b) => b.tiedUpCapital - a.tiedUpCapital) // Los que más capital tienen inmovilizado
+      .slice(0, 10);
+
+    return deadStock;
+  }
+
+  /**
+   * Obtiene top clientes por gasto total
+   */
+  private async getTopCustomers(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    // Obtener pagos agrupados por usuario (solo de reservas completadas)
+    const customerPayments = await this.prisma.payment.groupBy({
+      by: ['reserveId'],
+      where: {
+        complexId,
+        transactionType: 'RESERVA',
+        createdAt: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+        reserve: {
+          status: { in: ['APROBADO', 'COMPLETADO'] },
+        },
+      },
+      _sum: {
+        amount: true,
+      },
+    });
+
+    // Obtener información de las reservas y usuarios
+    const reserveIds = customerPayments
+      .map((p) => p.reserveId)
+      .filter((id): id is string => id !== null);
+
+    const reserves = await this.prisma.reserve.findMany({
+      where: {
+        id: { in: reserveIds },
+      },
+      select: {
+        id: true,
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Agrupar por usuario
+    const customerMap = new Map<
+      string,
+      { name: string; phone: string | null; totalSpent: number; reservations: number }
+    >();
+
+    reserves.forEach((reserve) => {
+      const payment = customerPayments.find((p) => p.reserveId === reserve.id);
+      const amount = payment?._sum.amount || 0;
+
+      const existing = customerMap.get(reserve.userId);
+      if (existing) {
+        existing.totalSpent += amount;
+        existing.reservations += 1;
+      } else {
+        customerMap.set(reserve.userId, {
+          name: reserve.user.name,
+          phone: reserve.user.phone,
+          totalSpent: amount,
+          reservations: 1,
+        });
+      }
+    });
+
+    // Convertir a array y ordenar
+    return Array.from(customerMap.entries())
+      .map(([userId, data]) => ({
+        userId,
+        name: data.name,
+        phone: data.phone,
+        totalSpent: Math.round(data.totalSpent),
+        reservations: data.reservations,
+        averageTicket: Math.round(data.totalSpent / data.reservations),
+      }))
+      .sort((a, b) => b.totalSpent - a.totalSpent)
+      .slice(0, 10);
+  }
+
+  /**
+   * Segmentación de clientes: nuevos vs recurrentes
+   */
+  private async getCustomerSegmentation(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    // Obtener todas las reservas del período
+    const reservesInPeriod = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        date: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+        status: { in: ['APROBADO', 'COMPLETADO'] },
+      },
+      select: {
+        userId: true,
+        createdAt: true,
+      },
+    });
+
+    const uniqueUsers = [...new Set(reservesInPeriod.map((r) => r.userId))];
+
+    // Para cada usuario, verificar si es nuevo o recurrente
+    const segmentation = await Promise.all(
+      uniqueUsers.map(async (userId) => {
+        // Buscar reservas ANTERIORES al período
+        const previousReserves = await this.prisma.reserve.count({
+          where: {
+            userId,
+            complexId,
+            date: {
+              lt: startOfPeriod,
+            },
+            status: { in: ['APROBADO', 'COMPLETADO'] },
+          },
+        });
+
+        return {
+          userId,
+          isNew: previousReserves === 0,
+        };
+      }),
+    );
+
+    const newCustomers = segmentation.filter((s) => s.isNew).length;
+    const returningCustomers = segmentation.filter((s) => !s.isNew).length;
+
+    return {
+      newCustomers,
+      returningCustomers,
+      totalCustomers: uniqueUsers.length,
+      newCustomerPercentage:
+        uniqueUsers.length > 0
+          ? Math.round((newCustomers / uniqueUsers.length) * 100)
+          : 0,
+    };
+  }
+
+  /**
+   * Obtiene clientes inactivos (sin reservas en los últimos 30 días)
+   */
+  private async getInactiveCustomers(complexId: string) {
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Obtener usuarios que tuvieron reservas alguna vez
+    const allCustomers = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        status: { in: ['APROBADO', 'COMPLETADO'] },
+      },
+      select: {
+        userId: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+        date: true,
+      },
+      orderBy: {
+        date: 'desc',
+      },
+    });
+
+    // Agrupar por usuario y obtener última reserva
+    const customerLastReserve = new Map<
+      string,
+      { name: string; phone: string | null; lastReserveDate: Date }
+    >();
+
+    allCustomers.forEach((reserve) => {
+      const existing = customerLastReserve.get(reserve.userId);
+      if (!existing || reserve.date > existing.lastReserveDate) {
+        customerLastReserve.set(reserve.userId, {
+          name: reserve.user.name,
+          phone: reserve.user.phone,
+          lastReserveDate: reserve.date,
+        });
+      }
+    });
+
+    // Filtrar inactivos
+    const inactiveCustomers = Array.from(customerLastReserve.entries())
+      .filter(([_, data]) => data.lastReserveDate < thirtyDaysAgo)
+      .map(([userId, data]) => {
+        const daysSinceLastReserve = Math.floor(
+          (Date.now() - data.lastReserveDate.getTime()) / (1000 * 60 * 60 * 24),
+        );
+
+        return {
+          userId,
+          name: data.name,
+          phone: data.phone,
+          lastReserveDate: data.lastReserveDate,
+          daysSinceLastReserve,
+        };
+      })
+      .sort((a, b) => b.daysSinceLastReserve - a.daysSinceLastReserve)
+      .slice(0, 20);
+
+    return inactiveCustomers;
+  }
+
+  /**
+   * Obtiene clientes con alta tasa de cancelación/rechazo
+   */
+  private async getProblematicCustomers(
+    complexId: string,
+    startDate: string,
+    endDate: string,
+  ) {
+    const startOfPeriod = new Date(startDate + 'T03:00:00.000Z');
+    const endOfPeriod = new Date(endDate + 'T02:59:59.999Z');
+    endOfPeriod.setDate(endOfPeriod.getDate() + 1);
+
+    // Obtener todas las reservas del período (incluyendo canceladas y rechazadas)
+    const allReserves = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        date: {
+          gte: startOfPeriod,
+          lte: endOfPeriod,
+        },
+      },
+      select: {
+        userId: true,
+        status: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            phone: true,
+          },
+        },
+      },
+    });
+
+    // Agrupar por usuario y contar por status
+    const customerStats = new Map<
+      string,
+      {
+        name: string;
+        phone: string | null;
+        total: number;
+        canceled: number;
+        rejected: number;
+        approved: number;
+      }
+    >();
+
+    allReserves.forEach((reserve) => {
+      const existing = customerStats.get(reserve.userId);
+
+      const stats = existing || {
+        name: reserve.user.name,
+        phone: reserve.user.phone,
+        total: 0,
+        canceled: 0,
+        rejected: 0,
+        approved: 0,
+      };
+
+      stats.total += 1;
+      if (reserve.status === 'CANCELADO') stats.canceled += 1;
+      if (reserve.status === 'RECHAZADO') stats.rejected += 1;
+      if (reserve.status === 'APROBADO' || reserve.status === 'COMPLETADO') {
+        stats.approved += 1;
+      }
+
+      customerStats.set(reserve.userId, stats);
+    });
+
+    // Filtrar clientes con cancelaciones o rechazos
+    const problematicCustomers = Array.from(customerStats.entries())
+      .filter(([_, stats]) => stats.canceled > 0 || stats.rejected > 0)
+      .map(([userId, stats]) => {
+        const cancellationRate =
+          stats.total > 0 ? Math.round((stats.canceled / stats.total) * 100) : 0;
+        const rejectionRate =
+          stats.total > 0 ? Math.round((stats.rejected / stats.total) * 100) : 0;
+
+        return {
+          userId,
+          name: stats.name,
+          phone: stats.phone,
+          totalReservations: stats.total,
+          canceledReservations: stats.canceled,
+          rejectedReservations: stats.rejected,
+          approvedReservations: stats.approved,
+          cancellationRate,
+          rejectionRate,
+          problemScore: stats.canceled * 2 + stats.rejected * 3, // Rechazos pesan más
+        };
+      })
+      .filter((customer) => customer.totalReservations >= 2) // Al menos 2 reservas
+      .sort((a, b) => b.problemScore - a.problemScore)
+      .slice(0, 20);
+
+    return problematicCustomers;
   }
 
   /**
@@ -1186,8 +1725,6 @@ export class ReportsService {
   private async getIngresosPorDia(
     complexId: string,
     startDate: Date,
-    endDate: Date,
-    cashSessionId?: string,
   ): Promise<number> {
     // NUEVA LÓGICA SIMPLIFICADA: Solo usar Payment con horario operativo 06:00-06:00
 
@@ -1206,7 +1743,7 @@ export class ReportsService {
       console.log('🔍 [HOY - SIMPLIFICADO] Params:', {
         complexId,
         operationalStart: operationalStart.toISOString(),
-        operationalEnd: operationalEnd.toISOString()
+        operationalEnd: operationalEnd.toISOString(),
       });
     }
 
@@ -1425,6 +1962,150 @@ export class ReportsService {
   }
 
   /**
+   * Calcula el ticket promedio (ingresos totales / número de transacciones)
+   */
+  private async getAverageTicket(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const totalReservas = await this.getReservasTotalInRange(
+      complexId,
+      startDate,
+      endDate,
+    );
+
+    // Contar ventas de productos
+    const productSalesCount = await this.prisma.productSale.count({
+      where: {
+        complexId,
+        createdAt: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+    });
+
+    const totalTransactions = totalReservas + productSalesCount;
+    if (totalTransactions === 0) return 0;
+
+    const totalIngresos = await this.getIngresosTotalInRange(
+      complexId,
+      startDate,
+      endDate,
+    );
+
+    return Math.round(totalIngresos / totalTransactions);
+  }
+
+  /**
+   * Calcula el total de horas de cancha reservadas
+   */
+  private async getTotalCourtHours(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    // Obtener todas las reservas en el rango
+    const reserves = await this.prisma.reserve.findMany({
+      where: {
+        complexId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
+      },
+      select: {
+        schedule: true, // formato: "10:00 - 11:00"
+      },
+    });
+
+    let totalHours = 0;
+
+    // Calcular horas basado en los horarios
+    for (const reserve of reserves) {
+      if (reserve.schedule) {
+        const [start, end] = reserve.schedule.split(' - ').map((t) => t.trim());
+        const [startHour, startMinute] = start.split(':').map(Number);
+        const [endHour, endMinute] = end.split(':').map(Number);
+
+        const startTotalMinutes = startHour * 60 + startMinute;
+        let endTotalMinutes = endHour * 60 + endMinute;
+
+        // Si cruza medianoche
+        if (endTotalMinutes <= startTotalMinutes) {
+          endTotalMinutes += 24 * 60;
+        }
+
+        const durationMinutes = endTotalMinutes - startTotalMinutes;
+        totalHours += durationMinutes / 60;
+      } else {
+        // Si no hay schedule, asumir 1 hora por defecto
+        totalHours += 1;
+      }
+    }
+
+    return totalHours;
+  }
+
+  /**
+   * Calcula ingresos por hora de cancha
+   */
+  private async getRevenuePerHour(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const totalHours = await this.getTotalCourtHours(
+      complexId,
+      startDate,
+      endDate,
+    );
+
+    if (totalHours === 0) return 0;
+
+    const totalIngresos = await this.getIngresosTotalInRange(
+      complexId,
+      startDate,
+      endDate,
+    );
+
+    return Math.round(totalIngresos / totalHours);
+  }
+
+  /**
+   * Calcula la tasa de cancelación mejorada
+   */
+  private async getCancellationRate(
+    complexId: string,
+    startDate: Date,
+    endDate: Date,
+  ): Promise<number> {
+    const totalReservas = await this.getReservasTotalInRange(
+      complexId,
+      startDate,
+      endDate,
+    );
+
+    const totalCancelaciones = await this.prisma.reserve.count({
+      where: {
+        complexId,
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+        status: 'CANCELADO',
+      },
+    });
+
+    const total = totalReservas + totalCancelaciones;
+    if (total === 0) return 0;
+
+    return Math.round((totalCancelaciones / total) * 100);
+  }
+
+  /**
    * Obtiene las últimas transacciones (reservas, ventas, egresos)
    */
   async getRecentTransactions(complexId: string, limit: number = 10) {
@@ -1464,15 +2145,18 @@ export class ReportsService {
         description = 'Salida de caja'; // No hay campo notes en Payment actualmente
       } else if (p.transactionType === 'RESERVA' && p.reserve) {
         type = 'reserva';
-        // @ts-ignore: schedule es string en el modelo
         description = `${p.reserve.court.name} - ${p.reserve.schedule}`;
       } else if (p.transactionType === 'VENTA_PRODUCTO' && p.sale) {
         type = 'venta';
-        const productsCount = p.sale.productSales.reduce((acc, curr) => acc + curr.quantity, 0);
+        const productsCount = p.sale.productSales.reduce(
+          (acc, curr) => acc + curr.quantity,
+          0,
+        );
         const firstProduct = p.sale.productSales[0]?.product.name || 'Producto';
-        description = productsCount > 1
-          ? `${firstProduct} +${productsCount - 1}`
-          : `${firstProduct} (x${productsCount})`;
+        description =
+          productsCount > 1
+            ? `${firstProduct} +${productsCount - 1}`
+            : `${firstProduct} (x${productsCount})`;
       }
 
       return {

@@ -66,11 +66,84 @@ export interface DashboardData {
   previousEgresos: number;
   // Transacciones recientes
   recentTransactions: RecentTransaction[];
+  // KPIs de Negocio
+  averageTicket: number;
+  revenuePerHour: number;
+  totalCourtHours: number;
+  cancellationRate: number;
+  netMargin: number;
+  netMarginPercentage: number;
+  // Comparación KPIs período anterior
+  previousAverageTicket: number;
+  previousRevenuePerHour: number;
+  previousCancellationRate: number;
+  previousNetMargin: number;
+  previousNetMarginPercentage: number;
+  // Inventario y análisis de productos
+  lowStockProducts: Array<{
+    id: string;
+    name: string;
+    stock: number;
+    minStock: number;
+    category: string;
+    status: string;
+  }>;
+  highMarginProducts: Array<{
+    id: string;
+    name: string;
+    costPrice: number;
+    salePrice: number;
+    margin: number;
+    marginPercentage: number;
+    category: string;
+    stock: number;
+  }>;
+  deadStockProducts: Array<{
+    id: string;
+    name: string;
+    stock: number;
+    category: string;
+    tiedUpCapital: number;
+  }>;
+  // Análisis de clientes
+  topCustomers: Array<{
+    userId: string;
+    name: string;
+    phone: string | null;
+    totalSpent: number;
+    reservations: number;
+    averageTicket: number;
+  }>;
+  customerSegmentation: {
+    newCustomers: number;
+    returningCustomers: number;
+    totalCustomers: number;
+    newCustomerPercentage: number;
+  };
+  inactiveCustomers: Array<{
+    userId: string;
+    name: string;
+    phone: string | null;
+    lastReserveDate: Date;
+    daysSinceLastReserve: number;
+  }>;
+  problematicCustomers: Array<{
+    userId: string;
+    name: string;
+    phone: string | null;
+    totalReservations: number;
+    canceledReservations: number;
+    rejectedReservations: number;
+    approvedReservations: number;
+    cancellationRate: number;
+    rejectionRate: number;
+    problemScore: number;
+  }>;
 }
 
 export interface RecentTransaction {
   id: string;
-  type: "reserva" | "venta" | "egreso" | "pago";
+  type: 'reserva' | 'venta' | 'egreso' | 'pago';
   description: string;
   amount: number;
   date: Date;

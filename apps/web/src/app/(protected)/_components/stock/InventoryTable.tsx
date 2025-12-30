@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Edit, MoreVertical, Search, Trash2 } from "lucide-react";
+import { Edit, MoreVertical, Search, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 import {
   deleteProductFetch,
@@ -49,6 +49,7 @@ import {
 import { useProductStore } from "@/store/stockManagementStore";
 import { Complex } from "@/services/complex/complex";
 import { Form, FormControl, FormField, FormItem, FormMessage } from "@/components/ui/form";
+import { PurchaseOrderModal } from "@/components/modals/PurchaseOrderModal";
 
 // Esquema de validación con Zod
 const productFormSchema = z.object({
@@ -66,11 +67,13 @@ type ProductFormValues = z.infer<typeof productFormSchema>;
 
 interface InventoryTableProps {
   complex: Complex;
+  cashSessionId?: string;
 }
 
-export function InventoryTable({ complex }: InventoryTableProps) {
+export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) {
   const { products, updateProduct, deleteProduct, initializeProducts } = useProductStore();
   const [searchTerm, setSearchTerm] = useState("");
+  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
 
   useEffect(() => {
     initializeProducts(complex.products || []);
@@ -173,14 +176,20 @@ export function InventoryTable({ complex }: InventoryTableProps) {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2">
-        <Search className="h-4 w-4 text-muted-foreground" />
-        <Input
-          placeholder="Buscar productos..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="h-9"
-        />
+      <div className="flex items-center gap-2 justify-between">
+        <div className="flex items-center gap-2 flex-1">
+          <Search className="h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar productos..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="h-9"
+          />
+        </div>
+        <Button onClick={() => setIsPurchaseModalOpen(true)} size="sm">
+          <Package className="mr-2 h-4 w-4" />
+          Cargar Productos
+        </Button>
       </div>
 
       <div className="rounded-md border">
@@ -515,6 +524,19 @@ export function InventoryTable({ complex }: InventoryTableProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Purchase Order Modal */}
+      <PurchaseOrderModal
+        isOpen={isPurchaseModalOpen}
+        onClose={() => setIsPurchaseModalOpen(false)}
+        onSuccess={() => {
+          initializeProducts(complex.products);
+          setIsPurchaseModalOpen(false);
+        }}
+        complex={complex}
+        products={products}
+        cashSessionId={cashSessionId}
+      />
     </div>
   );
 }

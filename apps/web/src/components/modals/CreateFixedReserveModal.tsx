@@ -31,6 +31,8 @@ import { User } from "@/services/user/user";
 import { Loader2, UserPlus, Search } from "lucide-react";
 import { Complex } from "@/services/complex/complex";
 import { SportType } from "@/services/sport-types/sport-types";
+import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
+import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
 
 interface CreateFixedReserveModalProps {
   isOpen: boolean;
@@ -66,6 +68,26 @@ export const CreateFixedReserveModal = ({
   editingReserve,
 }: CreateFixedReserveModalProps) => {
   const { toast } = useToast();
+  const { state } = useReservationDashboard();
+
+  // Calculate next occurrence date for promotion check
+  const nextOccurrenceDate = initialData ? (() => {
+    const today = new Date();
+    const targetDay = initialData.dayOfWeek;
+    const diff = (targetDay - today.getDay() + 7) % 7;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + (diff === 0 ? 0 : diff));
+    return targetDate;
+  })() : undefined;
+
+  // Use same hook as reserveForm to find applicable promotions
+  const { bestPromotion } = useApplicablePromotions({
+    promotions: complex.promotions,
+    date: nextOccurrenceDate,
+    schedule: initialData ? `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}` : undefined,
+    courtId: initialData?.courtId,
+    sportTypeId: initialData?.sportType.id,
+  });
   const [step, setStep] = useState<"USER_SELECTION" | "DETAILS">("USER_SELECTION");
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
@@ -253,13 +275,6 @@ export const CreateFixedReserveModal = ({
 
     setIsLoading(true);
     try {
-      // Create a fixed reserve for each selected day
-      // Note: This might need multiple API calls or a bulk endpoint
-      // For now, we'll loop
-
-      // We need to find the scheduleDayId for each selected day
-      // Assuming complex.scheduleDays contains all days
-
       const promises = selectedDays.map(async (dayId) => {
         const scheduleDay = complex.scheduleDays.find((sd) => sd.dayOfWeek === dayId);
         if (!scheduleDay) {
@@ -267,18 +282,35 @@ export const CreateFixedReserveModal = ({
           return;
         }
 
-        // Find rate (assuming first rate for now, logic might need refinement)
-        const rate = complex.rates[0]; // TODO: Select correct rate based on time/day
+        // Find the correct rate from the backend data (reservationsByDay)
+        const scheduleKey = `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}`;
+        const reservationSlot = state.reservationsByDay?.find(r => r.schedule === scheduleKey);
+
+        let rateId = complex.rates[0]?.id; // Fallback
+
+        if (reservationSlot?.courtInfo) {
+          // Try to find rate for this specific court
+          const courtData = reservationSlot.courtInfo.courts?.find(
+            c => c.courtId === initialData.courtId
+          );
+
+          if (courtData?.rates && courtData.rates.length > 0) {
+            rateId = courtData.rates[0].id;
+          } else if (reservationSlot.courtInfo.rates && reservationSlot.courtInfo.rates.length > 0) {
+            rateId = reservationSlot.courtInfo.rates[0].id;
+          }
+        }
 
         return createFixedReserve({
           startTime: initialData.startTime,
           endTime: initialData.endTime,
           courtId: initialData.courtId,
           scheduleDayId: scheduleDay.id,
-          rateId: rate.id,
+          rateId: rateId,
           userId: selectedUser.id,
           complexId: complex.id,
           isActive: true,
+          promotionId: bestPromotion?.id, // Use bestPromotion from hook
         });
       });
 

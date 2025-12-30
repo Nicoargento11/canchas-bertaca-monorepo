@@ -2,70 +2,70 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { PromotionType } from '@prisma/client';
 
 export class PromotionResponseDto {
-    @ApiProperty()
-    id: string;
+  @ApiProperty()
+  id: string;
 
-    @ApiProperty()
-    name: string;
+  @ApiProperty()
+  name: string;
 
-    @ApiPropertyOptional()
-    description?: string;
+  @ApiPropertyOptional()
+  description?: string;
 
-    @ApiPropertyOptional()
-    code?: string;
+  @ApiPropertyOptional()
+  code?: string;
 
-    @ApiProperty()
-    isActive: boolean;
+  @ApiProperty()
+  isActive: boolean;
 
-    @ApiPropertyOptional()
-    validFrom?: Date;
+  @ApiPropertyOptional()
+  validFrom?: Date;
 
-    @ApiPropertyOptional()
-    validTo?: Date;
+  @ApiPropertyOptional()
+  validTo?: Date;
 
-    @ApiProperty({ type: [Number] })
-    daysOfWeek: number[];
+  @ApiProperty({ type: [Number] })
+  daysOfWeek: number[];
 
-    @ApiPropertyOptional()
-    startTime?: string;
+  @ApiPropertyOptional()
+  startTime?: string;
 
-    @ApiPropertyOptional()
-    endTime?: string;
+  @ApiPropertyOptional()
+  endTime?: string;
 
-    @ApiProperty()
-    complexId: string;
+  @ApiProperty()
+  complexId: string;
 
-    @ApiPropertyOptional()
-    sportTypeId?: string;
+  @ApiPropertyOptional()
+  sportTypeId?: string;
 
-    @ApiPropertyOptional()
-    courtId?: string;
+  @ApiPropertyOptional()
+  courtId?: string;
 
-    @ApiProperty({ enum: PromotionType })
-    type: PromotionType;
+  @ApiProperty({ enum: PromotionType })
+  type: PromotionType;
 
-    @ApiPropertyOptional()
-    value?: number;
+  @ApiPropertyOptional()
+  value?: number;
 
-    @ApiPropertyOptional()
-    giftProductId?: string;
+  @ApiPropertyOptional()
+  giftProductId?: string;
 
-    @ApiProperty()
-    createdAt: Date;
+  @ApiProperty()
+  createdAt: Date;
 
-    @ApiProperty()
-    updatedAt: Date;
+  @ApiProperty()
+  updatedAt: Date;
 
-    // Relaciones opcionales
-    @ApiPropertyOptional()
-    complex?: any;
+  // Relaciones opcionales
+  @ApiPropertyOptional()
+  complex?: any;
 
-    @ApiPropertyOptional()
-    sportType?: any;
+  @ApiPropertyOptional()
+  sportType?: any;
 
-    @ApiPropertyOptional()
-    court?: any;
+  @ApiPropertyOptional()
+  court?: any;
 
-    @ApiPropertyOptional()
-    giftProduct?: any;
+  @ApiPropertyOptional()
+  giftProduct?: any;
 }

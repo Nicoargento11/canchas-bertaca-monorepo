@@ -61,7 +61,9 @@ export class PaymentsController {
   async createPayment(@Body() createPaymentDto: CreatePaymentOnlineDto) {
     try {
       // STEP 1: Validate and get data
-      const courtData = await this.courtService.findOne(createPaymentDto.courtId);
+      const courtData = await this.courtService.findOne(
+        createPaymentDto.courtId,
+      );
       const complex = await this.complexService.findOne(
         createPaymentDto.complexId,
       );
@@ -72,7 +74,8 @@ export class PaymentsController {
       if (!hasMP) {
         throw new HttpException(
           {
-            message: 'Este complejo no tiene MercadoPago configurado. Por favor contactá al administrador del complejo.',
+            message:
+              'Este complejo no tiene MercadoPago configurado. Por favor contactá al administrador del complejo.',
             code: 'MP_NOT_CONFIGURED',
           },
           HttpStatus.BAD_REQUEST,
@@ -122,7 +125,8 @@ export class PaymentsController {
 
         throw new HttpException(
           {
-            message: 'Error al generar el link de pago. Por favor intentá nuevamente. Si el problema persiste, contactá al complejo.',
+            message:
+              'Error al generar el link de pago. Por favor intentá nuevamente. Si el problema persiste, contactá al complejo.',
             code: 'MP_PREFERENCE_FAILED',
             details: mpError.message,
           },
@@ -162,7 +166,8 @@ export class PaymentsController {
       console.error('Unexpected error in createPayment:', error);
       throw new HttpException(
         {
-          message: 'Error inesperado al procesar la reserva. Por favor intentá nuevamente.',
+          message:
+            'Error inesperado al procesar la reserva. Por favor intentá nuevamente.',
           code: 'UNEXPECTED_ERROR',
         },
         HttpStatus.INTERNAL_SERVER_ERROR,

@@ -14,10 +14,18 @@ import {
     Clock
 } from "lucide-react";
 
-import { PeriodSelector, PeriodType } from "./PeriodSelector";
+import { PeriodSelector, Period, PeriodMode } from "./PeriodSelector";
 import { MetricCard } from "./MetricCard";
 import { RevenueChart } from "./RevenueChart";
 import { TransactionsList, Transaction } from "./TransactionsList";
+import { CourtPerformanceCard } from "./CourtPerformanceCard";
+import { TimeSlotHeatMap } from "./TimeSlotHeatMap";
+import { ProductsAnalysisCard } from "./ProductsAnalysisCard";
+import { PaymentMethodsCard } from "./PaymentMethodsCard";
+import { ClientMetricsCard } from "./ClientMetricsCard";
+import { BusinessKPIsCard } from "./BusinessKPIsCard";
+import { ProductInventoryCard } from "./ProductInventoryCard";
+import { CustomerAnalysisCard } from "./CustomerAnalysisCard";
 import { getDashboard } from "@/services/reports/reports";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardHeader } from "@/app/(protected)/[slug]/dashboard/DashboardHeader";
@@ -28,32 +36,83 @@ interface StatsDashboardProps {
 }
 
 export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) {
-    const [dateRange, setDateRange] = useState<DateRange | undefined>({
-        from: new Date(),
-        to: new Date(),
+    const now = new Date();
+    const getWeekOfMonth = (date: Date) => {
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        const dayOfMonth = date.getDate();
+        return Math.ceil((dayOfMonth + firstDay.getDay()) / 7);
+    };
+
+    const [period1, setPeriod1] = useState<Period>({
+        mode: "day",
+        year: now.getFullYear(),
+        month: now.getMonth() + 1,
+        day: now.getDate(),
+        week: getWeekOfMonth(now),
     });
-    const [period, setPeriod] = useState<PeriodType>("today");
+    const [period2, setPeriod2] = useState<Period | null>(null);
+    const [dateStrings, setDateStrings] = useState({ start: "", end: "" });
     const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>(null);
+    const [data1, setData1] = useState<any>(null);
+    const [data2, setData2] = useState<any>(null);
+    const [isComparing, setIsComparing] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    // Fetch data when date range changes
+    // Convert Period to date strings
+    const periodToDateStrings = (period: Period): { start: string; end: string } => {
+        const { mode, year, month, week, day } = period;
+
+        if (mode === "day" && month && day) {
+            const date = new Date(year, month - 1, day);
+            const dateStr = format(date, "yyyy-MM-dd");
+            return { start: dateStr, end: dateStr };
+        }
+
+        if (mode === "week" && month && week) {
+            const firstDayOfMonth = new Date(year, month - 1, 1);
+            const firstWeekStart = 1;
+            const weekStartDay = firstWeekStart + (week - 1) * 7;
+            const weekEndDay = Math.min(weekStartDay + 6, new Date(year, month, 0).getDate());
+
+            return {
+                start: format(new Date(year, month - 1, weekStartDay), "yyyy-MM-dd"),
+                end: format(new Date(year, month - 1, weekEndDay), "yyyy-MM-dd"),
+            };
+        }
+
+        if (mode === "month" && month) {
+            const firstDay = new Date(year, month - 1, 1);
+            const lastDay = new Date(year, month, 0);
+            return {
+                start: format(firstDay, "yyyy-MM-dd"),
+                end: format(lastDay, "yyyy-MM-dd"),
+            };
+        }
+
+        if (mode === "year") {
+            return {
+                start: `${year}-01-01`,
+                end: `${year}-12-31`,
+            };
+        }
+
+        return { start: format(new Date(), "yyyy-MM-dd"), end: format(new Date(), "yyyy-MM-dd") };
+    };
+
+    // Fetch data when period changes
     useEffect(() => {
         const fetchData = async () => {
-            if (!dateRange?.from) return;
-
             setLoading(true);
             setError(null);
 
             try {
-                const result = await getDashboard(
-                    complexId,
-                    format(dateRange.from, "yyyy-MM-dd"),
-                    dateRange.to ? format(dateRange.to, "yyyy-MM-dd") : format(dateRange.from, "yyyy-MM-dd")
-                );
+                const dates = periodToDateStrings(period1);
+                setDateStrings(dates);
+
+                const result = await getDashboard(complexId, dates.start, dates.end);
 
                 if (result.success && result.data) {
-                    setData(result.data);
+                    setData1(result.data);
                 } else {
                     setError(result.error || "Error al cargar datos");
                 }
@@ -65,36 +124,64 @@ export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) 
         };
 
         fetchData();
-    }, [dateRange, complexId]);
+    }, [period1, complexId]);
 
-    const handlePeriodChange = (range: DateRange | undefined, newPeriod: PeriodType) => {
-        setDateRange(range);
-        setPeriod(newPeriod);
+    const handlePeriodChange = (p1: Period) => {
+        setPeriod1(p1);
     };
 
-    // Calculate totals from data
-    const totalIngresos = data?.daily?.reduce((sum: number, d: any) => sum + d.ingresos, 0) || 0;
-    const totalReservas = data?.daily?.reduce((sum: number, d: any) => sum + d.reservas, 0) || 0;
-    const totalEgresos = data?.totalEgresos || 0;
+    // Format period for display
+    const formatPeriodLabel = (period: Period): string => {
+        const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+
+        if (period.mode === "day" && period.day && period.month) {
+            return `${period.day} ${months[period.month - 1]} ${period.year}`;
+        }
+        if (period.mode === "week" && period.week && period.month) {
+            return `Sem ${period.week} ${months[period.month - 1]} ${period.year}`;
+        }
+        if (period.mode === "month" && period.month) {
+            return `${months[period.month - 1]} ${period.year}`;
+        }
+        if (period.mode === "year") {
+            return `${period.year}`;
+        }
+        return "Período";
+    };
+
+    // Calculate totals from data (use data1 as primary)
+    const data = data1; // Backward compatibility
+    const totalIngresos = data1?.daily?.reduce((sum: number, d: any) => sum + d.ingresos, 0) || 0;
+    const totalReservas = data1?.daily?.reduce((sum: number, d: any) => sum + d.reservas, 0) || 0;
+    const totalEgresos = data1?.totalEgresos || 0;
     const promotionsUsed = data?.promotionsUsed || 0;
     const reservasFijas = data?.reservasFijas || 0;
     const avgOcupacion = data?.daily?.length > 0
         ? Math.round(data.daily.reduce((sum: number, d: any) => sum + d.ocupacion, 0) / data.daily.length)
         : 0;
 
-    // Previous totals for comparison
-    const prevIngresos = data?.previousIngresos || 0;
-    const prevReservas = data?.previousReservas || 0;
-    const prevEgresos = data?.previousEgresos || 0;
-
+    // Manual comparison calculations
     const calculateChange = (current: number, previous: number) => {
         if (!previous || previous === 0) return 0;
         return ((current - previous) / previous) * 100;
     };
 
-    const ingresosChange = calculateChange(totalIngresos, prevIngresos);
-    const reservasChange = calculateChange(totalReservas, prevReservas);
-    const egresosChange = calculateChange(totalEgresos, prevEgresos);
+    const getComparisonData = () => {
+        // Always use automatic backend comparison
+        const prevIngresos = data1?.previousIngresos || 0;
+        const prevReservas = data1?.previousReservas || 0;
+        const prevEgresos = data1?.previousEgresos || 0;
+
+        return {
+            ingresosChange: calculateChange(totalIngresos, prevIngresos),
+            reservasChange: calculateChange(totalReservas, prevReservas),
+            egresosChange: calculateChange(totalEgresos, prevEgresos),
+            compareLabel: "vs período anterior",
+        };
+    };
+
+    const comparison = getComparisonData();
+    const { ingresosChange, reservasChange, egresosChange, compareLabel } = comparison;
 
     // Parse transactions dates
     const recentTransactions: Transaction[] = (data?.recentTransactions || []).map((t: any) => ({
@@ -134,14 +221,17 @@ export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) 
             {/* Header */}
             <DashboardHeader title="Estadísticas" />
 
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div className="space-y-4">
                 <div>
                     <h1 className="text-2xl sm:text-3xl font-bold">{complexName}</h1>
                     <p className="text-muted-foreground text-sm">
                         Panel de estadísticas y métricas
                     </p>
                 </div>
-                <PeriodSelector value={dateRange} selectedPeriod={period} onChange={handlePeriodChange} />
+                <PeriodSelector
+                    onPeriodChange={handlePeriodChange}
+                    currentMode={period1.mode}
+                />
             </div>
 
             {/* Bento Grid Layout */}
@@ -155,7 +245,7 @@ export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) 
                         size="lg"
                         variant="success"
                         change={ingresosChange}
-                        changeLabel="vs período anterior"
+                        changeLabel={compareLabel}
                     />
                 </div>
 
@@ -176,6 +266,19 @@ export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) 
                 />
             </div>
 
+            {/* Business KPIs - Prominent Placement */}
+            <BusinessKPIsCard
+                averageTicket={data?.averageTicket || 0}
+                previousAverageTicket={data?.previousAverageTicket || 0}
+                revenuePerHour={data?.revenuePerHour || 0}
+                previousRevenuePerHour={data?.previousRevenuePerHour || 0}
+                netMarginPercentage={data?.netMarginPercentage || 0}
+                previousNetMarginPercentage={data?.previousNetMarginPercentage || 0}
+                cancellationRate={data?.cancellationRate || 0}
+                previousCancellationRate={data?.previousCancellationRate || 0}
+                totalOccupancy={avgOcupacion}
+            />
+
             {/* Charts and Transactions Row */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 {/* Revenue Chart - takes 2 columns */}
@@ -194,6 +297,44 @@ export function StatsDashboard({ complexId, complexName }: StatsDashboardProps) 
                     />
                 </div>
             </div>
+
+            {/* Court Performance and Time Slots */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <CourtPerformanceCard
+                    courts={data?.canchas || []}
+                    totalReservations={totalReservas}
+                />
+                <TimeSlotHeatMap horarios={data?.horarios || []} />
+            </div>
+
+            {/* Products and Payments Row */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <ProductsAnalysisCard products={data?.products || []} />
+                <PaymentMethodsCard paymentMethods={data?.paymentMethods || []} />
+            </div>
+
+            {/* Client Metrics */}
+            <ClientMetricsCard dailyData={data?.daily || []} />
+
+            {/* Product Inventory Analysis */}
+            <ProductInventoryCard
+                lowStockProducts={data?.lowStockProducts || []}
+                highMarginProducts={data?.highMarginProducts || []}
+                deadStockProducts={data?.deadStockProducts || []}
+            />
+
+            {/* Customer Analysis */}
+            <CustomerAnalysisCard
+                topCustomers={data?.topCustomers || []}
+                customerSegmentation={data?.customerSegmentation || {
+                    newCustomers: 0,
+                    returningCustomers: 0,
+                    totalCustomers: 0,
+                    newCustomerPercentage: 0,
+                }}
+                inactiveCustomers={data?.inactiveCustomers || []}
+                problematicCustomers={data?.problematicCustomers || []}
+            />
 
             {/* Bottom metrics row */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

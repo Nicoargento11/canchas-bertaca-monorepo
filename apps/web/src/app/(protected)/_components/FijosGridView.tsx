@@ -33,6 +33,8 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 
+import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
+
 interface FijosGridViewProps {
   complex: Complex;
 }
@@ -49,6 +51,7 @@ const DAYS = [
 
 export function FijosGridView({ complex }: FijosGridViewProps) {
   const { toast } = useToast();
+  const { state, fetchReservationsByDay } = useReservationDashboard();
   const [selectedDay, setSelectedDay] = useState<number>(new Date().getDay());
   const [fixedReserves, setFixedReserves] = useState<FixedReserve[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -61,7 +64,7 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
     startTime: string;
     endTime: string;
     dayOfWeek: number;
-    sportType: any; // TODO: Type properly
+    sportType: any;
   } | null>(null);
   const [editingReserve, setEditingReserve] = useState<FixedReserve | null>(null);
 
@@ -87,40 +90,31 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
 
   useEffect(() => {
     fetchFixedReserves();
+    // Also fetch all reservations to get available time slots
+    const today = new Date();
+    // Find next occurrence of selectedDay
+    const daysUntil = (selectedDay - today.getDay() + 7) % 7;
+    const targetDate = new Date(today);
+    targetDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
+    const dateStr = targetDate.toISOString().split('T')[0];
+
+    if (complex.sportTypes && complex.sportTypes.length > 0) {
+      fetchReservationsByDay(dateStr, complex.id, complex.sportTypes[0].id);
+    }
   }, [selectedDay, complex.id]);
 
+  // Use schedules from backend (like biTableDay)
   const timeSlots = useMemo(() => {
-    if (!complex.schedules || complex.schedules.length === 0) {
-      // Fallback default hours
-      const slots = [];
-      for (let i = 8; i < 24; i++) {
-        slots.push(`${String(i).padStart(2, "0")}:00 - ${String(i + 1).padStart(2, "0")}:00`);
-      }
-      return slots;
+    if (state.reservationsByDay && state.reservationsByDay.length > 0) {
+      return state.reservationsByDay.map(r => r.schedule);
     }
-
-    let minHour = 24;
-    let maxHour = 0;
-
-    complex.schedules.forEach((s) => {
-      const start = parseInt(s.startTime.split(":")[0]);
-      const end = parseInt(s.endTime.split(":")[0]);
-      if (start < minHour) minHour = start;
-      if (end > maxHour) maxHour = end;
-    });
-
-    // Ensure reasonable bounds if data is weird
-    if (minHour > maxHour) {
-      minHour = 8;
-      maxHour = 23;
-    }
-
+    // Fallback
     const slots = [];
-    for (let i = minHour; i < maxHour; i++) {
+    for (let i = 8; i < 24; i++) {
       slots.push(`${String(i).padStart(2, "0")}:00 - ${String(i + 1).padStart(2, "0")}:00`);
     }
     return slots;
-  }, [complex.schedules]);
+  }, [state.reservationsByDay]);
 
   const handleToggleStatus = async (id: string) => {
     const result = await toggleFixedReserveStatus(id, true);

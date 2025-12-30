@@ -1,132 +1,186 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import {
-    Popover,
-    PopoverContent,
-    PopoverTrigger,
-} from "@/components/ui/popover";
-import { CalendarIcon, ChevronDown } from "lucide-react";
-import { format, subDays, startOfMonth, endOfMonth, subMonths } from "date-fns";
-import { es } from "date-fns/locale";
-import { cn } from "@/lib/utils";
-import { DateRange } from "react-day-picker";
+import { Calendar } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
-export type PeriodType = "today" | "7d" | "30d" | "this-month" | "last-month" | "custom";
+export type PeriodMode = "day" | "week" | "month" | "year";
 
-interface PeriodSelectorProps {
-    value: DateRange | undefined;
-    selectedPeriod: PeriodType;
-    onChange: (range: DateRange | undefined, period: PeriodType) => void;
+export interface Period {
+    mode: PeriodMode;
+    year: number;
+    month?: number;
+    week?: number;
+    day?: number;
 }
 
-const PERIOD_OPTIONS: { value: PeriodType; label: string }[] = [
-    { value: "today", label: "Hoy" },
-    { value: "7d", label: "7 días" },
-    { value: "30d", label: "30 días" },
-    { value: "this-month", label: "Este mes" },
-    { value: "last-month", label: "Mes anterior" },
-    { value: "custom", label: "Personalizado" },
-];
+interface PeriodSelectorProps {
+    onPeriodChange: (period: Period) => void;
+    currentMode?: PeriodMode;
+}
 
-export function PeriodSelector({ value, selectedPeriod, onChange }: PeriodSelectorProps) {
-    const [isCalendarOpen, setIsCalendarOpen] = useState(false);
+export function PeriodSelector({ onPeriodChange, currentMode: externalMode }: PeriodSelectorProps) {
+    const now = new Date();
 
-    const handlePeriodClick = (period: PeriodType) => {
-        const today = new Date();
-
-        let newRange: DateRange | undefined;
-
-        switch (period) {
-            case "today":
-                newRange = { from: today, to: today };
-                break;
-            case "7d":
-                newRange = { from: subDays(today, 6), to: today };
-                break;
-            case "30d":
-                newRange = { from: subDays(today, 29), to: today };
-                break;
-            case "this-month":
-                newRange = { from: startOfMonth(today), to: endOfMonth(today) };
-                break;
-            case "last-month":
-                const lastMonth = subMonths(today, 1);
-                newRange = { from: startOfMonth(lastMonth), to: endOfMonth(lastMonth) };
-                break;
-            case "custom":
-                setIsCalendarOpen(true);
-                return;
-        }
-
-        onChange(newRange, period);
+    const getWeekOfMonth = (date: Date) => {
+        const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+        return Math.ceil((date.getDate() + firstDay.getDay()) / 7);
     };
 
-    const handleCalendarSelect = (range: DateRange | undefined) => {
-        if (range?.from) {
-            onChange(range, "custom");
+    const [year, setYear] = useState(now.getFullYear());
+    const [month, setMonth] = useState(now.getMonth() + 1);
+    const [week, setWeek] = useState(getWeekOfMonth(now));
+    const [day, setDay] = useState(now.getDate());
+
+    const activeMode = externalMode || "day";
+
+    const notifyChange = (newMode: PeriodMode, y: number, m?: number, w?: number, d?: number) => {
+        const period: Period = { mode: newMode, year: y };
+        if (newMode === "day") {
+            period.month = m;
+            period.day = d;
+        } else if (newMode === "week") {
+            period.month = m;
+            period.week = w;
+        } else if (newMode === "month") {
+            period.month = m;
         }
+        onPeriodChange(period);
     };
 
-    const formatDateRange = () => {
-        if (!value?.from) return "Seleccionar";
-        if (value.to && value.from.getTime() !== value.to.getTime()) {
-            return `${format(value.from, "dd MMM", { locale: es })} - ${format(value.to, "dd MMM", { locale: es })}`;
-        }
-        return format(value.from, "dd MMM yyyy", { locale: es });
+    const handleModeChange = (newMode: PeriodMode) => {
+        notifyChange(newMode, year, month, week, day);
     };
+
+    const handleYearChange = (value: string) => {
+        const newYear = parseInt(value);
+        setYear(newYear);
+        notifyChange(activeMode, newYear, month, week, day);
+    };
+
+    const handleMonthChange = (value: string) => {
+        const newMonth = parseInt(value);
+        setMonth(newMonth);
+        notifyChange(activeMode, year, newMonth, week, day);
+    };
+
+    const handleWeekChange = (value: string) => {
+        const newWeek = parseInt(value);
+        setWeek(newWeek);
+        notifyChange(activeMode, year, month, newWeek, day);
+    };
+
+    const handleDayChange = (value: string) => {
+        const newDay = parseInt(value);
+        setDay(newDay);
+        notifyChange(activeMode, year, month, week, newDay);
+    };
+
+    const years = Array.from({ length: 5 }, (_, i) => now.getFullYear() - i);
+    const months = [
+        { value: 1, label: "Enero" }, { value: 2, label: "Febrero" }, { value: 3, label: "Marzo" },
+        { value: 4, label: "Abril" }, { value: 5, label: "Mayo" }, { value: 6, label: "Junio" },
+        { value: 7, label: "Julio" }, { value: 8, label: "Agosto" }, { value: 9, label: "Septiembre" },
+        { value: 10, label: "Octubre" }, { value: 11, label: "Noviembre" }, { value: 12, label: "Diciembre" },
+    ];
+    const weeks = [1, 2, 3, 4];
+    const getDaysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+    const days = Array.from({ length: getDaysInMonth(year, month) }, (_, i) => i + 1);
 
     return (
-        <div className="flex items-center gap-1 bg-muted/50 p-1 rounded-lg overflow-x-auto max-w-full">
-            {/* Quick period buttons */}
-            {PERIOD_OPTIONS.slice(0, 5).map((option) => (
-                <Button
-                    key={option.value}
-                    variant={selectedPeriod === option.value ? "default" : "ghost"}
-                    size="sm"
-                    className={cn(
-                        "h-8 px-2 sm:px-3 text-xs font-medium transition-all whitespace-nowrap",
-                        selectedPeriod === option.value
-                            ? "bg-primary text-primary-foreground shadow-sm"
-                            : "hover:bg-muted"
-                    )}
-                    onClick={() => handlePeriodClick(option.value)}
-                >
-                    {option.label}
+        <div className="space-y-4 p-4 bg-card rounded-lg border">
+            {/* Mode Buttons */}
+            <div className="flex items-center gap-2 flex-wrap">
+                <Button variant={activeMode === "day" ? "default" : "outline"} size="sm" onClick={() => handleModeChange("day")}>
+                    <Calendar className="h-4 w-4 mr-1" />
+                    Hoy
                 </Button>
-            ))}
+                <Button variant={activeMode === "week" ? "default" : "outline"} size="sm" onClick={() => handleModeChange("week")}>
+                    Semana
+                </Button>
+                <Button variant={activeMode === "month" ? "default" : "outline"} size="sm" onClick={() => handleModeChange("month")}>
+                    Mes
+                </Button>
+                <Button variant={activeMode === "year" ? "default" : "outline"} size="sm" onClick={() => handleModeChange("year")}>
+                    Año
+                </Button>
+            </div>
 
-            {/* Custom date picker */}
-            <Popover open={isCalendarOpen} onOpenChange={setIsCalendarOpen}>
-                <PopoverTrigger asChild>
-                    <Button
-                        variant={selectedPeriod === "custom" ? "default" : "ghost"}
-                        size="sm"
-                        className={cn(
-                            "h-8 px-2 sm:px-3 text-xs font-medium gap-1 whitespace-nowrap",
-                            selectedPeriod === "custom"
-                                ? "bg-primary text-primary-foreground"
-                                : "hover:bg-muted"
-                        )}
-                    >
-                        <CalendarIcon className="h-3 w-3" />
-                        {selectedPeriod === "custom" ? formatDateRange() : "Personalizado"}
-                        <ChevronDown className="h-3 w-3" />
-                    </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="end">
-                    <Calendar
-                        mode="range"
-                        selected={value}
-                        onSelect={handleCalendarSelect}
-                        numberOfMonths={2}
-                        locale={es}
-                        initialFocus
-                    />
-                </PopoverContent>
-            </Popover>
+            {/* Selectors */}
+            <div className="flex items-center gap-2 flex-wrap">
+                {activeMode === "day" && (
+                    <>
+                        <Select value={day.toString()} onValueChange={handleDayChange}>
+                            <SelectTrigger className="w-[80px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {days.map(d => <SelectItem key={d} value={d.toString()}>{d}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={month.toString()} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {months.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={year.toString()} onValueChange={handleYearChange}>
+                            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </>
+                )}
+
+                {activeMode === "week" && (
+                    <>
+                        <Select value={week.toString()} onValueChange={handleWeekChange}>
+                            <SelectTrigger className="w-[120px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {weeks.map(w => <SelectItem key={w} value={w.toString()}>Semana {w}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={month.toString()} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {months.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={year.toString()} onValueChange={handleYearChange}>
+                            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </>
+                )}
+
+                {activeMode === "month" && (
+                    <>
+                        <Select value={month.toString()} onValueChange={handleMonthChange}>
+                            <SelectTrigger className="w-[130px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {months.map(m => <SelectItem key={m.value} value={m.value.toString()}>{m.label}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                        <Select value={year.toString()} onValueChange={handleYearChange}>
+                            <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                            </SelectContent>
+                        </Select>
+                    </>
+                )}
+
+                {activeMode === "year" && (
+                    <Select value={year.toString()} onValueChange={handleYearChange}>
+                        <SelectTrigger className="w-[100px]"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                            {years.map(y => <SelectItem key={y} value={y.toString()}>{y}</SelectItem>)}
+                        </SelectContent>
+                    </Select>
+                )}
+            </div>
         </div>
     );
 }

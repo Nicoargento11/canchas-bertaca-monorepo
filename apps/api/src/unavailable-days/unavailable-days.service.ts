@@ -7,7 +7,7 @@ import { Public } from 'src/auth/decorators/public.decorator';
 
 @Injectable()
 export class UnavailableDayService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(createUnavailableDayDto: CreateUnavailableDayDto) {
     return this.prisma.unavailableDay.create({

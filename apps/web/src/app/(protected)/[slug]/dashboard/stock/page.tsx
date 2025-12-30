@@ -175,7 +175,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <InventoryTable complex={complejo} />
+                  <InventoryTable complex={complejo} cashSessionId={activeCashSession?.id} />
                 </CardContent>
               </Card>
             </TabsContent>

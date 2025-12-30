@@ -195,10 +195,17 @@ export class AuthController {
     console.log('📍 Origin:', req.get('origin') || 'No origin header');
     console.log('🌐 Host:', req.get('host'));
     console.log('🍪 Cookies recibidas:', {
-      access_token: req.cookies?.access_token ? '✅ Presente' : '❌ NULL/Undefined',
-      refresh_token: req.cookies?.refresh_token ? '✅ Presente' : '❌ NULL/Undefined',
+      access_token: req.cookies?.access_token
+        ? '✅ Presente'
+        : '❌ NULL/Undefined',
+      refresh_token: req.cookies?.refresh_token
+        ? '✅ Presente'
+        : '❌ NULL/Undefined',
     });
-    console.log('📋 Authorization header:', req.get('Authorization') ? '✅ Presente' : '❌ No enviado');
+    console.log(
+      '📋 Authorization header:',
+      req.get('Authorization') ? '✅ Presente' : '❌ No enviado',
+    );
     console.log('===============================================\n');
 
     const refreshToken = this.extractRefreshToken(req);

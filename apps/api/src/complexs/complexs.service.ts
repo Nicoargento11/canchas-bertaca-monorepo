@@ -252,7 +252,8 @@ export class ComplexService {
       if (error instanceof Prisma.PrismaClientKnownRequestError) {
         if (error.code === 'P2002') {
           // Obtener el campo que causó el conflicto
-          const field = (error.meta?.target as string[])?.join(', ') || 'campo único';
+          const field =
+            (error.meta?.target as string[])?.join(', ') || 'campo único';
           throw new ConflictException(`Ya existe un complejo con ese ${field}`);
         }
         if (error.code === 'P2025') {
@@ -437,7 +438,7 @@ export class ComplexService {
     const config = await this.prisma.paymentConfig.findFirst({
       where: {
         complexId,
-        isActive: true
+        isActive: true,
       },
     });
 

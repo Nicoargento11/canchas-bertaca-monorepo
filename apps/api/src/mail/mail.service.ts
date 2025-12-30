@@ -16,7 +16,9 @@ export class MailService {
   constructor() {
     // Validar que la API key esté configurada
     if (!process.env.BREVO_API_KEY) {
-      console.warn('⚠️  BREVO_API_KEY no está configurado. El servicio de correo estará deshabilitado.');
+      console.warn(
+        '⚠️  BREVO_API_KEY no está configurado. El servicio de correo estará deshabilitado.',
+      );
       this.isConfigured = false;
       return;
     }
@@ -24,7 +26,7 @@ export class MailService {
     this.apiInstance = new brevo.TransactionalEmailsApi();
     this.apiInstance.setApiKey(
       brevo.TransactionalEmailsApiApiKeys.apiKey,
-      process.env.BREVO_API_KEY
+      process.env.BREVO_API_KEY,
     );
     this.isConfigured = true;
     console.log('✅ Brevo mail service configurado correctamente');
@@ -32,7 +34,10 @@ export class MailService {
 
   async sendMail(mailOptions: MailOptions) {
     if (!this.isConfigured) {
-      console.warn('⚠️  Mail service no configurado. Email NO enviado a:', mailOptions.to);
+      console.warn(
+        '⚠️  Mail service no configurado. Email NO enviado a:',
+        mailOptions.to,
+      );
       return;
     }
 
@@ -41,8 +46,9 @@ export class MailService {
 
       // Configurar remitente
       sendSmtpEmail.sender = {
-        email: process.env.BREVO_SENDER_EMAIL || 'noreply@reservasfutbol.com.ar',
-        name: process.env.BREVO_SENDER_NAME || 'Canchas Bertaca & Seven'
+        email:
+          process.env.BREVO_SENDER_EMAIL || 'noreply@reservasfutbol.com.ar',
+        name: process.env.BREVO_SENDER_NAME || 'Canchas Bertaca & Seven',
       };
 
       // Configurar destinatario
@@ -50,13 +56,13 @@ export class MailService {
 
       // Configurar contenido
       sendSmtpEmail.subject = mailOptions.subject;
-      sendSmtpEmail.htmlContent = mailOptions.html || `<p>${mailOptions.text}</p>`;
+      sendSmtpEmail.htmlContent =
+        mailOptions.html || `<p>${mailOptions.text}</p>`;
 
       // Enviar email
       const response = await this.apiInstance.sendTransacEmail(sendSmtpEmail);
       console.log('✅ Email enviado correctamente a:', mailOptions.to);
       return response;
-
     } catch (error) {
       console.error('❌ Error enviando email:', error);
       throw error;
