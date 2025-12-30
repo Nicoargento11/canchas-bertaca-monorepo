@@ -16,7 +16,7 @@ export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) { }
+  ) {}
 
   private timeouts = new Map<string, NodeJS.Timeout>();
 
@@ -192,7 +192,12 @@ export class ReservesService implements OnModuleInit {
 
     // Skip validation for staff roles (admins, recepción)
     // Only USER role should be restricted from having multiple pending reserves
-    const staffRoles = ['SUPER_ADMIN', 'ORGANIZACION_ADMIN', 'COMPLEJO_ADMIN', 'RECEPCION'];
+    const staffRoles = [
+      'SUPER_ADMIN',
+      'ORGANIZACION_ADMIN',
+      'COMPLEJO_ADMIN',
+      'RECEPCION',
+    ];
     if (user && staffRoles.includes(user.role)) {
       return; // Staff can have pending reserves
     }
@@ -575,7 +580,10 @@ export class ReservesService implements OnModuleInit {
   async deductGiftProductStock(reserve: any) {
     // Check if the reserve has a promotion
     if (!reserve.promotionId) {
-      return { success: false, message: 'No promotion associated with this reserve' };
+      return {
+        success: false,
+        message: 'No promotion associated with this reserve',
+      };
     }
 
     // Get the promotion with gift products
@@ -590,7 +598,11 @@ export class ReservesService implements OnModuleInit {
       },
     });
 
-    if (!promotion || promotion.type !== 'GIFT_PRODUCT' || !promotion.giftProducts.length) {
+    if (
+      !promotion ||
+      promotion.type !== 'GIFT_PRODUCT' ||
+      !promotion.giftProducts.length
+    ) {
       return { success: false, message: 'No gift products to deduct' };
     }
 
@@ -611,7 +623,11 @@ export class ReservesService implements OnModuleInit {
         });
 
         if (!product) {
-          return { productId: gp.productId, success: false, message: 'Product not found' };
+          return {
+            productId: gp.productId,
+            success: false,
+            message: 'Product not found',
+          };
         }
 
         const newStock = Math.max(0, product.stock - gp.quantity);
@@ -643,7 +659,7 @@ export class ReservesService implements OnModuleInit {
           newStock,
           success: true,
         };
-      })
+      }),
     );
 
     return {

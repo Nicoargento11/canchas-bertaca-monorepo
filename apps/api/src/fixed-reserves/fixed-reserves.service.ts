@@ -14,7 +14,7 @@ import { FixedReserve, Status } from '@prisma/client';
 export class FixedReservesService {
   private readonly logger = new Logger(FixedReservesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
   async create(
     createFixedReserveDto: CreateFixedReserveDto,
   ): Promise<FixedReserve> {
@@ -59,6 +59,7 @@ export class FixedReservesService {
         court: true,
         rate: true,
         complex: true,
+        promotion: true,
       },
     });
 
@@ -306,7 +307,20 @@ export class FixedReservesService {
       fixedReserve.startTime,
       fixedReserve.endTime,
     );
-    const totalPrice = fixedReserve.rate.price * durationHours;
+    let pricePerHour = fixedReserve.rate.price;
+
+    // Aplicar descuento de promoción si existe y está activa
+    if (fixedReserve.promotion && fixedReserve.promotion.isActive) {
+      if (fixedReserve.promotion.type === 'PERCENTAGE_DISCOUNT') {
+        const discountPercent = fixedReserve.promotion.value || 0;
+        this.logger.log(
+          `Aplicando descuento de ${discountPercent}% a reserva fija ${fixedReserve.id}`,
+        );
+        pricePerHour = pricePerHour * (1 - discountPercent / 100);
+      }
+    }
+
+    const totalPrice = pricePerHour * durationHours;
 
     // Crear la reserva automática
     const newReserve = await this.prisma.reserve.create({
@@ -323,11 +337,12 @@ export class FixedReservesService {
         userId: fixedReserve.userId,
         complexId: fixedReserve.complexId,
         fixedReserveId: fixedReserve.id,
+        promotionId: fixedReserve.promotionId, // Pass promotion to reserve
       },
     });
 
     this.logger.log(
-      `✅ Reserva automática creada: ${newReserve.id} para reserva fija ${fixedReserve.id} - ${fixedReserve.startTime} a ${fixedReserve.endTime}`,
+      `✅ Reserva automática creada: ${newReserve.id} para reserva fija ${fixedReserve.id} - ${fixedReserve.startTime} a ${fixedReserve.endTime} - Precio: $${totalPrice}${fixedReserve.promotion ? ` (con ${fixedReserve.promotion.name})` : ''}`,
     );
   }
 

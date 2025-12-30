@@ -34,4 +34,8 @@ export class CreateFixedReserveDto {
   @ApiProperty({ example: 'cmadamrdg0000l0g8fv4grm98' })
   @IsString()
   complexId: string;
+
+  @ApiProperty({ required: false })
+  @IsString()
+  promotionId?: string;
 }
