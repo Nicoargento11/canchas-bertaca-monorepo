@@ -175,8 +175,9 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  CashSession CashSession[]
-  sales       Sale[]
+  CashSession    CashSession[]
+  sales          Sale[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([organizationId])
   @@index([complexId])
@@ -247,11 +248,12 @@ model Complex {
 
   paymentConfig PaymentConfig?
 
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  CashRegister CashRegister[]
-  sales        Sale[]
-  promotions   Promotion[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  CashRegister   CashRegister[]
+  sales          Sale[]
+  promotions     Promotion[]
+  purchaseOrders PurchaseOrder[]
 
   @@index([organizationId])
   @@index([slug])
@@ -593,9 +595,10 @@ model Payment {
   sale   Sale?   @relation(fields: [saleId], references: [id])
   saleId String?
 
-  createdAt     DateTime     @default(now())
-  CashSession   CashSession? @relation(fields: [cashSessionId], references: [id])
-  cashSessionId String?
+  createdAt      DateTime        @default(now())
+  CashSession    CashSession?    @relation(fields: [cashSessionId], references: [id])
+  cashSessionId  String?
+  purchaseOrders PurchaseOrder[]
 
   @@index([reserveId])
   @@index([tournamentRegistrationId])
@@ -665,11 +668,12 @@ model Product {
   complex   Complex @relation(fields: [complexId], references: [id])
   complexId String
 
-  sales            ProductSale[]
-  movements        InventoryMovement[]
-  promotions       Promotion[]
-  promotionGifts   PromotionGiftProduct[] @relation("PromotionGifts")
-  promotionTargets Promotion[]            @relation("PromotionTarget")
+  sales              ProductSale[]
+  movements          InventoryMovement[]
+  promotions         Promotion[]
+  promotionGifts     PromotionGiftProduct[] @relation("PromotionGifts")
+  promotionTargets   Promotion[]            @relation("PromotionTarget")
+  purchaseOrderItems PurchaseOrderItem[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -746,6 +750,50 @@ model InventoryMovement {
 
   @@index([productId])
   @@index([complexId, createdAt])
+}
+
+model PurchaseOrder {
+  id          String @id @default(cuid())
+  orderNumber String @unique // Auto-generated: PO-YYYYMMDD-XXXX
+
+  supplier    String // Supplier name
+  totalAmount Float // Total purchase cost
+  notes       String? // Optional notes
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  createdBy   User?   @relation(fields: [createdById], references: [id])
+  createdById String?
+
+  items   PurchaseOrderItem[]
+  payment Payment?            @relation(fields: [paymentId], references: [id]) // One-to-one: EGRESO payment
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  paymentId String?
+
+  @@index([complexId, createdAt])
+  @@index([supplier])
+}
+
+model PurchaseOrderItem {
+  id String @id @default(cuid())
+
+  product   Product @relation(fields: [productId], references: [id])
+  productId String
+
+  purchaseOrder   PurchaseOrder @relation(fields: [purchaseOrderId], references: [id])
+  purchaseOrderId String
+
+  quantity Int // Quantity purchased
+  unitCost Float // Cost per unit at time of purchase
+  subtotal Float // quantity * unitCost
+
+  createdAt DateTime @default(now())
+
+  @@index([purchaseOrderId])
+  @@index([productId])
 }
 
 model CashRegister {
