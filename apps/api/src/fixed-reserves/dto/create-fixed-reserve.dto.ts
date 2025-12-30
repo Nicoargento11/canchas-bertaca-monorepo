@@ -1,6 +1,6 @@
 // src/fixed-reserves/dto/create-fixed-reserve.dto.ts
 import { ApiProperty } from '@nestjs/swagger';
-import { IsBoolean, IsString } from 'class-validator';
+import { IsBoolean, IsOptional, IsString } from 'class-validator';
 
 export class CreateFixedReserveDto {
   @ApiProperty({ example: '00:00' })
@@ -36,6 +36,7 @@ export class CreateFixedReserveDto {
   complexId: string;
 
   @ApiProperty({ required: false })
+  @IsOptional()
   @IsString()
   promotionId?: string;
 }
