@@ -18,6 +18,8 @@ import { Info } from "lucide-react";
 import { FijosGridView } from "../../_components/FijosGridView";
 import { CashSessionWarningModal } from "../../_components/dashboard/dashboard/cashSessionWarningModal";
 import { FinancialDetailsModal } from "../../_components/dashboard/dashboard/FinancialDetailsModal";
+import { EventBookingModal } from "../../_components/dashboard/dashboard/eventBookingModal";
+import { EventButton } from "../../_components/dashboard/EventButton";
 
 const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const sessionUser = await getSession();
@@ -98,6 +100,8 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
                   Fijos
                 </TabsTrigger>
               </TabsList>
+
+              <EventButton />
             </div>
 
             <TabsContent value="reservas" className="mt-0">
@@ -175,6 +179,7 @@ const PageDashboard = async ({ params }: { params: Promise<{ slug: string }> }) 
         <CompletedReserveDetailsModal />
         <CashSessionWarningModal />
         <FinancialDetailsModal />
+        <EventBookingModal userId={sessionUser?.user.id} />
       </div>
     </SidebarInset>
   );

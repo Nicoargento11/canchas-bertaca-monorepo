@@ -29,6 +29,7 @@ import { CacheModule } from '@nestjs/cache-manager';
 import { AdminMonitoringModule } from './admin-monitoring/admin-monitoring.module';
 import { PromotionsModule } from './promotions/promotions.module';
 import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
+import { EventPackagesModule } from './event-packages/event-packages.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { PurchaseOrdersModule } from './purchase-orders/purchase-orders.module';
       ttl: 60000, // 1 minute default cache
       max: 100, // max items in cache
     }),
+    EventPackagesModule,
   ],
   controllers: [AppController],
   providers: [AppService, PrismaService],

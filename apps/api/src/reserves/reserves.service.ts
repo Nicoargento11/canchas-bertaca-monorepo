@@ -60,18 +60,25 @@ export class ReservesService implements OnModuleInit {
   }
 
   private async reprogramPendingTimeouts() {
+    // Obtener todas las reservas PENDIENTES (incluyendo expiradas)
     const pendingReservations = await this.prisma.reserve.findMany({
       where: {
         status: 'PENDIENTE',
-        expiresAt: { gt: new Date() },
       },
     });
 
     pendingReservations.forEach((reserve) => {
+      // Si no tiene expiresAt, es una reserva manual (sin timeout)
+      if (!reserve.expiresAt) {
+        return;
+      }
+
       const remainingTime = reserve.expiresAt.getTime() - Date.now();
       if (remainingTime > 0) {
+        // Aún no expiró, reprogramar timeout
         this.setReservationTimeout(reserve.id, remainingTime);
       } else {
+        // Ya expiró, marcar como rechazada inmediatamente
         this.checkAndExpireReservation(reserve.id);
       }
     });

@@ -254,9 +254,40 @@ model Complex {
   sales          Sale[]
   promotions     Promotion[]
   purchaseOrders PurchaseOrder[]
+  eventPackages  EventPackage[]
 
   @@index([organizationId])
   @@index([slug])
+}
+
+// Event Packages - Configurable birthday/event combos
+model EventPackage {
+  id          String  @id @default(cuid())
+  name        String // "Combo 1", "Combo Exclusivo", etc
+  description String?
+
+  courtCount    Int? // Número de canchas (null = todas)
+  courtType     String? // FUTBOL_5, FUTBOL_7, null = cualquiera
+  durationHours Float // 3.0 para 3 horas
+
+  basePrice  Float // Precio sin luz
+  lightPrice Float // Precio con luz
+
+  includes    String[] // ["Parrilla", "Mesas y sillas"]
+  allowExtras Boolean  @default(false)
+
+  isActive Boolean @default(true)
+
+  complex   Complex @relation(fields: [complexId], references: [id])
+  complexId String
+
+  reserves Reserve[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([complexId])
+  @@index([isActive])
 }
 
 model PaymentConfig {
@@ -488,17 +519,21 @@ model Reserve {
 
   payment Payment[]
 
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  expiresAt    DateTime?
-  promotion    Promotion?    @relation(fields: [promotionId], references: [id])
-  promotionId  String?
-  productSales ProductSale[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  expiresAt      DateTime?
+  promotion      Promotion?    @relation(fields: [promotionId], references: [id])
+  promotionId    String?
+  eventPackage   EventPackage? @relation(fields: [eventPackageId], references: [id])
+  eventPackageId String?
+  notes          String? // JSON string for metadata
+  productSales   ProductSale[]
 
   @@index([courtId])
   @@index([userId, date])
   @@index([fixedReserveId])
   @@index([complexId, date])
+  @@index([eventPackageId])
 }
 
 model FixedReserve {

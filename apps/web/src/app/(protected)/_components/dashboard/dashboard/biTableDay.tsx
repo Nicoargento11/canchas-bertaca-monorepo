@@ -290,10 +290,7 @@ const BiTableDay: React.FC<TableReservesProps> = ({
               renderSkeletonRows()
             ) : state?.reservationsByDay && state?.reservationsByDay.length > 0 ? (
               state?.reservationsByDay.map((scheduleReserve, index) => (
-                <tr
-                  key={index}
-                  className="border-b border-gray-100"
-                >
+                <tr key={index} className="border-b border-gray-100">
                   {/* Celda de horario - desktop */}
                   <td className="w-[50px] md:w-[120px] min-h-[48px] md:h-[56px] text-center font-medium text-slate-900 bg-slate-100 border-r border-slate-200 hidden md:table-cell align-middle">
                     {scheduleReserve.schedule}
@@ -361,33 +358,77 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                 }
                               }}
                               className={`rounded-lg w-full h-full flex flex-col p-2 md:p-3 relative transition-all cursor-pointer hover:shadow-lg border-l-4 min-h-[48px]
-                              ${isReserved.reserveType === "FIJO"
+                              ${
+                                // Color por tipo de reserva
+                                isReserved.reserveType === "FIJO"
                                   ? "bg-violet-50 border-l-violet-600 hover:bg-violet-100"
-                                  : isReserved.status === "PENDIENTE"
-                                    ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
-                                    : isReserved.status === "COMPLETADO"
-                                      ? "bg-blue-50 border-l-blue-600 hover:bg-blue-100"
-                                      : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0
-                                        ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
-                                        : "bg-emerald-50 border-l-emerald-600 hover:bg-emerald-100"
-                                }`}
+                                  : isReserved.reserveType === "EVENTO"
+                                    ? "bg-purple-50 border-l-purple-600 hover:bg-purple-100"
+                                    : isReserved.reserveType === "TORNEO"
+                                      ? "bg-indigo-50 border-l-indigo-600 hover:bg-indigo-100"
+                                      : isReserved.reserveType === "ESCUELA"
+                                        ? "bg-cyan-50 border-l-cyan-600 hover:bg-cyan-100"
+                                        : isReserved.reserveType === "ONLINE"
+                                          ? "bg-sky-50 border-l-sky-600 hover:bg-sky-100"
+                                          : isReserved.reserveType === "OTRO"
+                                            ? "bg-slate-50 border-l-slate-600 hover:bg-slate-100"
+                                            : // Color por estado (para MANUAL y otros)
+                                              isReserved.status === "PENDIENTE"
+                                              ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
+                                              : isReserved.status === "COMPLETADO"
+                                                ? "bg-blue-50 border-l-blue-600 hover:bg-blue-100"
+                                                : (isReserved.price || 0) -
+                                                      (isReserved.reservationAmount || 0) >
+                                                    0
+                                                  ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
+                                                  : "bg-emerald-50 border-l-emerald-600 hover:bg-emerald-100"
+                              }`}
                             >
                               {/* Nombre del cliente */}
                               <p className="font-semibold text-sm md:text-base text-slate-900 truncate leading-tight">
                                 {isReserved.clientName?.split(" ")[0] ||
-                                  isReserved.user?.name?.split(" ")[0] || "Cliente"}
+                                  isReserved.user?.name?.split(" ")[0] ||
+                                  "Cliente"}
                               </p>
 
-                              {/* Info de pago o FIJO - compacto */}
+                              {/* Info de pago y tipo de reserva - compacto */}
                               <div className="flex items-center gap-1 mt-1">
                                 {isReserved.reserveType === "FIJO" ? (
-                                  <span className="text-xs md:text-sm text-violet-700 font-semibold">FIJO</span>
-                                ) : (isReserved.price || 0) - (isReserved.reservationAmount || 0) > 0 ? (
+                                  <span className="text-xs md:text-sm text-violet-700 font-semibold">
+                                    FIJO
+                                  </span>
+                                ) : isReserved.reserveType === "EVENTO" ? (
+                                  <span className="text-xs md:text-sm text-purple-700 font-semibold">
+                                    EVENTO
+                                  </span>
+                                ) : isReserved.reserveType === "TORNEO" ? (
+                                  <span className="text-xs md:text-sm text-indigo-700 font-semibold">
+                                    TORNEO
+                                  </span>
+                                ) : isReserved.reserveType === "ESCUELA" ? (
+                                  <span className="text-xs md:text-sm text-cyan-700 font-semibold">
+                                    ESCUELA
+                                  </span>
+                                ) : isReserved.reserveType === "ONLINE" ? (
+                                  <span className="text-xs md:text-sm text-sky-700 font-semibold">
+                                    ONLINE
+                                  </span>
+                                ) : isReserved.reserveType === "OTRO" ? (
+                                  <span className="text-xs md:text-sm text-slate-700 font-semibold">
+                                    OTRO
+                                  </span>
+                                ) : (isReserved.price || 0) - (isReserved.reservationAmount || 0) >
+                                  0 ? (
                                   <span className="text-xs md:text-sm text-amber-700 font-semibold">
-                                    ${((isReserved.price || 0) - (isReserved.reservationAmount || 0)).toLocaleString()}
+                                    $
+                                    {(
+                                      (isReserved.price || 0) - (isReserved.reservationAmount || 0)
+                                    ).toLocaleString()}
                                   </span>
                                 ) : (
-                                  <span className="text-xs md:text-sm text-emerald-700 font-semibold">✓ Pagado</span>
+                                  <span className="text-xs md:text-sm text-emerald-700 font-semibold">
+                                    ✓ Pagado
+                                  </span>
                                 )}
                               </div>
                               {/* Botón de completar */}
@@ -433,14 +474,18 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                       }
 
                       // Verificar si hay promo para esta cancha/horario
-                      const activePromos = complex.promotions?.filter(p => p.isActive) || [];
-                      const hasPromoForSchedule = date && hasPromotionForSchedule(activePromos, date, scheduleReserve.schedule);
-                      const courtPromo = hasPromoForSchedule && activePromos.find(p => {
-                        if (!p.isActive) return false;
-                        if (p.courtId && p.courtId !== court.id) return false;
-                        if (p.sportTypeId && p.sportTypeId !== sportType.id) return false;
-                        return true;
-                      });
+                      const activePromos = complex.promotions?.filter((p) => p.isActive) || [];
+                      const hasPromoForSchedule =
+                        date &&
+                        hasPromotionForSchedule(activePromos, date, scheduleReserve.schedule);
+                      const courtPromo =
+                        hasPromoForSchedule &&
+                        activePromos.find((p) => {
+                          if (!p.isActive) return false;
+                          if (p.courtId && p.courtId !== court.id) return false;
+                          if (p.sportTypeId && p.sportTypeId !== sportType.id) return false;
+                          return true;
+                        });
 
                       return (
                         <td
@@ -450,53 +495,64 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                           {scheduleReserve.courtInfo.courts.find(
                             (courtData) => courtData.courtId === court.id
                           ) && (
-                              <div
-                                onClick={async () => {
-                                  if (date) {
-                                    const reserveData = {
-                                      date: date,
-                                      schedule: scheduleReserve.schedule,
-                                      userId: userId!,
-                                      price:
-                                        scheduleReserve.courtInfo.courts.find(
-                                          (courtData) => courtData.courtId === court.id
-                                        )?.rates[0].price ||
-                                        scheduleReserve.courtInfo.rates[0].price,
-                                      courtId: court.id,
-                                      complexId: complex.id,
-                                      reserveType: "MANUAL" as const,
-                                    };
+                            <div
+                              onClick={async () => {
+                                if (date) {
+                                  const reserveData = {
+                                    date: date,
+                                    schedule: scheduleReserve.schedule,
+                                    userId: userId!,
+                                    price:
+                                      scheduleReserve.courtInfo.courts.find(
+                                        (courtData) => courtData.courtId === court.id
+                                      )?.rates[0].price || scheduleReserve.courtInfo.rates[0].price,
+                                    courtId: court.id,
+                                    complexId: complex.id,
+                                    reserveType: "MANUAL" as const,
+                                  };
 
-                                    // Check if there's an active cash session
-                                    let hasActiveCashSession = false;
-                                    if (complex?.id) {
-                                      const { success: registersSuccess, data: cashRegisters } = await getAllCashRegisters(complex.id);
-                                      if (registersSuccess && cashRegisters && cashRegisters.length > 0) {
-                                        const activeCashRegister = cashRegisters.find((register) => register.isActive);
-                                        if (activeCashRegister) {
-                                          const { success, data: activeCashSession } = await getActiveCashSession(activeCashRegister.id);
-                                          if (success && activeCashSession) {
-                                            hasActiveCashSession = true;
-                                          }
+                                  // Check if there's an active cash session
+                                  let hasActiveCashSession = false;
+                                  if (complex?.id) {
+                                    const { success: registersSuccess, data: cashRegisters } =
+                                      await getAllCashRegisters(complex.id);
+                                    if (
+                                      registersSuccess &&
+                                      cashRegisters &&
+                                      cashRegisters.length > 0
+                                    ) {
+                                      const activeCashRegister = cashRegisters.find(
+                                        (register) => register.isActive
+                                      );
+                                      if (activeCashRegister) {
+                                        const { success, data: activeCashSession } =
+                                          await getActiveCashSession(activeCashRegister.id);
+                                        if (success && activeCashSession) {
+                                          hasActiveCashSession = true;
                                         }
                                       }
                                     }
-
-                                    setCreateReserve(reserveData);
-
-                                    // Show warning if no active session, otherwise open reserve form directly
-                                    if (!hasActiveCashSession) {
-                                      handleOpenCashWarning(reserveData);
-                                    } else {
-                                      handleChangeReserve();
-                                    }
                                   }
-                                }}
-                                className={`w-full h-full min-h-[48px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all group active:scale-95 ${courtPromo ? 'border-amber-400 bg-amber-50 hover:border-amber-500 hover:bg-amber-100' : 'border-slate-300 bg-slate-50 hover:border-emerald-500 hover:bg-emerald-50'}`}
+
+                                  setCreateReserve(reserveData);
+
+                                  // Show warning if no active session, otherwise open reserve form directly
+                                  if (!hasActiveCashSession) {
+                                    handleOpenCashWarning(reserveData);
+                                  } else {
+                                    handleChangeReserve();
+                                  }
+                                }
+                              }}
+                              className={`w-full h-full min-h-[48px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all group active:scale-95 ${courtPromo ? "border-amber-400 bg-amber-50 hover:border-amber-500 hover:bg-amber-100" : "border-slate-300 bg-slate-50 hover:border-emerald-500 hover:bg-emerald-50"}`}
+                            >
+                              <span
+                                className={`text-2xl font-light transition-colors ${courtPromo ? "text-amber-500 group-hover:text-amber-700" : "text-slate-400 group-hover:text-emerald-600"}`}
                               >
-                                <span className={`text-2xl font-light transition-colors ${courtPromo ? 'text-amber-500 group-hover:text-amber-700' : 'text-slate-400 group-hover:text-emerald-600'}`}>+</span>
-                              </div>
-                            )}
+                                +
+                              </span>
+                            </div>
+                          )}
                         </td>
                       );
                     })}

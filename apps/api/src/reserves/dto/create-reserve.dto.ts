@@ -105,4 +105,12 @@ export class CreateReserveDto {
   @IsOptional()
   @IsString()
   promotionId?: string;
+
+  @ApiPropertyOptional({
+    description: 'Notes or metadata for the reservation (can be JSON string)',
+    example: '{"eventGroupId": "event-123", "comboId": "combo-1"}',
+  })
+  @IsOptional()
+  @IsString()
+  notes?: string;
 }
