@@ -106,6 +106,14 @@ export const ProfileMenu = ({ currentUser, complex }: ProfileMenuProps) => {
             </DropdownMenuItem>
           )}
 
+        {/* Debug: Si es RECEPCION sin complexId, mostrar mensaje */}
+        {(currentUser?.user.role === "RECEPCION" || currentUser?.user.role === "COMPLEJO_ADMIN") &&
+          !currentUser?.user.complexId && (
+            <div className="p-2 text-xs text-yellow-400 bg-yellow-500/10 rounded-lg mx-2">
+              ⚠️ Tu usuario no tiene un complejo asignado. Contacta al administrador.
+            </div>
+          )}
+
         <DropdownMenuSeparator className="bg-white/10 my-2" />
 
         <DropdownMenuItem
