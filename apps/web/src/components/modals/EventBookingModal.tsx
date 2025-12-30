@@ -433,6 +433,15 @@ export const EventBookingModal = ({
 
           {selectedPackage && (
             <>
+              {/* Warning Banner */}
+              {selectedCourtIds.length === 0 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                  <p className="text-xs text-amber-700">
+                    ⚠️ Selecciona manualmente la(s) cancha(s) para evitar conflictos de horario
+                  </p>
+                </div>
+              )}
+
               {/* Light Switch */}
               <div className="flex items-center justify-between p-4 bg-amber-50 rounded-lg border border-amber-200">
                 <div className="flex items-center gap-2">
@@ -440,14 +449,6 @@ export const EventBookingModal = ({
                   <div>
                     <p className="font-medium">Con Luz</p>
                     <p className="text-sm text-gray-600">
-                      {selectedCourtIds.length === 0 && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-2">
-                          <p className="text-xs text-amber-700">
-                            ⚠️ Selecciona manualmente la(s) cancha(s) para evitar conflictos de
-                            horario
-                          </p>
-                        </div>
-                      )}
                       {withLight
                         ? `+$${(selectedPackage.lightPrice - selectedPackage.basePrice).toLocaleString()}`
                         : "Agregar iluminación"}
