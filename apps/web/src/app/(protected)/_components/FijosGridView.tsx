@@ -212,7 +212,7 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
               <thead>
                 <tr className="bg-gray-900 text-white">
                   {/* Columna horario - angosta en mobile */}
-                  <th className="w-[50px] md:w-[120px] p-2 md:p-3 sticky top-0 z-10 bg-gray-900">
+                  <th className="w-[50px] md:w-[100px] p-2 md:p-3 sticky top-0 z-10 bg-gray-900">
                     <span className="text-xs font-semibold uppercase tracking-wider hidden md:block text-center">
                       Horario
                     </span>
@@ -246,11 +246,11 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                   return (
                     <tr key={timeSlot} className="border-b border-gray-100">
                       {/* Horario Label - Desktop */}
-                      <td className="w-[50px] md:w-[120px] min-h-[48px] md:h-[56px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle">
+                      <td className="w-[50px] md:w-[100px] text-center font-medium text-gray-800 bg-gray-50 border-r border-gray-100 hidden md:table-cell align-middle text-xs">
                         {timeSlot}
                       </td>
                       {/* Horario Label - Mobile: solo hora */}
-                      <td className="w-[50px] min-h-[48px] text-center font-semibold text-gray-700 bg-gray-50 border-r border-gray-100 text-xs md:hidden align-middle py-2">
+                      <td className="w-[50px] text-center font-semibold text-gray-700 bg-gray-50 border-r border-gray-100 text-sm md:hidden align-middle py-2">
                         {startTime.replace(":00", "")}
                       </td>
 
@@ -299,55 +299,57 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                   onClick={() => handleCellClick(timeSlot, court.id)}
                                   className="p-1 cursor-pointer align-top"
                                 >
-                                  <div className={`h-full w-full bg-white rounded-lg p-2 md:p-3 hover:shadow-md transition-all flex flex-col relative overflow-hidden border-l-4 ${fixedReserve.isActive ? "border-l-violet-500" : "border-l-gray-400"}`}>
+                                  <div className={`h-full w-full bg-white rounded-lg p-2 hover:shadow-md transition-all flex flex-col relative overflow-hidden border-l-4 ${fixedReserve.isActive ? "border-l-violet-500" : "border-l-gray-400"}`}>
 
-                                    {/* Contenido principal - compacto */}
-                                    <div className="flex-1">
-                                      <p className="font-semibold text-gray-900 text-xs md:text-sm truncate leading-tight">
+                                    {/* Contenido principal */}
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-gray-900 text-sm truncate leading-tight">
                                         {fixedReserve.user.name.split(" ")[0]}
                                       </p>
-                                      <p className="text-[10px] md:text-xs text-gray-500 truncate mt-0.5">
+                                      <p className="text-xs text-gray-500 truncate mt-0.5">
                                         {fixedReserve.startTime.slice(0, 5)} - {fixedReserve.endTime.slice(0, 5)}
                                       </p>
                                     </div>
 
-                                    {/* Footer: Precio + Botones */}
-                                    <div className="mt-1 pt-1 border-t border-gray-100 flex items-center justify-between">
-                                      <span className="text-[10px] md:text-xs font-bold text-gray-700">
+                                    {/* Precio */}
+                                    <div className="mt-1 pt-1 border-t border-gray-100">
+                                      <span className="text-xs font-bold text-gray-700">
                                         ${fixedReserve.rate?.price?.toLocaleString() || "-"}
                                       </span>
-                                      <div className="flex gap-0.5">
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className="h-6 w-6 text-gray-400 hover:text-gray-600"
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            setEditingReserve(fixedReserve);
-                                            setModalInitialData({
-                                              courtId: fixedReserve.courtId,
-                                              startTime: fixedReserve.startTime,
-                                              endTime: fixedReserve.endTime,
-                                              dayOfWeek: selectedDay,
-                                              sportType: complex.sportTypes[0],
-                                            });
-                                            setIsModalOpen(true);
-                                          }}
-                                        >
-                                          <Pencil className="h-3 w-3" />
-                                        </Button>
-                                        <Button
-                                          size="icon"
-                                          variant="ghost"
-                                          className={`h-6 w-6 ${fixedReserve.isActive ? "text-green-500" : "text-gray-400"}`}
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleToggleStatus(fixedReserve.id);
-                                          }}
-                                        >
-                                          <Power className="h-3 w-3" />
-                                        </Button>
-                                      </div>
+                                    </div>
+
+                                    {/* Botones en fila separada */}
+                                    <div className="flex items-center justify-end gap-1 mt-1">
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-md"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setEditingReserve(fixedReserve);
+                                          setModalInitialData({
+                                            courtId: fixedReserve.courtId,
+                                            startTime: fixedReserve.startTime,
+                                            endTime: fixedReserve.endTime,
+                                            dayOfWeek: selectedDay,
+                                            sportType: complex.sportTypes[0],
+                                          });
+                                          setIsModalOpen(true);
+                                        }}
+                                      >
+                                        <Pencil className="h-3.5 w-3.5" />
+                                      </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className={`h-7 w-7 rounded-md hover:bg-gray-100 ${fixedReserve.isActive ? "text-green-500 hover:text-green-600" : "text-gray-400 hover:text-gray-600"}`}
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleToggleStatus(fixedReserve.id);
+                                        }}
+                                      >
+                                        <Power className="h-3.5 w-3.5" />
+                                      </Button>
                                     </div>
                                   </div>
                                 </td>
@@ -364,9 +366,9 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                             <td
                               key={`${timeSlot}-${court.id}`}
                               onClick={() => handleCellClick(timeSlot, court.id)}
-                              className="h-[52px] p-1 cursor-pointer transition-all group"
+                              className="p-1 cursor-pointer transition-all group"
                             >
-                              <div className="w-full h-full min-h-[48px] rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
+                              <div className="w-full h-full min-h-[56px] rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
                                 <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
                               </div>
                             </td>

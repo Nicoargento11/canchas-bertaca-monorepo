@@ -10,6 +10,7 @@ import { SessionPayload } from "@/services/auth/session";
 import { TurnByDay } from "@/services/reserve/reserve";
 import { Court } from "@/services/court/court";
 import { loadReservationData } from "@/utils/reservationStorage";
+import { EventPackage } from "@/services/event-package/event-package";
 
 interface SportData {
   reserves: TurnByDay | undefined;
@@ -24,6 +25,8 @@ interface MainSectionProps {
   currentUser: SessionPayload | null;
   bertacaSportsData: Record<SportTypeKey, SportData>;
   sevenSportsData: Record<SportTypeKey, SportData>;
+  eventPackages?: EventPackage[];
+  sevenEventPackages?: EventPackage[];
 }
 
 // Import section components
@@ -59,6 +62,8 @@ export const MainSectionImproved = React.memo(
     currentUser,
     bertacaSportsData,
     sevenSportsData,
+    eventPackages = [],
+    sevenEventPackages = [],
   }: MainSectionProps) => {
     const { openModal, currentModal, closeModal } = useModal();
     const { activeTab, setActiveTab } = useComplexTab();
@@ -261,7 +266,10 @@ export const MainSectionImproved = React.memo(
           activeTab={activeTab}
           onTabChange={setActiveTab}
           onReserveClick={handleReserveFromTable}
+          eventPackages={eventPackages}
+          sevenEventPackages={sevenEventPackages}
         />
+
         <Footer />
 
         {/* MODAL DE BOOKING */}

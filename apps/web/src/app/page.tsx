@@ -4,6 +4,7 @@ import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
 import { getComplexBySlug } from "@/services/complex/complex";
 import { getSession } from "@/services/auth/session";
 import { getDailyAvailability, TurnByDay } from "@/services/reserve/reserve";
+import { getActiveEventPackages } from "@/services/event-package/event-package";
 import { format } from "date-fns";
 import { Court } from "@/services/court/court";
 import NavBar from "@/components/navbar/navBar";
@@ -34,6 +35,26 @@ export default async function HomePage() {
 
   if (!complejo) {
     return notFound();
+  }
+
+  // Fetch event packages - wrapped in try-catch to not block page load
+  let bertacaEventPackages: any[] = [];
+  try {
+    const eventPackagesRes = await getActiveEventPackages(complejo.id);
+    bertacaEventPackages = eventPackagesRes.success ? eventPackagesRes.data || [] : [];
+  } catch (e) {
+    console.error("Error loading Bertaca event packages:", e);
+  }
+
+  // Fetch Seven event packages if Seven complex exists
+  let sevenEventPackages: any[] = [];
+  if (sevenComplex) {
+    try {
+      const sevenEventPackagesRes = await getActiveEventPackages(sevenComplex.id);
+      sevenEventPackages = sevenEventPackagesRes.success ? sevenEventPackagesRes.data || [] : [];
+    } catch (e) {
+      console.error("Error loading Seven event packages:", e);
+    }
   }
 
   const sportTypes = complejo.sportTypes.reduce(
@@ -136,6 +157,8 @@ export default async function HomePage() {
           currentUser={session}
           bertacaSportsData={sportsData}
           sevenSportsData={sevenSportsData}
+          eventPackages={bertacaEventPackages}
+          sevenEventPackages={sevenEventPackages}
         />
         <ModalManager session={session} complex={complejo} sportTypes={sportTypes} />
       </div>

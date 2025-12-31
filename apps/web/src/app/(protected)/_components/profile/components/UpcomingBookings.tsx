@@ -254,43 +254,43 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
       transition={{ delay: index * 0.1 }}
     >
       <Card className={`bg-gray-900/90 backdrop-blur-sm border border-white/10 border-l-4 ${statusConfig.accentColor} overflow-hidden hover:border-white/20 transition-colors`}>
-        <div className="p-4">
-          <div className="flex items-center gap-4">
+        <div className="p-3 sm:p-4">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* Left: Date */}
-            <div className="flex-shrink-0 text-center bg-white/5 rounded-xl p-3 min-w-[60px]">
-              <div className="text-2xl font-black text-Primary">
+            <div className="flex-shrink-0 text-center bg-white/5 rounded-xl p-2 sm:p-3 min-w-[50px] sm:min-w-[60px]">
+              <div className="text-xl sm:text-2xl font-black text-Primary">
                 {format(reserveDate, "dd", { locale: es })}
               </div>
-              <div className="text-xs text-white/60 font-medium uppercase">
+              <div className="text-[10px] sm:text-xs text-white/60 font-medium uppercase">
                 {format(reserveDate, "MMM", { locale: es })}
               </div>
             </div>
 
             {/* Center: Info */}
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h4 className="text-base font-bold text-white truncate">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 mb-1">
+                <h4 className="text-sm sm:text-base font-bold text-white truncate max-w-[120px] sm:max-w-none">
                   {reserve.court.name}
                 </h4>
-                <Badge className={`${statusConfig.color} border text-[10px] px-1.5 py-0`}>
+                <Badge className={`${statusConfig.color} border text-[10px] px-1.5 py-0 flex-shrink-0`}>
                   {statusConfig.badge}
                 </Badge>
               </div>
 
-              <div className="flex items-center gap-3 text-xs text-white/60">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3 text-xs text-white/60">
                 <div className="flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
+                  <Clock className="w-3 h-3 flex-shrink-0" />
                   <span className="font-semibold text-white/80">{reserve.schedule}</span>
                 </div>
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1 min-w-0">
                   {reserve.complex?.name?.toLowerCase().includes('seven') ? (
-                    <img src="/images/seven_logo.png" alt="Seven" className="w-3 h-3 object-contain" />
+                    <img src="/images/seven_logo.png" alt="Seven" className="w-3 h-3 object-contain flex-shrink-0" />
                   ) : reserve.complex?.name?.toLowerCase().includes('bertaca') ? (
-                    <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-3 h-3 object-contain" />
+                    <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-3 h-3 object-contain flex-shrink-0" />
                   ) : (
-                    <Building2 className="w-3 h-3" />
+                    <Building2 className="w-3 h-3 flex-shrink-0" />
                   )}
-                  <span className="truncate">{reserve.complex?.name || "Complejo"}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-none">{reserve.complex?.name || "Complejo"}</span>
                 </div>
               </div>
 
@@ -302,8 +302,8 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
               )}
             </div>
 
-            {/* Right: Actions */}
-            <div className="flex-shrink-0 flex items-center gap-2">
+            {/* Right: Actions - Desktop only */}
+            <div className="hidden sm:flex flex-shrink-0 items-center gap-2">
               {reserve.status === "PENDIENTE" && reserve.paymentUrl && (
                 <Button
                   size="sm"
@@ -325,16 +325,16 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
                       Cancelar
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
+                  <AlertDialogContent className="bg-gray-900 border-white/10 text-white max-w-[90vw] sm:max-w-lg">
                     <AlertDialogHeader>
                       <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
                       <AlertDialogDescription className="text-white/70">
                         Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
-                    <AlertDialogFooter>
+                    <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                       <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10">
-                        Cancelar
+                        Volver
                       </AlertDialogCancel>
                       <AlertDialogAction
                         className="bg-Error hover:bg-Error-dark text-white"
@@ -348,8 +348,57 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
               )}
             </div>
           </div>
+
+          {/* Mobile Actions Row */}
+          {(onCancel || (reserve.status === "PENDIENTE" && reserve.paymentUrl)) && (
+            <div className="flex sm:hidden items-center gap-2 mt-3 pt-3 border-t border-white/10">
+              {reserve.status === "PENDIENTE" && reserve.paymentUrl && (
+                <Button
+                  size="sm"
+                  className="flex-1 bg-Success hover:bg-Success-dark text-white text-xs h-8"
+                  onClick={() => (window.location.href = reserve.paymentUrl!)}
+                >
+                  <CreditCard className="w-3 h-3 mr-1" />
+                  Pagar
+                </Button>
+              )}
+              {onCancel && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="flex-1 text-red-500 hover:text-red-400 hover:bg-red-500/10 text-xs h-8"
+                    >
+                      Cancelar
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="bg-gray-900 border-white/10 text-white max-w-[90vw]">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogDescription className="text-white/70">
+                        Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter className="flex-col gap-2">
+                      <AlertDialogAction
+                        className="bg-Error hover:bg-Error-dark text-white w-full"
+                        onClick={() => onCancel(reserve.id)}
+                      >
+                        Confirmar Cancelación
+                      </AlertDialogAction>
+                      <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10 w-full m-0">
+                        Volver
+                      </AlertDialogCancel>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )}
         </div>
       </Card>
     </motion.div>
   );
 };
+

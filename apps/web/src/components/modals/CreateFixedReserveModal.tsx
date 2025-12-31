@@ -334,7 +334,7 @@ export const CreateFixedReserveModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{editingReserve ? "Editar Turno Fijo" : "Nuevo Turno Fijo"}</DialogTitle>
         </DialogHeader>
@@ -461,8 +461,8 @@ export const CreateFixedReserveModal = ({
                   <button
                     type="button"
                     className={`p-3 rounded-lg border-2 transition-all ${reserveType === "FIJO"
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300"
+                      ? "border-blue-500 bg-blue-50 text-blue-700"
+                      : "border-gray-200 hover:border-gray-300"
                       }`}
                     onClick={() => setReserveType("FIJO")}
                   >
@@ -475,8 +475,8 @@ export const CreateFixedReserveModal = ({
                   <button
                     type="button"
                     className={`p-3 rounded-lg border-2 transition-all ${reserveType === "ESCUELA"
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-gray-200 hover:border-gray-300"
+                      ? "border-green-500 bg-green-50 text-green-700"
+                      : "border-gray-200 hover:border-gray-300"
                       }`}
                     onClick={() => setReserveType("ESCUELA")}
                   >
@@ -583,20 +583,21 @@ export const CreateFixedReserveModal = ({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="sm:justify-end">
           {step === "DETAILS" && (
-            <div className="flex gap-2 w-full justify-end">
+            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
               {editingReserve && (
-                <Button variant="outline" onClick={() => setStep("USER_SELECTION")}>
+                <Button variant="outline" onClick={() => setStep("USER_SELECTION")} className="w-full sm:w-auto">
                   Cambiar Cliente
                 </Button>
               )}
               <Button
                 onClick={editingReserve ? handleUpdateFixedReserve : handleCreateFixedReserve}
                 disabled={isLoading || selectedDays.length === 0}
+                className="w-full sm:w-auto"
               >
                 {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {editingReserve ? "Guardar Cambios" : "Confirmar Fijo"}
+                {editingReserve ? "Guardar" : "Confirmar"}
               </Button>
             </div>
           )}
