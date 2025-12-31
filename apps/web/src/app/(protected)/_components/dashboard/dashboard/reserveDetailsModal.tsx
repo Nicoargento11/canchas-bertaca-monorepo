@@ -324,16 +324,18 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
           );
         })()}
 
-        {canEditReservation(new Date(reserve.date)) && (
-          <Button
-            className="w-full bg-Primary hover:bg-Primary-dark text-white py-4 text-base font-medium"
-            onClick={() => handleChangeEditReserve()}
-          >
-            Editar Reserva
-          </Button>
-        )}
+        {canEditReservation(new Date(reserve.date)) &&
+          userSession?.user.role !== "RECEPCION" && (
+            <Button
+              className="w-full bg-Primary hover:bg-Primary-dark text-white py-4 text-base font-medium"
+              onClick={() => handleChangeEditReserve()}
+            >
+              Editar Reserva
+            </Button>
+          )}
 
         {(userSession?.user.role === "COMPLEJO_ADMIN" ||
+          userSession?.user.role === "COMMUNITY_MANAGER" ||
           userSession?.user.role === "SUPER_ADMIN") &&
           reserve.status !== "CANCELADO" &&
           reserve.status !== "RECHAZADO" && (

@@ -153,11 +153,12 @@ export class PromotionsService {
         createPromotionDto.giftProducts.length > 0;
       const hasLegacyGiftProduct = !!createPromotionDto.giftProductId;
 
-      if (!hasGiftProducts && !hasLegacyGiftProduct) {
+      // Permitiendo promociones de regalo "abiertas" (elección manual al cobrar)
+      /* if (!hasGiftProducts && !hasLegacyGiftProduct) {
         throw new BadRequestException(
           'Debe especificar al menos un producto para regalar cuando el tipo es GIFT_PRODUCT',
         );
-      }
+      } */
 
       // Validar que todos los productos del array existan
       if (hasGiftProducts) {

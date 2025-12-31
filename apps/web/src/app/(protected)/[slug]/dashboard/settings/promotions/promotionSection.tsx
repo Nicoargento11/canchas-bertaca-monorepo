@@ -20,7 +20,7 @@ export const PromotionSection = ({ complex }: PromotionSectionProps) => {
                 <h2 className="text-xl md:text-2xl font-bold text-gray-800 mb-4">
                     Promociones Creadas
                 </h2>
-                <EditPromotions initialData={complex.promotions || []} />
+                <EditPromotions initialData={complex.promotions || []} complex={complex} />
             </div>
         </div>
     );

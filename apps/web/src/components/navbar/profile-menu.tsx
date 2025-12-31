@@ -92,10 +92,22 @@ export const ProfileMenu = ({ currentUser, complex }: ProfileMenuProps) => {
           </DropdownMenuItem>
         )}
 
-        {(currentUser?.user.role === "RECEPCION" ||
-          currentUser?.user.role === "COMPLEJO_ADMIN" ||
+        {/* SUPER_ADMIN y ORGANIZACION_ADMIN siempre ven el Panel de Control (pueden acceder a cualquier complejo de su organización) */}
+        {(currentUser?.user.role === "SUPER_ADMIN" ||
           currentUser?.user.role === "ORGANIZACION_ADMIN" ||
-          currentUser?.user.role === "SUPER_ADMIN") &&
+          currentUser?.user.role === "COMMUNITY_MANAGER") && (
+            <DropdownMenuItem
+              onClick={() => router.push(`/${complex.slug}/dashboard`)}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-500/20 focus:bg-blue-500/20 cursor-pointer transition-colors text-sm text-blue-300"
+            >
+              <LayoutDashboard size={16} />
+              <span>Panel de Control</span>
+            </DropdownMenuItem>
+          )}
+
+        {/* RECEPCION y COMPLEJO_ADMIN solo ven el Panel si tienen un complexId asignado */}
+        {(currentUser?.user.role === "RECEPCION" ||
+          currentUser?.user.role === "COMPLEJO_ADMIN") &&
           currentUser?.user.complexId && (
             <DropdownMenuItem
               onClick={() => router.push(`/${complex.slug}/dashboard`)}

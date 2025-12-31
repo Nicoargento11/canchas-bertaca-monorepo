@@ -271,6 +271,23 @@ export const CompleteReserveForm = () => {
         </div>
       )}
 
+      {/* Alerta para regalos de elección manual */}
+      {reserve.promotion?.type === "GIFT_PRODUCT" && (!reserve.promotion?.giftProducts || reserve.promotion.giftProducts.length === 0) && (
+        <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-full bg-blue-500/20">
+              <Gift className="h-5 w-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="text-sm font-medium text-blue-300">🎁 Regalo a Elección</p>
+              <p className="text-xs text-blue-400/80">
+                Esta promo incluye un regalo. Recuerda cargar el producto elegido manualmente (ej: una bebida) para descontar stock.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Métodos de pago */}
       <div className="space-y-4">
         <Label className="text-base font-semibold text-white">Métodos de pago utilizados:</Label>{" "}
@@ -286,31 +303,32 @@ export const CompleteReserveForm = () => {
                   <Icon className={`h-4 w-4 ${method.color}`} />
                   {method.label}
                 </Label>
-                <div className="flex gap-1">
+                <div className="flex flex-col gap-1">
                   <Input
                     id={method.key}
                     type="number"
                     placeholder="0"
                     value={paymentData[method.key]}
                     onChange={(e) => handlePaymentChange(method.key, e.target.value)}
-                    className="text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 flex-1"
+                    className="text-sm bg-white/5 border-white/10 text-white placeholder:text-white/30 w-full"
                   />
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="px-2 text-xs text-white/60 hover:text-white"
-                    onClick={() => {
-                      // Calcular lo restante considerando otros métodos
-                      const otherPayments = Object.entries(paymentData)
-                        .filter(([key]) => key !== method.key)
-                        .reduce((sum, [, val]) => sum + (parseFloat(val) || 0), 0);
-                      const rest = remainingAmount - otherPayments;
-                      handlePaymentChange(method.key, rest > 0 ? rest.toString() : "");
-                    }}
-                    title="Cargar monto restante"
-                  >
-                    Rest
-                  </Button>
+                  <div className="flex justify-end">
+                    <button
+                      type="button"
+                      className="text-[10px] text-blue-400 hover:text-blue-300 font-medium transition-colors cursor-pointer flex items-center gap-1"
+                      onClick={() => {
+                        // Calcular lo restante considerando otros métodos
+                        const otherPayments = Object.entries(paymentData)
+                          .filter(([key]) => key !== method.key)
+                          .reduce((sum, [, val]) => sum + (parseFloat(val) || 0), 0);
+                        const rest = remainingAmount - otherPayments;
+                        handlePaymentChange(method.key, rest > 0 ? rest.toString() : "");
+                      }}
+                      title="Cargar monto restante"
+                    >
+                      Cargar resto
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -337,22 +355,23 @@ export const CompleteReserveForm = () => {
       </div>
 
       {/* Botones */}
-      <div className="flex gap-3 pt-4">
+      <div className="flex flex-col gap-3 pt-6">
         <Button
-          variant="outline"
+          onClick={handleCompleteReservation}
+          className="w-full bg-emerald-600 hover:bg-emerald-700 text-white h-12 text-base font-medium shadow-sm shadow-emerald-900/20"
+          disabled={!isValidTotal || isPending}
+        >
+          <CheckCircle2 className="h-5 w-5 mr-2" />
+          {isPending ? "Procesando..." : "Completar Reserva"}
+        </Button>
+
+        <Button
+          variant="ghost"
           onClick={handleChangeCompleteReserve}
-          className="flex-1 border-white/10 text-white hover:bg-white/10 bg-transparent"
+          className="w-full text-white/50 hover:text-white hover:bg-white/5"
           disabled={isPending}
         >
           Cancelar
-        </Button>
-        <Button
-          onClick={handleCompleteReservation}
-          className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-          disabled={!isValidTotal || isPending}
-        >
-          <CheckCircle2 className="h-4 w-4 mr-2" />
-          {isPending ? "Completando..." : "Completar Reserva"}
         </Button>
       </div>
     </div>

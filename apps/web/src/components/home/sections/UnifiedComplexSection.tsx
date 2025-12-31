@@ -22,6 +22,8 @@ import { Complex } from "@/services/complex/complex";
 import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
 import { TurnByDay } from "@/services/reserve/reserve";
 import { Court } from "@/services/court/court";
+import { PromotionsSection } from "./PromotionsSection";
+import { EventPackage } from "@/services/event-package/event-package";
 
 interface SportData {
   reserves: TurnByDay | undefined;
@@ -45,6 +47,8 @@ interface UnifiedComplexSectionProps {
     hour: string,
     field: string
   ) => void;
+  eventPackages?: EventPackage[];
+  sevenEventPackages?: EventPackage[];
 }
 
 const ImageSlider = React.memo(({ images }: { images: string[] }) => {
@@ -126,6 +130,8 @@ export const UnifiedComplexSection = React.memo(
     activeTab,
     onTabChange,
     onReserveClick,
+    eventPackages = [],
+    sevenEventPackages = [],
   }: UnifiedComplexSectionProps) => {
     const bertacaImages = [
       "https://images.unsplash.com/photo-1529900748604-07564a03e7a6?w=1200&h=800&fit=crop",
@@ -282,14 +288,13 @@ export const UnifiedComplexSection = React.memo(
                       Sede Bertaca
                     </h3>
                     <p className="text-blue-300 font-medium mb-6 uppercase tracking-wider text-sm">
-                      Fútbol 5 • Techado • Sintético
+                      Fútbol 5 • Sintético
                     </p>
                     <p className="text-white/80 leading-relaxed mb-8">
-                      Nuestro complejo principal diseñado para el juego rápido y dinámico. Ideal
-                      para partidos intensos sin importar el clima gracias a su techo completo.
+                      Nuestro complejo principal diseñado para el juego rápido y dinámico. Canchas
+                      de calidad con piso sintético profesional.
                     </p>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <FeatureItem icon={Shield} text="Techado completo" color="text-blue-400" />
                       <FeatureItem
                         icon={CheckCircle2}
                         text="Piso Sintético Pro"
@@ -299,6 +304,11 @@ export const UnifiedComplexSection = React.memo(
                       <FeatureItem
                         icon={DollarSign}
                         text="Precios Accesibles"
+                        color="text-blue-400"
+                      />
+                      <FeatureItem
+                        icon={Shield}
+                        text="Seguridad y Comodidad"
                         color="text-blue-400"
                       />
                     </div>
@@ -316,8 +326,17 @@ export const UnifiedComplexSection = React.memo(
                   color="blue"
                   rates={complex.rates}
                   schedules={complex.schedules}
+                  schoolPhone="+54 9 362 420-0639"
                 />
               </div>
+
+              {/* Promociones y Eventos (Bertaca) */}
+              <PromotionsSection
+                promotions={complex.promotions || []}
+                eventPackages={eventPackages}
+                whatsappNumber={complex.phone?.replace(/\D/g, '') || undefined}
+                color="blue"
+              />
 
               {/* 4. Location & Contact (Bertaca) */}
               <div id="Contacto-bertaca" className="scroll-mt-32">
@@ -403,8 +422,17 @@ export const UnifiedComplexSection = React.memo(
                   color="green"
                   rates={sevenComplex?.rates || []}
                   schedules={sevenComplex?.schedules || []}
+                  schoolPhone="+54 9 362 410-2501"
                 />
               </div>
+
+              {/* Promociones y Eventos (Seven) */}
+              <PromotionsSection
+                promotions={sevenComplex?.promotions || []}
+                eventPackages={sevenEventPackages}
+                whatsappNumber={sevenComplex?.phone?.replace(/\D/g, '') || undefined}
+                color="green"
+              />
 
               {/* 4. Location & Contact (Seven) */}
               <div id="Contacto-seven" className="scroll-mt-32">
@@ -437,6 +465,7 @@ const ServicesSection = ({
   color,
   rates,
   schedules,
+  schoolPhone,
 }: {
   title: string;
   color: "blue" | "green";
@@ -448,6 +477,7 @@ const ServicesSection = ({
     scheduleDay?: { dayOfWeek: number; name?: string } | null;
     rates?: { id: string; name: string; price: number }[];
   }[];
+  schoolPhone?: string;
 }) => {
   const colorClass = color === "blue" ? "text-blue-400" : "text-green-400";
   const borderClass = color === "blue" ? "border-blue-500/30" : "border-green-500/30";
@@ -515,21 +545,30 @@ const ServicesSection = ({
           <GraduationCap className={`${colorClass} mb-4`} size={48} />
           <h3 className="text-3xl font-black text-white mb-4">Escuelita de Fútbol</h3>
           <p className="text-white/70 text-lg mb-6">
-            Clases profesionales para niños de 5 a 14 años. Desarrollo técnico, táctico y trabajo en
-            equipo.
+            Clases profesionales de fútbol. Desarrollo técnico, táctico y trabajo en equipo.
           </p>
           <ul className="space-y-3 mb-6">
             <li className="flex items-center gap-2 text-white/80">
               <CheckCircle2 className={colorClass} size={20} />
-              <span>Lunes y Miércoles 17:00 - 18:30</span>
+              <span>Lunes, Miércoles y Viernes 17:00 - 20:00</span>
             </li>
             <li className="flex items-center gap-2 text-white/80">
               <CheckCircle2 className={colorClass} size={20} />
               <span>Entrenadores certificados</span>
             </li>
           </ul>
-          <div className={`inline-block px-6 py-3 ${bgClass} rounded-xl text-white font-bold`}>
-            $15.000/mes
+          <div className="mt-4">
+            {schoolPhone && (
+              <a
+                href={`https://wa.me/${schoolPhone.replace(/\D/g, '')}?text=${encodeURIComponent('¡Hola! Me interesa información sobre la escuelita de fútbol.')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className={`inline-flex items-center gap-2 px-6 py-3 ${bgClass} hover:opacity-90 rounded-xl text-white font-bold transition-all shadow-lg`}
+              >
+                <Phone size={20} />
+                Consultar e Inscribirse
+              </a>
+            )}
           </div>
         </div>
       </div>

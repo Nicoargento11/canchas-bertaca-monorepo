@@ -235,7 +235,7 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
           Cerrar Caja
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md w-[95vw] sm:w-full">
+      <DialogContent className="max-w-[95vw] sm:max-w-md overflow-y-auto max-h-[90vh]">
         <DialogHeader>
           <DialogTitle>
             {sessionClosed
@@ -379,32 +379,34 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
               </div>
             </div>
             {/* Botones de exportación de reporte */}
-            <div className="flex gap-3 mb-4">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 mb-4">
               <Button
                 onClick={handleExportPDF}
                 disabled={exportingPDF || !selectedSessionId}
                 variant="outline"
-                className="flex-1 flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2"
+                size="sm"
               >
                 {exportingPDF ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <FileText className="h-4 w-4" />
                 )}
-                {exportingPDF ? "Generando PDF..." : "Exportar PDF"}
+                <span>{exportingPDF ? "Generando..." : "PDF"}</span>
               </Button>
               <Button
                 onClick={handleExportExcel}
                 disabled={exportingExcel || !selectedSessionId}
                 variant="outline"
-                className="flex-1 flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2"
+                size="sm"
               >
                 {exportingExcel ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <FileSpreadsheet className="h-4 w-4" />
                 )}
-                {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
+                <span>{exportingExcel ? "Generando..." : "Excel"}</span>
               </Button>
             </div>
             <div className="flex justify-end">
@@ -435,32 +437,34 @@ export function CloseCashRegister({ session, complexId }: { session: any; comple
                 Exporta los reportes del día antes de continuar
               </p>
             </div>
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
               <Button
                 onClick={handleExportPDF}
                 disabled={exportingPDF || !selectedSessionId}
                 variant="outline"
-                className="flex-1 flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2"
+                size="sm"
               >
                 {exportingPDF ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <FileText className="h-4 w-4" />
                 )}
-                {exportingPDF ? "Generando PDF..." : "Exportar PDF"}
+                <span>{exportingPDF ? "Generando..." : "PDF"}</span>
               </Button>
               <Button
                 onClick={handleExportExcel}
                 disabled={exportingExcel || !selectedSessionId}
                 variant="outline"
-                className="flex-1 flex items-center gap-2"
+                className="flex-1 flex items-center justify-center gap-2"
+                size="sm"
               >
                 {exportingExcel ? (
                   <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
                   <FileSpreadsheet className="h-4 w-4" />
                 )}
-                {exportingExcel ? "Generando Excel..." : "Exportar Excel"}
+                <span>{exportingExcel ? "Generando..." : "Excel"}</span>
               </Button>
             </div>
             <div className="flex justify-center pt-4">

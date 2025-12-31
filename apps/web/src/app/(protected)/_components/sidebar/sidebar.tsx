@@ -142,6 +142,14 @@ const SideBar = ({ currentUser }: SideBarProps) => {
       return true;
     }
 
+    // COMMUNITY_MANAGER ve todo MENOS Pagos y Stock
+    if (userRole === "COMMUNITY_MANAGER") {
+      if (item.path === "payments" || item.path === "stock") {
+        return false;
+      }
+      return true;
+    }
+
     // RECEPCION no ve Configuración ni Estadísticas
     if (userRole === "RECEPCION") {
       if (item.path === "settings" || item.path === "statistics") {

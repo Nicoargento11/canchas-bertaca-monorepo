@@ -104,6 +104,10 @@ export default function UsersPage() {
         label: "Recepción",
         color: "bg-yellow-50 text-yellow-700 border-yellow-200",
       },
+      COMMUNITY_MANAGER: {
+        label: "Community Manager",
+        color: "bg-pink-50 text-pink-700 border-pink-200",
+      },
       USUARIO: {
         label: "Usuario",
         color: "bg-green-50 text-green-700 border-green-200",
@@ -150,6 +154,7 @@ export default function UsersPage() {
           <option value="SUPER_ADMIN">Super Admin</option>
           <option value="ORGANIZACION_ADMIN">Admin Organización</option>
           <option value="COMPLEJO_ADMIN">Admin Complejo</option>
+          <option value="COMMUNITY_MANAGER">Community Manager</option>
           <option value="RECEPCION">Recepción</option>
           <option value="USUARIO">Usuario</option>
         </select>
@@ -366,6 +371,7 @@ function UserModal({
               >
                 <option value="USUARIO">Usuario</option>
                 <option value="RECEPCION">Recepción</option>
+                <option value="COMMUNITY_MANAGER">Community Manager</option>
                 <option value="COMPLEJO_ADMIN">Admin Complejo</option>
                 <option value="ORGANIZACION_ADMIN">Admin Organización</option>
                 <option value="SUPER_ADMIN">Super Admin</option>
