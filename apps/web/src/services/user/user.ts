@@ -16,6 +16,7 @@ export type Role =
   | "ORGANIZACION_ADMIN"
   | "COMPLEJO_ADMIN"
   | "RECEPCION"
+  | "COMMUNITY_MANAGER"
   | "USUARIO";
 
 export type User = {
