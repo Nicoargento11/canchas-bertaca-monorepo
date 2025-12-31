@@ -85,7 +85,7 @@ export default function PlayerProfile({ userData }: PlayerProfileProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white overflow-x-hidden">
       {/* Back Button - Fixed Top Left on Mobile */}
       <div className="sticky top-0 z-20 bg-gray-950/90 backdrop-blur-lg border-b border-white/10 md:hidden">
         <div className="container mx-auto px-4 py-3">
@@ -166,7 +166,7 @@ export default function PlayerProfile({ userData }: PlayerProfileProps) {
           {/* Tab Contents */}
           <div className="pb-20 md:pb-8">
             {/* Upcoming Bookings */}
-            <TabsContent value="upcoming" className="mt-0">
+            <TabsContent value="upcoming" className="mt-0 pt-4">
               <UpcomingBookings reserves={activeReserves} onCancelBooking={handleCancelBooking} />
             </TabsContent>
 
