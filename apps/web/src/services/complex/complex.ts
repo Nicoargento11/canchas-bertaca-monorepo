@@ -215,6 +215,17 @@ export const checkMercadoPagoStatus = async (
   }
 };
 
+export const getMercadoPagoPublicKey = async (
+  complexId: string
+): Promise<ComplexResult<{ publicKey: string }>> => {
+  try {
+    const response = await api.get(`/complexes/${complexId}/mercadopago/public-key`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleComplexError(error);
+  }
+};
+
 export const deactivateMercadoPagoConfig = async (complexId: string): Promise<ComplexResult> => {
   try {
     const response = await api.delete(`/complexes/${complexId}/mercadopago`);

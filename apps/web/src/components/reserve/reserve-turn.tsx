@@ -41,7 +41,9 @@ import { Input } from "../ui/input";
 import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
 import { PromoSummary } from "@/components/promotions/PromoSummary";
 import { Promotion } from "@/services/promotion/promotion";
+import { getMercadoPagoPublicKey } from "@/services/complex/complex";
 
+// Inicialización por defecto (se re-inicializará con la clave del complejo)
 initMercadoPago(process.env.NEXT_PUBLIC_MP_PUBLIC_KEY as string, {
   locale: "es-AR",
 });
@@ -53,7 +55,12 @@ interface ReserveTurnProps {
   promotions?: Promotion[];
 }
 
-const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportType, promotions }) => {
+const ReserveTurn: React.FC<ReserveTurnProps> = ({
+  currentUser,
+  complex,
+  sportType,
+  promotions,
+}) => {
   const { state, updateReservationForm, getCurrentReservation } = useReserve();
   const reservationData = getCurrentReservation();
   const { closeModal, openModal } = useModal();
@@ -64,6 +71,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
   const [preferenceId, setPreferenceId] = useState<string | null>();
   const [initPoint, setInitPoint] = useState<string | null>(null);
   const [user, setUser] = useState<User | undefined>(undefined);
+  const [mpInitialized, setMpInitialized] = useState(false);
 
   const courtData = complex.courts.find((court) => court.id === reservationData?.form.field);
 
@@ -98,6 +106,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
     const loadData = async () => {
       setLoading(true);
       try {
+        // 1. Cargar datos del usuario y precios
         const { data: userData } = await getUserById(currentUser.user.id);
         setUser(userData);
 
@@ -114,9 +123,31 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
           phone: userData?.phone || localStorage.getItem("phone") || "",
         };
 
-        // Solo resetear si los valores son diferentes
-
         form.reset(newValues);
+
+        // 2. Inicializar MercadoPago con la clave del complejo
+        try {
+          const mpConfigResult = await getMercadoPagoPublicKey(complex.id);
+
+          if (mpConfigResult.success && mpConfigResult.data?.publicKey) {
+            // Re-inicializar MercadoPago con la publicKey del complejo
+            console.log("🔄 Inicializando MercadoPago con clave del complejo:", complex.name);
+            initMercadoPago(mpConfigResult.data.publicKey, {
+              locale: "es-AR",
+            });
+            setMpInitialized(true);
+          } else {
+            // Si no hay config específica, usar la clave global como fallback
+            console.warn(
+              "⚠️ No se encontró configuración de MP para el complejo, usando clave global"
+            );
+            setMpInitialized(true);
+          }
+        } catch (mpError) {
+          console.error("Error al obtener configuración de MercadoPago:", mpError);
+          // Continuar con la clave global
+          setMpInitialized(true);
+        }
       } catch (error: any) {
         console.error("Error loading reservation data:", error);
         if (error.message === "Price calculation failed") {
@@ -290,7 +321,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
           >
             <div className="w-12 h-12 flex items-center justify-center">
               <img
-                src={`/images/${isSeven ? 'seven' : 'bertaca'}_logo.png`}
+                src={`/images/${isSeven ? "seven" : "bertaca"}_logo.png`}
                 alt={complex.name}
                 className="w-full h-full object-contain"
               />
@@ -348,15 +379,17 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   name="reservationAmount"
                   render={({ field }) => {
                     const priceInfo = calculateFinalPrice(form.getValues("price"));
-                    const discountRatio = priceInfo.originalPrice > 0 ? priceInfo.finalPrice / priceInfo.originalPrice : 1;
+                    const discountRatio =
+                      priceInfo.originalPrice > 0
+                        ? priceInfo.finalPrice / priceInfo.originalPrice
+                        : 1;
                     const adjustedAmount = Math.round(field.value * discountRatio);
 
                     return (
                       <FormItem className="flex items-center gap-4">
                         <Coins className="text-Complementary" size={30} />
                         <span className="text-lg font-semibold text-white">
-                          Reserva/seña $
-                          {adjustedAmount.toLocaleString("es-AR")}
+                          Reserva/seña ${adjustedAmount.toLocaleString("es-AR")}
                         </span>
                       </FormItem>
                     );
@@ -384,13 +417,11 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                               </span>
                             </>
                           ) : (
-                            <span>
-                              ${field.value.toLocaleString("es-AR")}
-                            </span>
+                            <span>${field.value.toLocaleString("es-AR")}</span>
                           )}
                         </span>
                       </FormItem>
-                    )
+                    );
                   }}
                 />
 
@@ -514,10 +545,21 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
                   </p>
                 </div>
               )}
+
+              {/* Mostrar estado de carga si hay preferenceId pero MP no está listo */}
+              {preferenceId && !mpInitialized && (
+                <div className="flex flex-col items-center justify-center gap-3 py-6 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <div className="w-8 h-8 border-3 border-yellow-500 border-t-transparent rounded-full animate-spin" />
+                  <p className="text-yellow-700 font-medium">Inicializando MercadoPago...</p>
+                  <p className="text-yellow-600 text-sm text-center">
+                    Cargando configuración de pago del complejo
+                  </p>
+                </div>
+              )}
             </form>
 
             {/* Integración de MercadoPago mejorada */}
-            {preferenceId && (
+            {preferenceId && mpInitialized && (
               <div className="space-y-6">
                 <div className="text-center py-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex justify-center mb-3">
@@ -531,8 +573,11 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({ currentUser, complex, sportTy
 
                 <Wallet
                   initialization={{ preferenceId: preferenceId }}
-                  onReady={() => { }}
+                  onReady={() => {
+                    console.log("✅ Wallet de MercadoPago cargado correctamente");
+                  }}
                   onError={(error) => {
+                    console.error("❌ Error en Wallet de MercadoPago:", error);
                     setError("Error al cargar MercadoPago. Usa el botón alternativo.");
                     setIsProcessingPayment(false);
                   }}

@@ -12,7 +12,7 @@ import { MercadoPagoConfig, OAuth } from 'mercadopago';
 
 @Injectable()
 export class ComplexService {
-  constructor(private prisma: PrismaService) { }
+  constructor(private prisma: PrismaService) {}
 
   async create(data: CreateComplexDto): Promise<Complex> {
     try {
@@ -429,6 +429,27 @@ export class ComplexService {
     }
 
     return config;
+  }
+
+  /**
+   * Obtener solo la Public Key de MercadoPago (endpoint público)
+   */
+  async getMercadoPagoPublicKey(complexId: string) {
+    const config = await this.prisma.paymentConfig.findUnique({
+      where: { complexId },
+      select: {
+        publicKey: true,
+        isActive: true,
+      },
+    });
+
+    if (!config || !config.isActive) {
+      throw new NotFoundException(
+        'No se encontró configuración activa de MercadoPago para este complejo',
+      );
+    }
+
+    return { publicKey: config.publicKey };
   }
 
   /**

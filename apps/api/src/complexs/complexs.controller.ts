@@ -184,6 +184,18 @@ export class ComplexController {
     return { hasConfig };
   }
 
+  @Get(':id/mercadopago/public-key')
+  @ApiOperation({
+    summary: 'Obtener Public Key de MercadoPago (endpoint público)',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Public Key de MercadoPago para inicializar el SDK',
+  })
+  async getMercadoPagoPublicKey(@Param('id') complexId: string) {
+    return await this.complexService.getMercadoPagoPublicKey(complexId);
+  }
+
   @Delete(':id/mercadopago')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
