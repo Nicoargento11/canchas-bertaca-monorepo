@@ -22,9 +22,7 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label"; // Dejar imports UI por si acaso, aunque se usen menos
 import { Loader2, Search, Filter } from "lucide-react";
 import {
     Select,
@@ -33,13 +31,16 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Complex } from "@/services/complex/complex";
+import CreatePromotion from "./createPromotion";
 
 interface EditPromotionsProps {
     initialData: Promotion[];
+    complex: Complex;
 }
 
-const EditPromotions = ({ initialData }: EditPromotionsProps) => {
-    const { promotions, setPromotions, updatePromotion: updateInStore, deletePromotion: deleteFromStore, togglePromotionStatus } = usePromotionStore();
+const EditPromotions = ({ initialData, complex }: EditPromotionsProps) => {
+    const { promotions, setPromotions, deletePromotion: deleteFromStore, togglePromotionStatus } = usePromotionStore();
 
     const [isPending, startTransition] = useTransition();
     const [searchTerm, setSearchTerm] = useState("");
@@ -49,7 +50,6 @@ const EditPromotions = ({ initialData }: EditPromotionsProps) => {
     // Estados para modales
     const [promotionToDelete, setPromotionToDelete] = useState<Promotion | null>(null);
     const [promotionToEdit, setPromotionToEdit] = useState<Promotion | null>(null);
-    const [editForm, setEditForm] = useState({ name: "", description: "", value: 0 });
 
     useEffect(() => {
         // Siempre actualizar con los datos del servidor
@@ -122,31 +122,6 @@ const EditPromotions = ({ initialData }: EditPromotionsProps) => {
 
     const handleEdit = (promotion: Promotion) => {
         setPromotionToEdit(promotion);
-        setEditForm({
-            name: promotion.name,
-            description: promotion.description || "",
-            value: promotion.value || 0,
-        });
-    };
-
-    const handleSaveEdit = async () => {
-        if (!promotionToEdit) return;
-
-        startTransition(async () => {
-            try {
-                const result = await updatePromotion(promotionToEdit.id, editForm);
-                if (result.success && result.data) {
-                    updateInStore(promotionToEdit.id, result.data);
-                    toast.success("Promoción actualizada");
-                    setPromotionToEdit(null);
-                } else {
-                    toast.error(result.error || "Error al actualizar");
-                }
-            } catch (error) {
-                toast.error("Error inesperado");
-                console.error(error);
-            }
-        });
     };
 
     return (
@@ -251,59 +226,21 @@ const EditPromotions = ({ initialData }: EditPromotionsProps) => {
                 </AlertDialogContent>
             </AlertDialog>
 
-            {/* Modal de edición rápida */}
-            <Dialog open={!!promotionToEdit} onOpenChange={() => setPromotionToEdit(null)}>
-                <DialogContent>
-                    <DialogHeader>
+            {/* Modal de edición COMPLETA (Reutilizando CreatePromotion) */}
+            <Dialog open={!!promotionToEdit} onOpenChange={(open) => !open && setPromotionToEdit(null)}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-full p-2 sm:p-6" aria-describedby={undefined}>
+                    <DialogHeader className="sr-only">
                         <DialogTitle>Editar Promoción</DialogTitle>
                     </DialogHeader>
-                    <div className="space-y-4 py-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-name">Nombre</Label>
-                            <Input
-                                id="edit-name"
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                            />
-                        </div>
-                        <div className="space-y-2">
-                            <Label htmlFor="edit-description">Descripción</Label>
-                            <Textarea
-                                id="edit-description"
-                                value={editForm.description}
-                                onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-                                rows={2}
-                            />
-                        </div>
-                        {promotionToEdit?.type !== "GIFT_PRODUCT" && (
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-value">
-                                    {promotionToEdit?.type === "PERCENTAGE_DISCOUNT" ? "Porcentaje" : "Monto"}
-                                </Label>
-                                <Input
-                                    id="edit-value"
-                                    type="number"
-                                    value={editForm.value}
-                                    onChange={(e) => setEditForm({ ...editForm, value: Number(e.target.value) })}
-                                />
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex justify-end gap-2">
-                        <Button variant="outline" onClick={() => setPromotionToEdit(null)} disabled={isPending}>
-                            Cancelar
-                        </Button>
-                        <Button onClick={handleSaveEdit} disabled={isPending}>
-                            {isPending ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Guardando...
-                                </>
-                            ) : (
-                                "Guardar"
-                            )}
-                        </Button>
-                    </div>
+                    {promotionToEdit && (
+                        <CreatePromotion
+                            complex={complex}
+                            initialData={promotionToEdit}
+                            isModal={true}
+                            onSuccess={() => setPromotionToEdit(null)}
+                            onCancel={() => setPromotionToEdit(null)}
+                        />
+                    )}
                 </DialogContent>
             </Dialog>
         </div>

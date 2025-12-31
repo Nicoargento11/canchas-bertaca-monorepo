@@ -23,14 +23,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { createPromotion, PromotionType } from "@/services/promotion/promotion";
-import { useTransition, useState } from "react";
+import { createPromotion, updatePromotion, Promotion, PromotionType } from "@/services/promotion/promotion";
+import { useTransition, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Complex } from "@/services/complex/complex";
 import { usePromotionStore } from "@/store/settings/promotionStore";
-import { Loader2, Plus, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { Loader2, Plus, ChevronDown, ChevronUp, Trash2, Save } from "lucide-react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { GiftProductInput } from "@/services/promotion/promotion";
+import { format } from "date-fns";
 
 const promotionSchema = z.object({
     name: z.string().min(1, "El nombre es requerido"),
@@ -68,6 +69,10 @@ type PromotionFormData = z.infer<typeof promotionSchema>;
 
 interface CreatePromotionProps {
     complex: Complex;
+    initialData?: Promotion;
+    onSuccess?: () => void;
+    onCancel?: () => void;
+    isModal?: boolean;
 }
 
 const DAYS_OF_WEEK = [
@@ -100,33 +105,38 @@ const TIME_SLOTS = Array.from({ length: 48 }, (_, i) => {
     return `${hours}:${minutes}`;
 });
 
-const CreatePromotion = ({ complex }: CreatePromotionProps) => {
-    const { addPromotion } = usePromotionStore();
+const CreatePromotion = ({ complex, initialData, onSuccess, onCancel, isModal = false }: CreatePromotionProps) => {
+    const { addPromotion, updatePromotion: updateInStore } = usePromotionStore();
     const [isPending, startTransition] = useTransition();
-    const [showAdvanced, setShowAdvanced] = useState(false);
+    const [showAdvanced, setShowAdvanced] = useState(!!initialData); // Expandir avanzadas si es edición
+
     // Estado para múltiples productos regalo
-    const [giftProducts, setGiftProducts] = useState<GiftProductInput[]>([]);
+    const [giftProducts, setGiftProducts] = useState<GiftProductInput[]>(
+        initialData?.giftProducts?.map(gp => ({ productId: gp.productId, quantity: gp.quantity })) ||
+        (initialData?.giftProduct ? [{ productId: initialData.giftProduct.id, quantity: 1 }] : []) ||
+        []
+    );
 
     const form = useForm<PromotionFormData>({
         resolver: zodResolver(promotionSchema),
         defaultValues: {
-            name: "",
-            description: "",
-            code: "",
-            isActive: true,
-            type: "PERCENTAGE_DISCOUNT",
-            value: 0,
-            daysOfWeek: [],
-            startTime: "",
-            endTime: "",
-            validFrom: "",
-            validTo: "",
-            sportTypeId: "",
-            courtId: "",
+            name: initialData?.name || "",
+            description: initialData?.description || "",
+            code: initialData?.code || "",
+            isActive: initialData?.isActive ?? true,
+            type: (initialData?.type as any) || "PERCENTAGE_DISCOUNT",
+            value: initialData?.value || 0,
+            daysOfWeek: initialData?.daysOfWeek || [],
+            startTime: initialData?.startTime || "",
+            endTime: initialData?.endTime || "",
+            validFrom: initialData?.validFrom ? format(new Date(initialData.validFrom), "yyyy-MM-dd") : "",
+            validTo: initialData?.validTo ? format(new Date(initialData.validTo), "yyyy-MM-dd") : "",
+            sportTypeId: initialData?.sportTypeId || "all",
+            courtId: initialData?.courtId || "all",
             giftProductId: "",
-            targetProductId: "",
-            buyQuantity: 2,
-            payQuantity: 1,
+            targetProductId: initialData?.targetProductId || "",
+            buyQuantity: initialData?.buyQuantity || 2,
+            payQuantity: initialData?.payQuantity || 1,
         },
     });
 
@@ -141,7 +151,7 @@ const CreatePromotion = ({ complex }: CreatePromotionProps) => {
     const onSubmit = async (data: PromotionFormData) => {
         startTransition(async () => {
             try {
-                const result = await createPromotion({
+                const payload = {
                     ...data,
                     complexId: complex.id,
                     sportTypeId: data.sportTypeId === "all" ? undefined : data.sportTypeId || undefined,
@@ -158,29 +168,46 @@ const CreatePromotion = ({ complex }: CreatePromotionProps) => {
                     startTime: data.startTime === "none" ? undefined : data.startTime || undefined,
                     endTime: data.endTime === "none" ? undefined : data.endTime || undefined,
                     code: data.code || undefined,
-                });
+                };
 
-                if (result.success && result.data) {
-                    toast.success("Promoción creada exitosamente");
-                    addPromotion(result.data);
-                    form.reset();
-                    setGiftProducts([]);
-                    setShowAdvanced(false);
+                let result;
+
+                if (initialData) {
+                    result = await updatePromotion(initialData.id, payload);
+                    if (result.success && result.data) {
+                        toast.success("Promoción actualizada exitosamente");
+                        updateInStore(initialData.id, result.data);
+                        onSuccess?.();
+                    }
                 } else {
-                    toast.error(result.error || "Error al crear la promoción");
+                    result = await createPromotion(payload);
+                    if (result.success && result.data) {
+                        toast.success("Promoción creada exitosamente");
+                        addPromotion(result.data);
+                        form.reset();
+                        setGiftProducts([]);
+                        setShowAdvanced(false);
+                        onSuccess?.();
+                    }
+                }
+
+                if (!result.success) {
+                    toast.error(result.error || "Error al procesar la promoción");
                 }
             } catch (error) {
                 toast.error("Ocurrió un error inesperado");
-                console.error("Error creating promotion:", error);
+                console.error("Error promotion:", error);
             }
         });
     };
 
     return (
-        <div className="p-6 bg-white rounded-lg border border-gray-200 shadow-sm">
-            <div className="mb-6">
-                <h1 className="text-2xl font-semibold text-gray-800">Nueva Promoción</h1>
-                <p className="text-sm text-gray-500 mt-1">Configure los detalles del descuento</p>
+        <div className={isModal ? "p-1" : "p-6 bg-white rounded-lg border border-gray-200 shadow-sm"}>
+            <div className="mb-6 flex justify-between items-center">
+                <div>
+                    <h1 className="text-2xl font-semibold text-gray-800">{initialData ? "Editar Promoción" : "Nueva Promoción"}</h1>
+                    <p className="text-sm text-gray-500 mt-1">{initialData ? "Modifica los detalles de la promoción" : "Configure los detalles del descuento"}</p>
+                </div>
             </div>
 
             <Form {...form}>
@@ -383,7 +410,9 @@ const CreatePromotion = ({ complex }: CreatePromotionProps) => {
                                 </div>
 
                                 {giftProducts.length === 0 && (
-                                    <p className="text-sm text-gray-500">Seleccioná al menos un producto para regalar</p>
+                                    <div className="p-3 bg-blue-50 text-blue-700 rounded-md text-sm border border-blue-200">
+                                        💡 Si dejas esto vacío, el empleado deberá elegir el producto (ej: Coca o Sprite) al momento de cobrar.
+                                    </div>
                                 )}
                             </div>
                         )}
@@ -695,23 +724,37 @@ const CreatePromotion = ({ complex }: CreatePromotionProps) => {
                     </Collapsible>
 
                     {/* Botón de envío */}
-                    <Button
-                        type="submit"
-                        className="w-full bg-gray-800 hover:bg-gray-700 text-white"
-                        disabled={isPending}
-                    >
-                        {isPending ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Creando...
-                            </>
-                        ) : (
-                            <>
-                                <Plus className="mr-2 h-4 w-4" />
-                                Crear Promoción
-                            </>
+                    {/* Botones de acción */}
+                    <div className="flex gap-3 pt-4">
+                        {onCancel && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={onCancel}
+                                className="flex-1"
+                                disabled={isPending}
+                            >
+                                Cancelar
+                            </Button>
                         )}
-                    </Button>
+                        <Button
+                            type="submit"
+                            className={onCancel ? "flex-1 bg-gray-900 hover:bg-gray-800 text-white" : "w-full bg-gray-900 hover:bg-gray-800 text-white"}
+                            disabled={isPending}
+                        >
+                            {isPending ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    {initialData ? "Guardando..." : "Creando..."}
+                                </>
+                            ) : (
+                                <>
+                                    {initialData ? <Save className="mr-2 h-4 w-4" /> : <Plus className="mr-2 h-4 w-4" />}
+                                    {initialData ? "Guardar Cambios" : "Crear Promoción"}
+                                </>
+                            )}
+                        </Button>
+                    </div>
                 </form>
             </Form>
         </div>

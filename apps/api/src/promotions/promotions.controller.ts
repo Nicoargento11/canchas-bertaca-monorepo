@@ -9,7 +9,12 @@ import {
   Patch,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../auth/guards/roles.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 import { PromotionsService } from './promotions.service';
 import { CreatePromotionDto } from './dto/create-promotion.dto';
 import { UpdatePromotionDto } from './dto/update-promotion.dto';
@@ -20,6 +25,7 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 
 @ApiTags('promotions')
@@ -43,6 +49,9 @@ export class PromotionsController {
     status: 409,
     description: 'Ya existe una promoción con ese código',
   })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN, Role.COMMUNITY_MANAGER)
   async create(
     @Body() createPromotionDto: CreatePromotionDto,
   ): Promise<PromotionResponseDto> {
@@ -182,6 +191,9 @@ export class PromotionsController {
     status: 409,
     description: 'Ya existe una promoción con ese código',
   })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN, Role.COMMUNITY_MANAGER)
   async update(
     @Param('id') id: string,
     @Body() updatePromotionDto: UpdatePromotionDto,
@@ -197,6 +209,9 @@ export class PromotionsController {
     description: 'Promoción desactivada',
   })
   @ApiResponse({ status: 404, description: 'Promoción no encontrada' })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN, Role.COMMUNITY_MANAGER)
   async deactivate(@Param('id') id: string) {
     return this.promotionsService.deactivate(id);
   }
@@ -208,9 +223,11 @@ export class PromotionsController {
   @ApiResponse({ status: 204, description: 'Promoción eliminada' })
   @ApiResponse({ status: 404, description: 'Promoción no encontrada' })
   @ApiResponse({
-    status: 409,
     description: 'No se puede eliminar porque tiene usos registrados',
   })
+  @ApiBearerAuth()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN, Role.COMMUNITY_MANAGER)
   async remove(@Param('id') id: string): Promise<void> {
     return this.promotionsService.delete(id);
   }
