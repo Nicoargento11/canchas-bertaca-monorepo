@@ -45,7 +45,7 @@ export class FixedReservesController {
   ): Promise<FixedReserve[]> {
     return this.fixedReservesService.findAll(
       complexId,
-      dayOfWeek ? Number(dayOfWeek) : undefined,
+      dayOfWeek !== undefined ? Number(dayOfWeek) : undefined,
     );
   }
 
