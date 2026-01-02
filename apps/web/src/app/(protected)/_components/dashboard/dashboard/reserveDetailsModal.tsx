@@ -162,7 +162,18 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
                       className="h-7 px-2 bg-green-600/10 hover:bg-green-600/20 border-green-600/30 text-green-400 hover:text-green-300"
                       onClick={() => {
                         // Format phone for WhatsApp (remove spaces, dashes, etc)
-                        const cleanPhone = reserve.phone!.replace(/[^0-9+]/g, "");
+                        let cleanPhone = reserve.phone!.replace(/[^0-9]/g, "");
+
+                        // Fix for Argentina numbers
+                        // Case 1: 10 digits (Area code + number), missing country code
+                        if (cleanPhone.length === 10) {
+                          cleanPhone = `549${cleanPhone}`;
+                        }
+                        // Case 2: 12 digits starting with 54 (Country code + Area code + number), missing mobile prefix 9
+                        else if (cleanPhone.length === 12 && cleanPhone.startsWith("54")) {
+                          cleanPhone = `549${cleanPhone.substring(2)}`;
+                        }
+
                         const message = `Hola ${reserve.clientName || reserve.user.name}, te contacto sobre tu reserva del ${date ? format(new Date(date), "dd/MM/yyyy") : ""} a las ${reserve.schedule} en Cancha ${reserve.court.courtNumber}.`;
                         const url = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(message)}`;
                         window.open(url, "_blank");
