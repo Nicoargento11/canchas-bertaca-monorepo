@@ -299,51 +299,51 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
         </Card>
 
         {/* Promoción Aplicada */}
-        {reserve.promotion && (() => {
-          const promo = reserve.promotion;
-          let promoDescription = "";
+        {reserve.promotion &&
+          (() => {
+            const promo = reserve.promotion;
+            let promoDescription = "";
 
-          if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
-            promoDescription = `${promo.value}% de descuento`;
-          } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
-            promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
-          } else if (promo.type === "GIFT_PRODUCT") {
-            if (promo.giftProducts && promo.giftProducts.length > 0) {
-              promoDescription = promo.giftProducts
-                .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
-                .join(", ");
-            } else {
-              promoDescription = "Producto de regalo incluido";
+            if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
+              promoDescription = `${promo.value}% de descuento`;
+            } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
+              promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
+            } else if (promo.type === "GIFT_PRODUCT") {
+              if (promo.giftProducts && promo.giftProducts.length > 0) {
+                promoDescription = promo.giftProducts
+                  .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
+                  .join(", ");
+              } else {
+                promoDescription = "Producto de regalo incluido";
+              }
             }
-          }
 
-          return (
-            <Card className="bg-amber-500/10 border-amber-500/30">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <div className="p-2 rounded-full bg-amber-500/20">
-                    <Gift className="text-amber-400" size={24} />
+            return (
+              <Card className="bg-amber-500/10 border-amber-500/30">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-4">
+                    <div className="p-2 rounded-full bg-amber-500/20">
+                      <Gift className="text-amber-400" size={24} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
+                      <p className="font-medium text-amber-300">{promo.name}</p>
+                      <p className="text-xs text-amber-400/60">{promoDescription}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
-                    <p className="font-medium text-amber-300">{promo.name}</p>
-                    <p className="text-xs text-amber-400/60">{promoDescription}</p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          );
-        })()}
+                </CardContent>
+              </Card>
+            );
+          })()}
 
-        {canEditReservation(new Date(reserve.date)) &&
-          userSession?.user.role !== "RECEPCION" && (
-            <Button
-              className="w-full bg-Primary hover:bg-Primary-dark text-white py-4 text-base font-medium"
-              onClick={() => handleChangeEditReserve()}
-            >
-              Editar Reserva
-            </Button>
-          )}
+        {canEditReservation(new Date(reserve.date)) && userSession?.user.role !== "RECEPCION" && (
+          <Button
+            className="w-full bg-Primary hover:bg-Primary-dark text-white py-4 text-base font-medium"
+            onClick={() => handleChangeEditReserve()}
+          >
+            Editar Reserva
+          </Button>
+        )}
 
         {(userSession?.user.role === "COMPLEJO_ADMIN" ||
           userSession?.user.role === "COMMUNITY_MANAGER" ||
