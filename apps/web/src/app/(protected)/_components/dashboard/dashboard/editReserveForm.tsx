@@ -1,5 +1,5 @@
 "use client";
-import { Clock9, CalendarDays, CircleUserRound, Icon } from "lucide-react";
+import { Clock9, CalendarDays, CircleUserRound, Icon, Coins } from "lucide-react";
 import { soccerPitch } from "@lucide/lab";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -58,6 +58,7 @@ export const EditReserveForm = () => {
             date: date,
             schedule: reserve.schedule,
             clientName: reserve.clientName || reserve.user.name,
+            reservationAmount: reserve.reservationAmount || 0,
           }
         : undefined,
   });
@@ -246,6 +247,31 @@ export const EditReserveForm = () => {
                       {...field}
                       disabled={isPending}
                       placeholder="Nombre completo"
+                      className="bg-white/5 border-white/10 text-lg text-white placeholder:text-white/30"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Campo Seña */}
+            <FormField
+              control={form.control}
+              name="reservationAmount"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-white/80">
+                    <Coins className="text-Primary" size={20} />
+                    Seña / Reserva
+                  </FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      {...field}
+                      onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
+                      disabled={isPending}
+                      placeholder="Monto de seña"
                       className="bg-white/5 border-white/10 text-lg text-white placeholder:text-white/30"
                     />
                   </FormControl>

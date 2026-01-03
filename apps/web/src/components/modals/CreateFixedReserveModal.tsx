@@ -19,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import {
   createFixedReserve,
   updateFixedReserve,
@@ -67,24 +67,27 @@ export const CreateFixedReserveModal = ({
   initialData,
   editingReserve,
 }: CreateFixedReserveModalProps) => {
-  const { toast } = useToast();
   const { state } = useReservationDashboard();
 
   // Calculate next occurrence date for promotion check
-  const nextOccurrenceDate = initialData ? (() => {
-    const today = new Date();
-    const targetDay = initialData.dayOfWeek;
-    const diff = (targetDay - today.getDay() + 7) % 7;
-    const targetDate = new Date(today);
-    targetDate.setDate(today.getDate() + (diff === 0 ? 0 : diff));
-    return targetDate;
-  })() : undefined;
+  const nextOccurrenceDate = initialData
+    ? (() => {
+        const today = new Date();
+        const targetDay = initialData.dayOfWeek;
+        const diff = (targetDay - today.getDay() + 7) % 7;
+        const targetDate = new Date(today);
+        targetDate.setDate(today.getDate() + (diff === 0 ? 0 : diff));
+        return targetDate;
+      })()
+    : undefined;
 
   // Use same hook as reserveForm to find applicable promotions
   const { bestPromotion } = useApplicablePromotions({
     promotions: complex.promotions,
     date: nextOccurrenceDate,
-    schedule: initialData ? `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}` : undefined,
+    schedule: initialData
+      ? `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}`
+      : undefined,
     courtId: initialData?.courtId,
     sportTypeId: initialData?.sportType.id,
   });
@@ -168,11 +171,7 @@ export const CreateFixedReserveModal = ({
 
   const handleCreateUser = async () => {
     if (!newUserName || !newUserPhone) {
-      toast({
-        title: "Error",
-        description: "Nombre y teléfono son requeridos",
-        variant: "destructive",
-      });
+      toast.error("Nombre y teléfono son requeridos");
       return;
     }
 
@@ -189,20 +188,12 @@ export const CreateFixedReserveModal = ({
       if (result.success && result.data) {
         setSelectedUser(result.data);
         setStep("DETAILS");
-        toast({ title: "Usuario creado", description: "El usuario ha sido creado exitosamente." });
+        toast.success("Usuario creado exitosamente");
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "No se pudo crear el usuario",
-          variant: "destructive",
-        });
+        toast.error(result.error || "Error al crear el usuario");
       }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Ocurrió un error al crear el usuario",
-        variant: "destructive",
-      });
+      toast.error("Ocurrió un error al crear el usuario");
     } finally {
       setIsLoading(false);
     }
@@ -218,11 +209,7 @@ export const CreateFixedReserveModal = ({
       const scheduleDay = complex.scheduleDays.find((sd) => sd.dayOfWeek === dayId);
 
       if (!scheduleDay) {
-        toast({
-          title: "Error",
-          description: "Día no válido para este complejo",
-          variant: "destructive",
-        });
+        toast.error("Día no válido para este complejo");
         return;
       }
 
@@ -254,18 +241,21 @@ export const CreateFixedReserveModal = ({
       });
 
       if (result.success) {
-        toast({ title: "Éxito", description: "Reserva fija actualizada." });
+        if (result.data?.instanceError) {
+          toast.warning(
+            `Reserva actualizada, pero la instancia de hoy no se pudo actualizar: ${result.data.instanceError}`,
+            { duration: 6000 }
+          );
+        } else {
+          toast.success("Reserva fija actualizada");
+        }
         onSuccess();
         onClose();
       } else {
-        toast({
-          title: "Error",
-          description: result.error || "Error al actualizar",
-          variant: "destructive",
-        });
+        toast.error(result.error || "Error al actualizar");
       }
     } catch (error) {
-      toast({ title: "Error", description: "Error al actualizar", variant: "destructive" });
+      toast.error("Error al actualizar");
     } finally {
       setIsLoading(false);
     }
@@ -285,27 +275,30 @@ export const CreateFixedReserveModal = ({
 
         // Find the correct rate from the backend data (reservationsByDay)
         const scheduleKey = `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}`;
-        const reservationSlot = state.reservationsByDay?.find(r => r.schedule === scheduleKey);
+        const reservationSlot = state.reservationsByDay?.find((r) => r.schedule === scheduleKey);
 
         let rateId = complex.rates[0]?.id; // Fallback
 
         if (reservationSlot?.courtInfo) {
           // Try to find rate for this specific court
           const courtData = reservationSlot.courtInfo.courts?.find(
-            c => c.courtId === initialData.courtId
+            (c) => c.courtId === initialData.courtId
           );
 
           if (courtData?.rates && courtData.rates.length > 0) {
             rateId = courtData.rates[0].id;
-          } else if (reservationSlot.courtInfo.rates && reservationSlot.courtInfo.rates.length > 0) {
+          } else if (
+            reservationSlot.courtInfo.rates &&
+            reservationSlot.courtInfo.rates.length > 0
+          ) {
             rateId = reservationSlot.courtInfo.rates[0].id;
           }
         }
 
         return createFixedReserve({
-          startTime: initialData.startTime,
-          endTime: initialData.endTime,
-          courtId: initialData.courtId,
+          startTime: formData.startTime,
+          endTime: formData.endTime,
+          courtId: formData.courtId,
           scheduleDayId: scheduleDay.id,
           rateId: rateId,
           userId: selectedUser.id,
@@ -316,17 +309,28 @@ export const CreateFixedReserveModal = ({
         });
       });
 
-      await Promise.all(promises);
+      const results = await Promise.all(promises);
+      const failed = results.filter((r) => r && !r.success);
+      const warnings = results
+        .filter((r) => r && r.success && r.data?.instanceError)
+        .map((r) => r?.data?.instanceError);
 
-      toast({ title: "Éxito", description: "Turnos fijos creados correctamente." });
-      onSuccess();
-      onClose();
+      if (failed.length > 0) {
+        toast.error(`Fallaron ${failed.length} turnos: ${failed.map((f) => f?.error).join(", ")}`);
+      } else if (warnings.length > 0) {
+        toast.warning(
+          `Turnos creados, pero algunas reservas de hoy no se generaron: ${[...new Set(warnings)].join(", ")}`,
+          { duration: 6000 }
+        );
+        onSuccess();
+        onClose();
+      } else {
+        toast.success("Turnos fijos creados correctamente");
+        onSuccess();
+        onClose();
+      }
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Error al crear los turnos fijos",
-        variant: "destructive",
-      });
+      toast.error("Error al crear los turnos fijos");
     } finally {
       setIsLoading(false);
     }
@@ -460,10 +464,11 @@ export const CreateFixedReserveModal = ({
                 <div className="grid grid-cols-2 gap-2">
                   <button
                     type="button"
-                    className={`p-3 rounded-lg border-2 transition-all ${reserveType === "FIJO"
-                      ? "border-blue-500 bg-blue-50 text-blue-700"
-                      : "border-gray-200 hover:border-gray-300"
-                      }`}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      reserveType === "FIJO"
+                        ? "border-blue-500 bg-blue-50 text-blue-700"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
                     onClick={() => setReserveType("FIJO")}
                   >
                     <div className="text-center">
@@ -474,10 +479,11 @@ export const CreateFixedReserveModal = ({
                   </button>
                   <button
                     type="button"
-                    className={`p-3 rounded-lg border-2 transition-all ${reserveType === "ESCUELA"
-                      ? "border-green-500 bg-green-50 text-green-700"
-                      : "border-gray-200 hover:border-gray-300"
-                      }`}
+                    className={`p-3 rounded-lg border-2 transition-all ${
+                      reserveType === "ESCUELA"
+                        ? "border-green-500 bg-green-50 text-green-700"
+                        : "border-gray-200 hover:border-gray-300"
+                    }`}
                     onClick={() => setReserveType("ESCUELA")}
                   >
                     <div className="text-center">
@@ -587,7 +593,11 @@ export const CreateFixedReserveModal = ({
           {step === "DETAILS" && (
             <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
               {editingReserve && (
-                <Button variant="outline" onClick={() => setStep("USER_SELECTION")} className="w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={() => setStep("USER_SELECTION")}
+                  className="w-full sm:w-auto"
+                >
                   Cambiar Cliente
                 </Button>
               )}

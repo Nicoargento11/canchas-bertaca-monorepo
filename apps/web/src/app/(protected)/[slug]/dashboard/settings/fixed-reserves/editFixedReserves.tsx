@@ -2,11 +2,12 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Check, X, Trash } from "lucide-react";
+import { Pencil, Check, X, Trash, CalendarPlus } from "lucide-react";
 import {
   deleteFixedReserve,
   updateFixedReserve,
   toggleFixedReserveStatus,
+  createFixedReserveInstance,
   FixedReserve,
 } from "@/services/fixed-reserve/fixed-reserve";
 import { useRouter } from "next/navigation";
@@ -27,6 +28,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { generateTimeOptions } from "@/utils/generateTimeOptions";
 import { Label } from "@/components/ui/label";
@@ -80,6 +90,8 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [generateInstanceId, setGenerateInstanceId] = useState<string | null>(null);
+  const [instanceDate, setInstanceDate] = useState<string>("");
 
   const handleToggle = async (id: string, isActive: boolean) => {
     setIsProcessing(true);
@@ -145,6 +157,26 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
       router.refresh();
     } catch (error) {
       toast.error("Error al eliminar turno");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleGenerateInstance = async () => {
+    if (!generateInstanceId || !instanceDate) return;
+
+    setIsProcessing(true);
+    try {
+      const { success, error } = await createFixedReserveInstance(generateInstanceId, instanceDate);
+      if (!success) {
+        throw new Error(error);
+      }
+      toast.success("Reserva generada correctamente");
+      setGenerateInstanceId(null);
+      setInstanceDate("");
+      router.refresh();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al generar reserva");
     } finally {
       setIsProcessing(false);
     }
@@ -321,6 +353,15 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
                     <Button
                       size="sm"
                       variant="outline"
+                      onClick={() => setGenerateInstanceId(schedule.id)}
+                      disabled={isProcessing}
+                      title="Generar reserva manual"
+                    >
+                      <CalendarPlus className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
                       onClick={() => setDeleteId(schedule.id)}
                       disabled={isProcessing}
                     >
@@ -359,6 +400,58 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={!!generateInstanceId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGenerateInstanceId(null);
+            setInstanceDate("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generar Reserva Manual</DialogTitle>
+            <DialogDescription>
+              Selecciona la fecha para la cual deseas generar la reserva basada en este turno fijo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="date" className="mb-2 block">
+              Fecha
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              value={instanceDate}
+              onChange={(e) => setInstanceDate(e.target.value)}
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setGenerateInstanceId(null);
+                setInstanceDate("");
+              }}
+              disabled={isProcessing}
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleGenerateInstance} disabled={!instanceDate || isProcessing}>
+              {isProcessing ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                "Generar Reserva"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

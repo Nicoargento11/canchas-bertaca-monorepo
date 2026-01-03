@@ -33,6 +33,14 @@ export class FixedReservesController {
     return this.fixedReservesService.create(createFixedReserveDto);
   }
 
+  @Post(':id/create-instance')
+  @ApiOperation({
+    summary: 'Manually create a reserve instance for a fixed reserve',
+  })
+  async createInstance(@Param('id') id: string, @Body('date') date: string) {
+    return this.fixedReservesService.createInstance(id, date);
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get all fixed reserves' })
   @ApiResponse({

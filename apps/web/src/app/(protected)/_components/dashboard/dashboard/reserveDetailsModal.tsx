@@ -347,6 +347,7 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
 
         {(userSession?.user.role === "COMPLEJO_ADMIN" ||
           userSession?.user.role === "COMMUNITY_MANAGER" ||
+          userSession?.user.role === "ORGANIZACION_ADMIN" ||
           userSession?.user.role === "SUPER_ADMIN") &&
           reserve.status !== "CANCELADO" &&
           reserve.status !== "RECHAZADO" && (

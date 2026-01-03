@@ -31,11 +31,12 @@ export const createReserveAdminSchema = z.object({
 });
 
 export const editReserveAdminSchema = z.object({
-  id: z.string(),
+  id: z.string().optional(),
   courtId: z.string(),
   date: z.date(),
   schedule: z.string(),
   clientName: z.string({ required_error: "Ingrese el nombre del cliente" }),
+  reservationAmount: z.number().optional(),
 });
 
 export const createProductSchema = z.object({
