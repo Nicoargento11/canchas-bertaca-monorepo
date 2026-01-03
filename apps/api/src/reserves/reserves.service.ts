@@ -288,6 +288,43 @@ export class ReservesService implements OnModuleInit {
   }
 
   private async updateReservation(id: string, data: UpdateReserveDto) {
+    // Si se actualiza el monto de la seña, debemos actualizar o crear el pago correspondiente
+    if (data.reservationAmount !== undefined) {
+      const reserve = await this.prisma.reserve.findUnique({
+        where: { id },
+        include: { payment: true },
+      });
+
+      if (reserve) {
+        // Buscar si ya existe un pago de tipo RESERVA (seña)
+        const existingPayment = reserve.payment.find(
+          (p) => p.transactionType === 'RESERVA' && p.isPartial === true,
+        );
+
+        if (existingPayment) {
+          // Si existe, actualizamos el monto
+          await this.prisma.payment.update({
+            where: { id: existingPayment.id },
+            data: { amount: data.reservationAmount },
+          });
+        } else if (data.reservationAmount > 0) {
+          // Si no existe y el monto es mayor a 0, creamos uno nuevo
+          // Asumimos EFECTIVO por defecto si no se especifica, o podríamos requerir más datos
+          // Para edición rápida, asumimos EFECTIVO o mantenemos consistencia
+          await this.prisma.payment.create({
+            data: {
+              amount: data.reservationAmount,
+              method: 'EFECTIVO', // Default para correcciones manuales
+              transactionType: 'RESERVA',
+              isPartial: true,
+              reserveId: id,
+              complexId: reserve.complexId,
+            },
+          });
+        }
+      }
+    }
+
     return this.prisma.reserve.update({
       where: { id },
       data: {

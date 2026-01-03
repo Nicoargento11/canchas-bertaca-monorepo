@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   TriangleAlert,
@@ -15,7 +15,9 @@ import {
   CheckCircle2,
   Eye,
   Package,
+  CalendarPlus,
 } from "lucide-react";
+import { toast } from "sonner";
 import Link from "next/link";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { format } from "date-fns";
@@ -30,7 +32,18 @@ import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { Schedule } from "@/services/schedule/schedule";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Complex } from "@/services/complex/complex";
+import { createFixedReserveInstance } from "@/services/fixed-reserve/fixed-reserve";
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { ReserveType, Status } from "@/services/reserve/reserve";
 import { SportType } from "@/services/sport-types/sport-types";
@@ -82,6 +95,12 @@ const BiTableDay: React.FC<TableReservesProps> = ({
     (state) => state
   );
   const selectedDate = date && format(date, "yyyy-MM-dd");
+  const [generateInstanceModal, setGenerateInstanceModal] = useState<{
+    isOpen: boolean;
+    fixedReserveId: string | null;
+    date: string;
+  }>({ isOpen: false, fixedReserveId: null, date: "" });
+  const [isGenerating, setIsGenerating] = useState(false);
 
   // Efecto para inicializar la fecha en el cliente después de la hidratación
   useEffect(() => {
@@ -101,6 +120,31 @@ const BiTableDay: React.FC<TableReservesProps> = ({
   const handleOpenCompletedDetailsModal = (reserve: any) => {
     setReserve(reserve);
     handleChangeCompletedDetails();
+  };
+
+  const handleGenerateInstance = async () => {
+    if (!generateInstanceModal.fixedReserveId || !generateInstanceModal.date) return;
+
+    setIsGenerating(true);
+    try {
+      const { success, error } = await createFixedReserveInstance(
+        generateInstanceModal.fixedReserveId,
+        generateInstanceModal.date
+      );
+      if (!success) {
+        throw new Error(error);
+      }
+      toast.success("Reserva generada correctamente");
+      setGenerateInstanceModal({ isOpen: false, fixedReserveId: null, date: "" });
+      // Refrescar las reservas
+      if (selectedDate && complex) {
+        await fetchReservationsByDay(selectedDate, complex.id, sportType.id);
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Error al generar reserva");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -433,18 +477,38 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                               </div>
                               {/* Botón de completar */}
                               {isReserved.status === "APROBADO" && (
-                                <div className="flex gap-1 mt-1">
+                                <div className="flex flex-col sm:flex-row gap-1 mt-1">
                                   <Button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleOpenCompleteModal(isReserved);
                                     }}
                                     size="sm"
-                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 h-8 text-xs min-w-[44px]"
+                                    className="bg-emerald-600 hover:bg-emerald-700 text-white px-2 py-1 h-8 text-xs w-full sm:w-auto sm:min-w-[44px]"
                                   >
                                     <CheckCircle2 size={14} />
-                                    <span className="hidden md:inline ml-1">Completar</span>
+                                    <span className="hidden sm:inline ml-1">Completar</span>
                                   </Button>
+                                  {/* Botón de generar instancia para FIJO */}
+                                  {isReserved.reserveType === "FIJO" &&
+                                    isReserved.fixedReserveId && (
+                                      <Button
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setGenerateInstanceModal({
+                                            isOpen: true,
+                                            fixedReserveId: isReserved.fixedReserveId!,
+                                            date: "",
+                                          });
+                                        }}
+                                        size="sm"
+                                        className="bg-violet-600 hover:bg-violet-700 text-white px-2 py-1 h-8 text-xs w-full sm:w-auto sm:min-w-[44px]"
+                                        title="Generar reserva manual"
+                                      >
+                                        <CalendarPlus size={14} />
+                                        <span className="hidden sm:inline ml-1">Generar</span>
+                                      </Button>
+                                    )}
                                 </div>
                               )}
                               {/* Botón de ver detalles para reservas completadas */}
@@ -568,6 +632,62 @@ const BiTableDay: React.FC<TableReservesProps> = ({
           </tbody>
         </table>
       </div>
+
+      {/* Modal para generar instancia de reserva */}
+      <Dialog
+        open={generateInstanceModal.isOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            setGenerateInstanceModal({ isOpen: false, fixedReserveId: null, date: "" });
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Generar Reserva Manual</DialogTitle>
+            <DialogDescription>
+              Selecciona la fecha para la cual deseas generar la reserva basada en este turno fijo.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-4">
+            <Label htmlFor="date" className="mb-2 block">
+              Fecha
+            </Label>
+            <Input
+              id="date"
+              type="date"
+              value={generateInstanceModal.date}
+              onChange={(e) =>
+                setGenerateInstanceModal({ ...generateInstanceModal, date: e.target.value })
+              }
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() =>
+                setGenerateInstanceModal({ isOpen: false, fixedReserveId: null, date: "" })
+              }
+              disabled={isGenerating}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleGenerateInstance}
+              disabled={!generateInstanceModal.date || isGenerating}
+            >
+              {isGenerating ? (
+                <>
+                  <Clock9 className="mr-2 h-4 w-4 animate-spin" />
+                  Generando...
+                </>
+              ) : (
+                "Generar Reserva"
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

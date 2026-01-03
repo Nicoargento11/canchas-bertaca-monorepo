@@ -166,7 +166,21 @@ const FixedScheduleForm = ({ complex, usersData }: FixedScheduleFormProps) => {
         return;
       }
 
-      toast.success(`Se crearon ${results.length} turnos fijos correctamente`);
+      // Verificar advertencias de instancias no creadas (por solapamiento, etc.)
+      const warnings = results
+        .filter((r) => r.success && r.data?.instanceError)
+        .map((r) => r.data?.instanceError);
+
+      if (warnings.length > 0) {
+        const uniqueWarnings = [...new Set(warnings)];
+        toast.warning(
+          `Turnos fijos creados, pero algunas reservas de hoy no se generaron: ${uniqueWarnings.join(", ")}`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success(`Se crearon ${results.length} turnos fijos correctamente`);
+      }
+
       router.refresh();
     } catch (error) {
       console.error("Error inesperado:", error);

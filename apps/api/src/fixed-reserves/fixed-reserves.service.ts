@@ -14,7 +14,7 @@ import { FixedReserve, Status } from '@prisma/client';
 export class FixedReservesService {
   private readonly logger = new Logger(FixedReservesService.name);
 
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(private readonly prisma: PrismaService) {}
   async create(
     createFixedReserveDto: CreateFixedReserveDto,
   ): Promise<FixedReserve> {
@@ -47,10 +47,6 @@ export class FixedReservesService {
     const today = new Date();
     const todayDayOfWeek = today.getDay();
 
-    if (scheduleDay.dayOfWeek === todayDayOfWeek) {
-      await this.validateNoOverlap(courtId, today, startTime, endTime);
-    }
-
     const fixedReserve = await this.prisma.fixedReserve.create({
       data: createFixedReserveDto,
       include: {
@@ -65,6 +61,9 @@ export class FixedReservesService {
 
     this.logger.log(`Reserva fija creada: ${fixedReserve.id}`);
 
+    let instanceCreated = false;
+    let instanceError = null;
+
     // 2. Verificar si coincide con el día de hoy
     if (
       fixedReserve.scheduleDay.dayOfWeek === todayDayOfWeek &&
@@ -76,15 +75,17 @@ export class FixedReservesService {
 
       try {
         await this.createTodayReserveInstance(fixedReserve, today);
+        instanceCreated = true;
       } catch (error) {
         this.logger.warn(
           `No se pudo crear la instancia de reserva para hoy: ${error.message}`,
         );
+        instanceError = error.message;
         // No lanzamos el error para no afectar la creación de la reserva fija
       }
     }
 
-    return fixedReserve;
+    return { ...fixedReserve, instanceCreated, instanceError } as any;
   }
 
   async findAll(
@@ -120,6 +121,13 @@ export class FixedReservesService {
   async findOne(id: string): Promise<FixedReserve> {
     const fixedReserve = await this.prisma.fixedReserve.findUnique({
       where: { id },
+      include: {
+        scheduleDay: true,
+        user: true,
+        court: true,
+        rate: true,
+        promotion: true,
+      },
     });
 
     if (!fixedReserve) {
@@ -127,6 +135,90 @@ export class FixedReservesService {
     }
 
     return fixedReserve;
+  }
+
+  async createInstance(id: string, date: string): Promise<any> {
+    const fixedReserve = (await this.findOne(id)) as any;
+
+    // Parsear fecha: "2026-01-10" -> 10 de enero 2026
+    const [year, month, day] = date.split('-').map(Number);
+
+    // Crear fecha UTC simple - mes es 0-indexed en JS
+    const targetDate = new Date(Date.UTC(year, month - 1, day, 0, 0, 0, 0));
+
+    // Validar día de la semana
+    const dayOfWeek = targetDate.getUTCDay();
+    const daysOfWeek = [
+      'Domingo',
+      'Lunes',
+      'Martes',
+      'Miércoles',
+      'Jueves',
+      'Viernes',
+      'Sábado',
+    ];
+
+    if (fixedReserve.scheduleDay.dayOfWeek !== dayOfWeek) {
+      throw new ConflictException(
+        `Este turno fijo es para ${daysOfWeek[fixedReserve.scheduleDay.dayOfWeek]}. La fecha ${day}/${month}/${year} es ${daysOfWeek[dayOfWeek]}.`,
+      );
+    }
+
+    // Verificar si ya existe
+    const existingReserve = await this.prisma.reserve.findFirst({
+      where: {
+        date: targetDate,
+        schedule: `${fixedReserve.startTime} - ${fixedReserve.endTime}`,
+        courtId: fixedReserve.courtId,
+      },
+    });
+
+    if (existingReserve) {
+      throw new ConflictException(
+        `Ya existe una reserva (${existingReserve.status}) en el horario ${fixedReserve.startTime} - ${fixedReserve.endTime} para el ${day}/${month}/${year}.`,
+      );
+    }
+
+    // Calcular precio
+    const durationHours = this.calculateHoursDuration(
+      fixedReserve.startTime,
+      fixedReserve.endTime,
+    );
+    let pricePerHour = fixedReserve.rate.price;
+
+    if (fixedReserve.promotion && fixedReserve.promotion.isActive) {
+      if (fixedReserve.promotion.type === 'PERCENTAGE_DISCOUNT') {
+        const discountPercent = fixedReserve.promotion.value || 0;
+        pricePerHour = pricePerHour * (1 - discountPercent / 100);
+      }
+    }
+
+    const totalPrice = pricePerHour * durationHours;
+
+    // Crear reserva
+    const newReserve = await this.prisma.reserve.create({
+      data: {
+        date: targetDate,
+        schedule: `${fixedReserve.startTime} - ${fixedReserve.endTime}`,
+        price: totalPrice,
+        reservationAmount: 0,
+        status: 'APROBADO',
+        phone: fixedReserve.user.phone || '',
+        clientName: fixedReserve.user.name,
+        reserveType: 'FIJO',
+        courtId: fixedReserve.courtId,
+        userId: fixedReserve.userId,
+        complexId: fixedReserve.complexId,
+        fixedReserveId: fixedReserve.id,
+        promotionId: fixedReserve.promotionId,
+      },
+    });
+
+    this.logger.log(
+      `Reserva manual creada: ${newReserve.id} para ${day}/${month}/${year} - ${fixedReserve.startTime} a ${fixedReserve.endTime}`,
+    );
+
+    return { message: 'Instancia creada exitosamente' };
   }
 
   async update(
@@ -282,7 +374,7 @@ export class FixedReservesService {
   ): Promise<void> {
     // Convertir la fecha a UTC manteniendo solo año, mes y día
     const targetDate = new Date(
-      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
+      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
     );
 
     // Verificar si ya existe una reserva para esta fecha y horario
@@ -301,6 +393,14 @@ export class FixedReservesService {
       );
       return;
     }
+
+    // Validar que no haya superposición con otras reservas
+    await this.validateNoOverlap(
+      fixedReserve.courtId,
+      date,
+      fixedReserve.startTime,
+      fixedReserve.endTime,
+    );
 
     // Calcular precio basado en las horas de duración
     const durationHours = this.calculateHoursDuration(

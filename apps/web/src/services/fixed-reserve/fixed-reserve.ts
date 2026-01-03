@@ -25,6 +25,8 @@ export type FixedReserve = {
   reserves: Reserve[];
   createdAt: string;
   updatedAt: string;
+  instanceCreated?: boolean;
+  instanceError?: string | null;
 };
 
 export interface FixedReserveData {
@@ -140,6 +142,18 @@ export const toggleFixedReserveStatus = async (
 ): Promise<FixedReserveResult<FixedReserve>> => {
   try {
     const response = await api.patch(`/fixed-reserves/${id}/toggle-status`, { isActive });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleFixedReserveError(error);
+  }
+};
+
+export const createFixedReserveInstance = async (
+  id: string,
+  date: string
+): Promise<FixedReserveResult<Reserve>> => {
+  try {
+    const response = await api.post(`/fixed-reserves/${id}/create-instance`, { date });
     return { success: true, data: response.data };
   } catch (error) {
     return handleFixedReserveError(error);
