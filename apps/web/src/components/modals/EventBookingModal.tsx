@@ -264,13 +264,18 @@ export const EventBookingModal = ({
       // Create reserves for all courts in the package
       const reservePromises = courtsToReserve.map(async (court, index) => {
         const pricePerCourt = Math.floor(finalPrice / courtsToReserve.length);
+        // Distribuir la seña proporcionalmente entre las canchas
+        const reservationAmountPerCourt =
+          index === 0
+            ? reservationAmount // La primera cancha lleva toda la seña
+            : 0; // Las demás canchas no llevan seña (ya está en la primera)
 
         try {
           const result = await createReserve({
             date: eventDate,
             schedule,
             price: pricePerCourt,
-            reservationAmount: 0, // Payment is separate
+            reservationAmount: reservationAmountPerCourt,
             status: "APROBADO",
             phone: clientPhone,
             clientName,

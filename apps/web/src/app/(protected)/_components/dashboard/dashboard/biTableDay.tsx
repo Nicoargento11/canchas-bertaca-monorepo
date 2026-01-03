@@ -351,7 +351,14 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                         (courtData) => courtData.court.courtNumber === court.courtNumber
                       );
 
-                      if (isReserved) {
+                      // Verificar si es un turno fijo sin reserva (solo plantilla)
+                      const isFixedTemplate =
+                        isReserved &&
+                        isReserved.reserveType === "FIJO" &&
+                        !isReserved.status &&
+                        !isReserved.price;
+
+                      if (isReserved && !isFixedTemplate) {
                         // Lógica de RowSpan basada en ID para mayor robustez
                         // Verificar si la fila anterior tenía la misma reserva
                         let isContinuation = false;
@@ -532,6 +539,38 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                   {renderStatusIcon(isReserved.status)}{" "}
                                 </div>
                               )}
+                            </div>
+                          </td>
+                        );
+                      }
+
+                      // Si es un turno fijo plantilla, mostrar botón generar
+                      if (isFixedTemplate) {
+                        return (
+                          <td
+                            key={`${scheduleReserve.schedule}-${court.courtNumber}`}
+                            className="w-[100px] h-[52px] p-1"
+                          >
+                            <div className="w-full h-full min-h-[48px] rounded-lg border-2 border-dashed border-violet-300 bg-violet-50 flex flex-col items-center justify-center gap-1 p-2">
+                              <span className="text-xs text-violet-700 font-semibold truncate max-w-full text-center">
+                                {isReserved?.clientName}
+                              </span>
+                              <Button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setGenerateInstanceModal({
+                                    isOpen: true,
+                                    fixedReserveId: isReserved!.id,
+                                    date: "",
+                                  });
+                                }}
+                                size="sm"
+                                className="bg-violet-600 hover:bg-violet-700 text-white px-2 py-1 h-6 text-xs w-full"
+                                title="Generar reserva manual"
+                              >
+                                <CalendarPlus size={12} />
+                                <span className="ml-1">Generar</span>
+                              </Button>
                             </div>
                           </td>
                         );
