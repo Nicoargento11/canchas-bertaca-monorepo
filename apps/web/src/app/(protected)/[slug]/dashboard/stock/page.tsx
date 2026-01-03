@@ -240,7 +240,7 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <PaymentsHistory complex={complejo} />
+                  <PaymentsHistory complex={complejo} userSession={userSession} />
                 </CardContent>
               </Card>
             </TabsContent>

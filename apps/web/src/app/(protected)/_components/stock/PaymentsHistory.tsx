@@ -11,23 +11,56 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Search } from "lucide-react";
+import { Search, Trash2 } from "lucide-react";
 import { Complex } from "@/services/complex/complex";
 import { usePaymentsStore } from "@/store/paymentsStore";
+import { deletePayment } from "@/services/payment/payment";
+import { toast } from "sonner";
+import { SessionPayload } from "@/services/auth/session";
 
 interface PaymentsHistoryProps {
   complex: Complex;
+  userSession?: SessionPayload | null;
 }
 
-export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
-  const { payments, initializePayments } = usePaymentsStore();
+export function PaymentsHistory({ complex, userSession }: PaymentsHistoryProps) {
+  const { payments, initializePayments, removePayment } = usePaymentsStore();
   const [searchTerm, setSearchTerm] = useState("");
 
   useEffect(() => {
     initializePayments(complex.payments || []);
   }, [complex.payments, initializePayments]);
+
+  const handleDeletePayment = async (paymentId: string) => {
+    if (!window.confirm("¿Estás seguro de eliminar este pago? Esta acción no se puede deshacer.")) {
+      return;
+    }
+
+    try {
+      const result = await deletePayment(paymentId);
+
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      if (result?.success) {
+        toast.success("Pago eliminado correctamente");
+        removePayment(paymentId);
+      }
+    } catch (error) {
+      toast.error("Error al eliminar el pago");
+      console.error("Error deleting payment:", error);
+    }
+  };
+
+  const canDeletePayments =
+    userSession?.user.role === "COMPLEJO_ADMIN" ||
+    userSession?.user.role === "ORGANIZACION_ADMIN" ||
+    userSession?.user.role === "SUPER_ADMIN";
 
   const filteredPayments = payments.filter((payment) => {
     const searchLower = searchTerm.toLowerCase();
@@ -72,6 +105,7 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
               <TableHead>Tipo</TableHead>
               <TableHead>Referencia</TableHead>
               <TableHead>Estado</TableHead>
+              {canDeletePayments && <TableHead className="w-[50px]">Acción</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -95,8 +129,11 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <div className={`font-bold ${payment.transactionType === 'EGRESO' ? 'text-red-600' : 'text-green-600'}`}>
-                      {payment.transactionType === 'EGRESO' ? '-' : ''}${Math.abs(payment.amount).toLocaleString("es-AR")}
+                    <div
+                      className={`font-bold ${payment.transactionType === "EGRESO" ? "text-red-600" : "text-green-600"}`}
+                    >
+                      {payment.transactionType === "EGRESO" ? "-" : ""}$
+                      {Math.abs(payment.amount).toLocaleString("es-AR")}
                     </div>
                   </TableCell>
                   <TableCell>
@@ -116,7 +153,7 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
                           <span className="text-blue-600 font-medium">Reserva</span>
                         ) : payment.saleId ? (
                           <span className="text-purple-600 font-medium">Venta POS</span>
-                        ) : payment.transactionType === 'EGRESO' ? (
+                        ) : payment.transactionType === "EGRESO" ? (
                           <span className="text-red-600 font-medium">Egreso de caja</span>
                         ) : (
                           <span className="text-orange-500 font-medium">Sin referencia</span>
@@ -147,6 +184,18 @@ export function PaymentsHistory({ complex }: PaymentsHistoryProps) {
                       </Badge>
                     )}
                   </TableCell>
+                  {canDeletePayments && (
+                    <TableCell>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-8 w-8 p-0 hover:bg-red-500/20 hover:text-red-600"
+                        onClick={() => handleDeletePayment(payment.id)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

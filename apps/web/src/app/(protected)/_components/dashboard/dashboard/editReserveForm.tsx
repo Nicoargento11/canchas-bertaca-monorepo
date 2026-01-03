@@ -40,6 +40,8 @@ import { toast } from "sonner";
 export const EditReserveForm = () => {
   const [isPending, startTransition] = useTransition();
   const [schedules, setSchedules] = useState<Schedule[] | null>(null);
+  const [startTime, setStartTime] = useState<string>("");
+  const [endTime, setEndTime] = useState<string>("");
 
   const { handleChangeDetails } = useDashboardDetailsModalStore((state) => state);
   const { fetchReservationsByDay, state } = useReservationDashboard();
@@ -50,6 +52,16 @@ export const EditReserveForm = () => {
 
   const { handleChangeEditReserve } = useDashboardEditReserveModalStore((state) => state);
   const selectedDate = date && format(date, "yyyy-MM-dd");
+
+  // Para eventos/torneos, inicializar startTime y endTime desde schedule
+  useEffect(() => {
+    if (reserve && (reserve.reserveType === "EVENTO" || reserve.reserveType === "TORNEO")) {
+      const [start, end] = reserve.schedule.split(" - ");
+      setStartTime(start.trim());
+      setEndTime(end.trim());
+    }
+  }, [reserve]);
+
   const form = useForm<z.infer<typeof editReserveAdminSchema>>({
     defaultValues:
       reserve && reserve.user && date
@@ -66,9 +78,16 @@ export const EditReserveForm = () => {
   const onSubmit = (values: z.infer<typeof editReserveAdminSchema>) => {
     if (!reserve) return;
 
+    // Para eventos/torneos, construir schedule desde startTime y endTime
+    const finalSchedule =
+      (reserve.reserveType === "EVENTO" || reserve.reserveType === "TORNEO") && startTime && endTime
+        ? `${startTime} - ${endTime}`
+        : values.schedule;
+
     startTransition(() => {
       updateReserve(reserve.id, {
         ...values,
+        schedule: finalSchedule,
         courtId: values.courtId,
         complexId: state.currentComplex?.id,
       }).then((data) => {
@@ -152,48 +171,125 @@ export const EditReserveForm = () => {
             />
 
             {/* Campo Horario */}
-            <FormField
-              control={form.control}
-              name="schedule"
-              render={({ field }) => (
+            {reserve?.reserveType === "EVENTO" || reserve?.reserveType === "TORNEO" ? (
+              // Para eventos/torneos: dos selects (hora inicio y hora fin)
+              <div className="grid grid-cols-2 gap-4">
                 <FormItem>
                   <FormLabel className="flex items-center gap-2 text-white/80">
                     <Clock9 className="text-Primary" size={20} />
-                    Horario
+                    Hora Inicio
                   </FormLabel>
                   <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
+                    value={startTime}
+                    onValueChange={setStartTime}
                     disabled={!schedules || isPending}
                   >
-                    <FormControl>
-                      <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
-                        {/* Mostrar el horario actual si existe */}
-                        <SelectValue placeholder={field.value || "Selecciona un horario"} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="bg-gray-900 border-white/10 text-white">
+                    <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
+                      <SelectValue placeholder="Selecciona hora" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10 text-white max-h-[300px]">
                       {schedules && reserve ? (
-                        dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => (
-                          <SelectItem
-                            key={hour.timeRange}
-                            value={hour.timeRange}
-                            className="focus:bg-white/10 focus:text-white"
-                          >
-                            {hour.timeRange}
-                          </SelectItem>
-                        ))
+                        dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => {
+                          const hourStart = hour.timeRange.split(" - ")[0];
+                          return (
+                            <SelectItem
+                              key={hourStart}
+                              value={hourStart}
+                              className="focus:bg-white/10 focus:text-white"
+                            >
+                              {hourStart}
+                            </SelectItem>
+                          );
+                        })
                       ) : (
                         <SelectItem value="cargando..." disabled className="text-white/50">
-                          Cargando horarios...
+                          Cargando...
                         </SelectItem>
                       )}
                     </SelectContent>
                   </Select>
-                  <FormMessage />
                 </FormItem>
-              )}
-            />
+
+                <FormItem>
+                  <FormLabel className="flex items-center gap-2 text-white/80">
+                    <Clock9 className="text-Primary" size={20} />
+                    Hora Fin
+                  </FormLabel>
+                  <Select
+                    value={endTime}
+                    onValueChange={setEndTime}
+                    disabled={!schedules || isPending}
+                  >
+                    <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
+                      <SelectValue placeholder="Selecciona hora" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-gray-900 border-white/10 text-white max-h-[300px]">
+                      {schedules && reserve ? (
+                        dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => {
+                          const hourEnd = hour.timeRange.split(" - ")[1];
+                          return (
+                            <SelectItem
+                              key={hourEnd}
+                              value={hourEnd}
+                              className="focus:bg-white/10 focus:text-white"
+                            >
+                              {hourEnd}
+                            </SelectItem>
+                          );
+                        })
+                      ) : (
+                        <SelectItem value="cargando..." disabled className="text-white/50">
+                          Cargando...
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </FormItem>
+              </div>
+            ) : (
+              // Para reservas normales: select de horario de 1 hora
+              <FormField
+                control={form.control}
+                name="schedule"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-2 text-white/80">
+                      <Clock9 className="text-Primary" size={20} />
+                      Horario
+                    </FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                      disabled={!schedules || isPending}
+                    >
+                      <FormControl>
+                        <SelectTrigger className="bg-white/5 border-white/10 text-lg text-white">
+                          <SelectValue placeholder={field.value || "Selecciona un horario"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="bg-gray-900 border-white/10 text-white">
+                        {schedules && reserve ? (
+                          dayHours(new Date(reserve.date).getUTCDay(), schedules).map((hour) => (
+                            <SelectItem
+                              key={hour.timeRange}
+                              value={hour.timeRange}
+                              className="focus:bg-white/10 focus:text-white"
+                            >
+                              {hour.timeRange}
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="cargando..." disabled className="text-white/50">
+                            Cargando horarios...
+                          </SelectItem>
+                        )}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             {/* Campo Cancha */}
             <FormField

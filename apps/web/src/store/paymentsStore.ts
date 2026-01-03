@@ -9,7 +9,8 @@ interface PaymentsState {
   setPayments: (payments: Payment[]) => void;
   addPayment: (payment: Payment) => void;
   updatePayment: (id: string, updatedPayment: Partial<Payment>) => void;
-  deletePayment: (id: string) => void;
+  removePayment: (id: string) => void;
+  deletePayment: (id: string) => void; // Alias por compatibilidad
 
   initializePayments: (productSales: Payment[]) => void;
 }
@@ -26,8 +27,11 @@ export const usePaymentsStore = create<PaymentsState>((set) => ({
         payment.id === id ? { ...payment, ...updatedPayment } : payment
       ),
     })),
-  deletePayment: (id) =>
+  removePayment: (id) =>
     set((state) => ({ payments: state.payments.filter((payment) => payment.id !== id) })),
+  deletePayment: (
+    id // Alias por compatibilidad
+  ) => set((state) => ({ payments: state.payments.filter((payment) => payment.id !== id) })),
   initializePayments: (payments) =>
     set((state) => {
       return { payments, initialized: true };

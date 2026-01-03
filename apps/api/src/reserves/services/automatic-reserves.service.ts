@@ -110,7 +110,9 @@ export class AutomaticReservesService {
       try {
         // Verificar si ya existe una reserva para esta fecha y horario
         const targetDate = this.toUTCDate(date);
-        const existingReserve = await this.prisma.reserve.findFirst({
+
+        // Primero: verificar si ya se generó la instancia del turno fijo
+        const existingFixedInstance = await this.prisma.reserve.findFirst({
           where: {
             date: targetDate,
             schedule: `${fixedReserve.startTime} - ${fixedReserve.endTime}`,
@@ -119,9 +121,26 @@ export class AutomaticReservesService {
           },
         });
 
-        if (existingReserve) {
+        if (existingFixedInstance) {
           this.logger.debug(
-            `Ya existe una reserva para la reserva fija ${fixedReserve.id} en la fecha ${date.toDateString()}`,
+            `Ya existe una instancia de reserva fija ${fixedReserve.id} en la fecha ${date.toDateString()}`,
+          );
+          continue;
+        }
+
+        // Segundo: verificar si hay CUALQUIER otra reserva (manual, online, etc.) en ese horario/cancha
+        const conflictingReserve = await this.prisma.reserve.findFirst({
+          where: {
+            date: targetDate,
+            schedule: `${fixedReserve.startTime} - ${fixedReserve.endTime}`,
+            courtId: fixedReserve.courtId,
+            status: { notIn: ['RECHAZADO', 'CANCELADO'] }, // Solo considerar reservas activas
+          },
+        });
+
+        if (conflictingReserve) {
+          this.logger.warn(
+            `No se puede crear la reserva automática del turno fijo ${fixedReserve.id}: Ya existe una reserva (${conflictingReserve.reserveType}) en la cancha ${fixedReserve.courtId} el ${date.toDateString()} de ${fixedReserve.startTime} a ${fixedReserve.endTime}`,
           );
           continue;
         }
