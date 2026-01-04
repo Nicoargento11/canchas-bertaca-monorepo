@@ -142,8 +142,8 @@ export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) 
       // Limpiar campos opcionales vacíos para evitar conflictos de unique constraint
       const cleanedData = {
         ...data,
-        barcode: data.barcode?.trim() || undefined,
-        supplier: data.supplier?.trim() || undefined,
+        barcode: data.barcode?.trim() || null,
+        supplier: data.supplier?.trim() || null,
       };
 
       const { success, data: dataProduct, error } = await updateProductFetch(data.id, cleanedData);
@@ -153,8 +153,12 @@ export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) 
         });
         return;
       }
-      // Actualizar producto existente
-      updateProduct(data.id, cleanedData);
+      // Actualizar producto existente - convertir null a undefined para el store
+      updateProduct(data.id, {
+        ...cleanedData,
+        barcode: cleanedData.barcode ?? undefined,
+        supplier: cleanedData.supplier ?? undefined,
+      });
       toast.success("Producto actualizado", {
         description: "Los cambios han sido guardados correctamente.",
       });
@@ -317,7 +321,13 @@ export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) 
                         Código
                       </Label>
                       <FormControl>
-                        <Input id="barcode" className="col-span-3" {...field} />
+                        <Input
+                          id="barcode"
+                          className="col-span-3"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
                       </FormControl>
                     </div>
                     <FormMessage className="text-right" />
@@ -480,7 +490,13 @@ export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) 
                         Proveedor
                       </Label>
                       <FormControl>
-                        <Input id="supplier" className="col-span-3" {...field} />
+                        <Input
+                          id="supplier"
+                          className="col-span-3"
+                          {...field}
+                          value={field.value ?? ""}
+                          onChange={(e) => field.onChange(e.target.value || null)}
+                        />
                       </FormControl>
                     </div>
                     <FormMessage className="text-right" />
