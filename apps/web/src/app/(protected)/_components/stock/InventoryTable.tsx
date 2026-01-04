@@ -54,13 +54,13 @@ import { PurchaseOrderModal } from "@/components/modals/PurchaseOrderModal";
 // Esquema de validación con Zod
 const productFormSchema = z.object({
   id: z.string().optional(),
-  barcode: z.string().optional(),
+  barcode: z.string().nullable().optional(),
   name: z.string().min(1, "El nombre es requerido"),
   category: z.enum(["BEBIDA", "COMIDA", "SNACK", "EQUIPAMIENTO", "OTRO"]),
   stock: z.number().min(0, "El stock no puede ser negativo"),
   costPrice: z.number().min(0, "El costo no puede ser negativo"),
   salePrice: z.number().min(0, "El precio no puede ser negativo"),
-  supplier: z.string().optional(),
+  supplier: z.string().nullable().optional(),
 });
 
 type ProductFormValues = z.infer<typeof productFormSchema>;
@@ -238,12 +238,13 @@ export function InventoryTable({ complex, cashSessionId }: InventoryTableProps) 
                     </TableCell>
                     <TableCell>
                       <div
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${product.stock > 10
-                          ? "bg-green-100 text-green-800"
-                          : product.stock > 0
-                            ? "bg-yellow-100 text-yellow-800"
-                            : "bg-red-100 text-red-800"
-                          }`}
+                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          product.stock > 10
+                            ? "bg-green-100 text-green-800"
+                            : product.stock > 0
+                              ? "bg-yellow-100 text-yellow-800"
+                              : "bg-red-100 text-red-800"
+                        }`}
                       >
                         {product.stock > 10
                           ? "Disponible"
