@@ -74,21 +74,33 @@ export const ProfileMenu = ({ currentUser, complex }: ProfileMenuProps) => {
 
         <DropdownMenuSeparator className="bg-white/10 my-2" />
 
-        <DropdownMenuItem
-          onClick={() => router.push("/profile")}
-          className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 focus:bg-white/10 cursor-pointer transition-colors text-sm"
-        >
-          <UserCircle size={16} className="text-Primary" />
-          <span>Mi Perfil / Reservas</span>
+        <DropdownMenuItem asChild>
+          <a
+            href="/profile"
+            onClick={(e) => {
+              e.preventDefault();
+              router.push("/profile");
+            }}
+            className="flex items-center gap-2 p-2 rounded-lg hover:bg-white/10 focus:bg-white/10 cursor-pointer transition-colors text-sm"
+          >
+            <UserCircle size={16} className="text-Primary" />
+            <span>Mi Perfil / Reservas</span>
+          </a>
         </DropdownMenuItem>
 
         {currentUser?.user.role === "SUPER_ADMIN" && (
-          <DropdownMenuItem
-            onClick={() => router.push("/super-admin")}
-            className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer transition-colors text-sm text-purple-300"
-          >
-            <ShieldCheck size={16} />
-            <span>Super Admin</span>
+          <DropdownMenuItem asChild>
+            <a
+              href="/super-admin"
+              onClick={(e) => {
+                e.preventDefault();
+                router.push("/super-admin");
+              }}
+              className="flex items-center gap-2 p-2 rounded-lg hover:bg-purple-500/20 focus:bg-purple-500/20 cursor-pointer transition-colors text-sm text-purple-300"
+            >
+              <ShieldCheck size={16} />
+              <span>Super Admin</span>
+            </a>
           </DropdownMenuItem>
         )}
 
@@ -96,25 +108,36 @@ export const ProfileMenu = ({ currentUser, complex }: ProfileMenuProps) => {
         {(currentUser?.user.role === "SUPER_ADMIN" ||
           currentUser?.user.role === "ORGANIZACION_ADMIN" ||
           currentUser?.user.role === "COMMUNITY_MANAGER") && (
-            <DropdownMenuItem
-              onClick={() => router.push(`/${complex.slug}/dashboard`)}
+          <DropdownMenuItem asChild>
+            <a
+              href={`/${complex.slug}/dashboard`}
+              onClick={(e) => {
+                e.preventDefault();
+                router.push(`/${complex.slug}/dashboard`);
+              }}
               className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-500/20 focus:bg-blue-500/20 cursor-pointer transition-colors text-sm text-blue-300"
             >
               <LayoutDashboard size={16} />
               <span>Panel de Control</span>
-            </DropdownMenuItem>
-          )}
+            </a>
+          </DropdownMenuItem>
+        )}
 
         {/* RECEPCION y COMPLEJO_ADMIN solo ven el Panel si tienen un complexId asignado */}
-        {(currentUser?.user.role === "RECEPCION" ||
-          currentUser?.user.role === "COMPLEJO_ADMIN") &&
+        {(currentUser?.user.role === "RECEPCION" || currentUser?.user.role === "COMPLEJO_ADMIN") &&
           currentUser?.user.complexId && (
-            <DropdownMenuItem
-              onClick={() => router.push(`/${complex.slug}/dashboard`)}
-              className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-500/20 focus:bg-blue-500/20 cursor-pointer transition-colors text-sm text-blue-300"
-            >
-              <LayoutDashboard size={16} />
-              <span>Panel de Control</span>
+            <DropdownMenuItem asChild>
+              <a
+                href={`/${complex.slug}/dashboard`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  router.push(`/${complex.slug}/dashboard`);
+                }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-blue-500/20 focus:bg-blue-500/20 cursor-pointer transition-colors text-sm text-blue-300"
+              >
+                <LayoutDashboard size={16} />
+                <span>Panel de Control</span>
+              </a>
             </DropdownMenuItem>
           )}
 

@@ -18,6 +18,7 @@ import { SalesReport } from "@/app/(protected)/_components/stock/SalesReport";
 import { ProfitMargin } from "@/app/(protected)/_components/stock/ProfitMargin";
 import { InventorySummary } from "@/app/(protected)/_components/stock/InventorySummary";
 import { PaymentsHistory } from "@/app/(protected)/_components/stock/PaymentsHistory";
+import { CashSessionsList } from "@/app/(protected)/_components/stock/CashSessionsList";
 import {
   ShoppingCart,
   Package,
@@ -28,6 +29,7 @@ import {
   PieChart,
   CreditCard,
   CalendarDays,
+  Store,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
@@ -126,8 +128,15 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                 </TabsTrigger>
               )}
               {mostrarMargen && (
-                <TabsTrigger
-                  value="margen"
+                <TabsTrigger                  value="cajas"
+                  className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
+                >
+                  <Store className="w-4 h-4" />
+                  Cajas
+                </TabsTrigger>
+              )}
+              {mostrarReportes && (
+                <TabsTrigger                  value="margen"
                   className="px-4 py-2 gap-2 rounded-md text-sm font-medium transition-all data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm hover:bg-gray-200 hover:text-gray-900"
                 >
                   <TrendingUp className="w-4 h-4" />
@@ -213,6 +222,11 @@ export default async function Home({ params }: { params: Promise<{ slug: string 
                   <SalesHistory complex={complejo} />
                 </CardContent>
               </Card>
+            </TabsContent>
+          )}
+          {mostrarReportes && (
+            <TabsContent value="cajas" className="space-y-4">
+              <CashSessionsList complexId={complejo.id} />
             </TabsContent>
           )}
           {mostrarReportes && (

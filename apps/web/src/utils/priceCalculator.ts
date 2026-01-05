@@ -12,7 +12,12 @@ interface PricingResult {
 
 const timeToMinutes = (time: string): number => {
   const [hours, minutes] = time.split(":").map(Number);
-  return hours * 60 + minutes;
+  let totalMinutes = hours * 60 + minutes;
+  // Si es medianoche (00:00), interpretarlo como fin del día (1440)
+  if (totalMinutes === 0) {
+    totalMinutes = 1440;
+  }
+  return totalMinutes;
 };
 
 // Función para verificar si un horario está dentro de otro, considerando cruce de medianoche
@@ -22,22 +27,37 @@ const isTimeRangeWithin = (
   scheduleStart: number,
   scheduleEnd: number
 ): boolean => {
-  // Caso normal: el horario del schedule no cruza medianoche
-  if (scheduleStart < scheduleEnd) {
+  // Normalizar: si requestedEnd es menor que requestedStart, cruza medianoche
+  const requestCrossesMidnight = requestedEnd < requestedStart;
+  const scheduleCrossesMidnight = scheduleEnd < scheduleStart;
+
+  // Caso 1: Ninguno cruza medianoche (caso normal)
+  if (!scheduleCrossesMidnight && !requestCrossesMidnight) {
     return requestedStart >= scheduleStart && requestedEnd <= scheduleEnd;
   }
-  // Caso horario del schedule CRUZA medianoche
-  else {
+
+  // Caso 2: Schedule cruza medianoche, pero request NO
+  if (scheduleCrossesMidnight && !requestCrossesMidnight) {
     // El horario solicitado puede estar:
-    // 1. Completamente en el primer segmento (ej: 14:00-18:00)
-    // 2. Completamente en el segundo segmento (ej: 00:00-02:00)
-    // 3. Cruzando medianoche (ej: 23:00-01:00)
+    // A) En el segmento final del día (después de scheduleStart)
+    // B) En el segmento inicial del siguiente día (antes de scheduleEnd)
     return (
-      (requestedStart >= scheduleStart && requestedEnd <= 1440) || // Caso 1
-      (requestedStart >= 0 && requestedEnd <= scheduleEnd) || // Caso 2
-      (requestedStart >= scheduleStart && requestedEnd <= scheduleEnd + 1440) // Caso 3
+      (requestedStart >= scheduleStart && requestedEnd <= 1440) || // Segmento final
+      (requestedStart >= 0 && requestedEnd <= scheduleEnd) // Segmento inicial
     );
   }
+
+  // Caso 3: Request cruza medianoche
+  if (requestCrossesMidnight) {
+    // Si schedule también cruza, debe contener ambos segmentos
+    if (scheduleCrossesMidnight) {
+      return requestedStart >= scheduleStart && requestedEnd <= scheduleEnd;
+    }
+    // Si schedule NO cruza, el request no puede caber
+    return false;
+  }
+
+  return false;
 };
 
 const priceCalculator = (

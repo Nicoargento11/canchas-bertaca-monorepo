@@ -63,4 +63,9 @@ export class CashSessionController {
       days ? Number(days) : 30,
     );
   }
+
+  @Get('complex/:complexId')
+  getSessionsByComplex(@Param('complexId') complexId: string) {
+    return this.cashSessionService.getSessionsByComplex(complexId);
+  }
 }
