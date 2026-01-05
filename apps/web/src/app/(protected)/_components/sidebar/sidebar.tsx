@@ -204,13 +204,21 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     isActive={active === item.index}
                     className="text-gray-600 hover:bg-gray-100 hover:text-gray-900 data-[active=true]:bg-gray-100 data-[active=true]:text-gray-900 data-[active=true]:font-medium"
                   >
-                    <div
-                      onClick={() => handleClick(item.index, item.path)}
+                    <a
+                      href={
+                        item.index === 0
+                          ? `/${currentSlug}/dashboard`
+                          : `/${currentSlug}/dashboard/${item.path}`
+                      }
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleClick(item.index, item.path);
+                      }}
                       className="flex items-center gap-2 md:gap-3 cursor-pointer px-2 md:px-4 py-2 rounded-md transition-colors"
                     >
                       <item.icon className="h-4 w-4" />
                       <span className="text-sm md:text-base">{item.title}</span>
-                    </div>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -230,8 +238,10 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     asChild
                     className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   >
-                    <div
-                      onClick={() => {
+                    <a
+                      href="/super-admin/users"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setOpenMobile(false);
                         router.push("/super-admin/users");
                       }}
@@ -239,7 +249,7 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     >
                       <Users className="h-4 w-4" />
                       <span>Usuarios</span>
-                    </div>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -247,8 +257,10 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     asChild
                     className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   >
-                    <div
-                      onClick={() => {
+                    <a
+                      href="/super-admin/organizations"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setOpenMobile(false);
                         router.push("/super-admin/organizations");
                       }}
@@ -256,7 +268,7 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     >
                       <Building2 className="h-4 w-4" />
                       <span>Organizaciones</span>
-                    </div>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
                 <SidebarMenuItem>
@@ -264,8 +276,10 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     asChild
                     className="text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                   >
-                    <div
-                      onClick={() => {
+                    <a
+                      href="/super-admin/complexes"
+                      onClick={(e) => {
+                        e.preventDefault();
                         setOpenMobile(false);
                         router.push("/super-admin/complexes");
                       }}
@@ -273,7 +287,7 @@ const SideBar = ({ currentUser }: SideBarProps) => {
                     >
                       <Building className="h-4 w-4" />
                       <span>Complejos</span>
-                    </div>
+                    </a>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
