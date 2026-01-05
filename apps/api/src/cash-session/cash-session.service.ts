@@ -53,9 +53,18 @@ export class CashSessionService {
     // Calcular totales
     const totals = session.payments.reduce(
       (acc, payment) => {
-        if (payment.method === 'EFECTIVO') acc.cash += payment.amount;
-        if (payment.method === 'TARJETA_CREDITO') acc.card += payment.amount;
-        if (payment.method === 'TRANSFERENCIA') acc.transfer += payment.amount;
+        // Determinar si es un ingreso o egreso
+        const isExpense =
+          payment.transactionType === 'GASTO' ||
+          payment.transactionType === 'EGRESO';
+        const multiplier = isExpense ? -1 : 1;
+
+        if (payment.method === 'EFECTIVO')
+          acc.cash += payment.amount * multiplier;
+        if (payment.method === 'TARJETA_CREDITO')
+          acc.card += payment.amount * multiplier; // Asumiendo que se pueden anular cobros con tarjeta
+        if (payment.method === 'TRANSFERENCIA')
+          acc.transfer += payment.amount * multiplier;
         return acc;
       },
       { cash: 0, card: 0, transfer: 0 },
@@ -113,8 +122,16 @@ export class CashSessionService {
                 productSales: { include: { product: true } },
               },
             },
+            reserve: {
+              include: {
+                user: true,
+                court: true,
+              },
+            },
           },
         },
+        user: true,
+        cashRegister: true,
       },
     });
 
@@ -123,13 +140,22 @@ export class CashSessionService {
     }
     const totals = session.payments.reduce(
       (acc, payment) => {
-        if (payment.method === 'EFECTIVO') acc.CASH += payment.amount;
-        if (payment.method === 'TARJETA_CREDITO') acc.CARD += payment.amount;
-        if (payment.method === 'TRANSFERENCIA') acc.TRANSFER += payment.amount;
+        const isExpense =
+          payment.transactionType === 'GASTO' ||
+          payment.transactionType === 'EGRESO';
+        const multiplier = isExpense ? -1 : 1;
+
+        if (payment.method === 'EFECTIVO')
+          acc.CASH += payment.amount * multiplier;
+        if (payment.method === 'TARJETA_CREDITO')
+          acc.CARD += payment.amount * multiplier;
+        if (payment.method === 'TRANSFERENCIA')
+          acc.TRANSFER += payment.amount * multiplier;
         if (payment.method === 'MERCADOPAGO')
-          acc.MERCADOPAGO = (acc.MERCADOPAGO || 0) + payment.amount;
+          acc.MERCADOPAGO =
+            (acc.MERCADOPAGO || 0) + payment.amount * multiplier;
         if (payment.method === 'OTRO')
-          acc.OTHER = (acc.OTHER || 0) + payment.amount;
+          acc.OTHER = (acc.OTHER || 0) + payment.amount * multiplier;
         return acc;
       },
       {
@@ -141,11 +167,16 @@ export class CashSessionService {
       },
     );
 
+    // Diferencia = Lo que hay (Final) - (Lo que había (Inicial) + Flujo Neto Efectivo)
+    const expectedCash = session.initialAmount + totals.CASH;
+
     return {
       ...session,
       totals,
       difference:
-        session.status === 'CLOSED' ? session.finalAmount - totals.CASH : null,
+        session.status === 'CLOSED' && session.finalAmount !== null
+          ? session.finalAmount - expectedCash
+          : null,
     };
   }
 
@@ -160,6 +191,23 @@ export class CashSessionService {
         // status: 'CLOSED',
       },
       orderBy: { endAt: 'desc' },
+    });
+  }
+
+  async getSessionsByComplex(complexId: string) {
+    return this.prisma.cashSession.findMany({
+      where: {
+        cashRegister: {
+          complexId: complexId,
+        },
+      },
+      include: {
+        user: true,
+        cashRegister: true,
+      },
+      orderBy: {
+        startAt: 'desc',
+      },
     });
   }
 }

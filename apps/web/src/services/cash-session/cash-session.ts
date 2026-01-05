@@ -23,6 +23,7 @@ export type CashSession = {
   observations?: string;
   createdAt?: string;
   updatedAt?: string;
+  payments?: any[]; // TODO: Definir tipo Payment detallado si es necesario
 };
 
 export type CashSessionSummary = CashSession & {
@@ -34,6 +35,7 @@ export type CashSessionSummary = CashSession & {
     OTHER: number;
   };
   difference?: number;
+  payments: any[]; // Incluimos los pagos detallados
 };
 export type CashSessionResult<T = any> = {
   success: boolean;
@@ -211,6 +213,28 @@ export const cancelCashSession = async (
       { reason },
       { headers: { "Content-Type": "application/json" } }
     );
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleCashSessionError(error);
+  }
+};
+
+export const getSessionsByComplex = async (
+  complexId: string
+): Promise<CashSessionResult<CashSession[]>> => {
+  try {
+    const response = await api.get(`/cash-sessions/complex/${complexId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleCashSessionError(error);
+  }
+};
+
+export const getSessionSummary = async (
+  sessionId: string
+): Promise<CashSessionResult<CashSessionSummary>> => {
+  try {
+    const response = await api.get(`/cash-sessions/${sessionId}/summary`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleCashSessionError(error);
