@@ -14,6 +14,7 @@ import {
   ArrowDown,
   Timer,
   Building2,
+  Ban,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { es } from "date-fns/locale";
@@ -513,6 +514,26 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
               {/* Botón de reserva mejorado */}
               {!preferenceId && (
                 <div className="space-y-3">
+                  {/* Normas del complejo */}
+                  <div className="bg-orange-500/10 border border-orange-500/20 rounded-lg p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="w-4 h-4 text-orange-400" />
+                      <span className="text-orange-200 text-sm font-semibold">
+                        Normas importantes
+                      </span>
+                    </div>
+                    <div className="grid gap-2">
+                      <div className="flex items-start gap-2 text-xs text-orange-100/90">
+                        <Ban className="w-3.5 h-3.5 mt-0.5 text-orange-400 shrink-0" />
+                        <span>No se aceptan partidos con público.</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-xs text-orange-100/90">
+                        <Ban className="w-3.5 h-3.5 mt-0.5 text-orange-400 shrink-0" />
+                        <span>Prohibido ingresar con bebidas al complejo.</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <Button
                     type="submit"
                     disabled={isProcessingPayment}
@@ -560,50 +581,41 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
 
             {/* Integración de MercadoPago mejorada */}
             {preferenceId && mpInitialized && (
-              <div className="space-y-6">
-                <div className="text-center py-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex justify-center mb-3">
-                    <AlertCircle className="w-8 h-8 text-green-600" />
+              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500 mt-4">
+                {/* Instrucción principal - Diseño Glassmorphism */}
+                <div className="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-3 sm:p-4 text-center backdrop-blur-sm">
+                  <div className="flex items-center justify-center gap-2 mb-1">
+                    <span className="font-bold text-xs sm:text-sm text-emerald-300 uppercase tracking-wider flex items-center gap-2">
+                      <ArrowDown className="w-4 h-4 animate-bounce" />
+                      Finaliza tu reserva abajo
+                      <ArrowDown className="w-4 h-4 animate-bounce" />
+                    </span>
                   </div>
-                  <p className="text-green-700 font-bold text-lg mb-3">
-                    Paga ÚNICAMENTE por este link, de lo contrario NO se reservará tu cancha:
+                  <p className="text-white/90 text-sm font-medium leading-snug">
+                    Presiona el botón de <span className="font-bold text-emerald-400">Mercado Pago</span> para confirmar.
                   </p>
-                  <ArrowDown className="w-6 h-6 text-green-600 animate-bounce mx-auto" />
                 </div>
 
-                <Wallet
-                  initialization={{ preferenceId: preferenceId }}
-                  onReady={() => {
-                    console.log("✅ Wallet de MercadoPago cargado correctamente");
-                  }}
-                  onError={(error) => {
-                    console.error("❌ Error en Wallet de MercadoPago:", error);
-                    setError("Error al cargar MercadoPago. Usa el botón alternativo.");
-                    setIsProcessingPayment(false);
-                  }}
-                />
+                <div className="min-h-[48px]">
+                  <Wallet
+                    initialization={{ preferenceId: preferenceId }}
+                    onReady={() => {
+                      console.log("✅ Wallet de MercadoPago cargado correctamente");
+                    }}
+                    onError={(error) => {
+                      console.error("❌ Error en Wallet de MercadoPago:", error);
+                      setError("Error al cargar MercadoPago. Usa el botón alternativo.");
+                      setIsProcessingPayment(false);
+                    }}
+                  />
+                </div>
 
-                {/* Botón de respaldo por si falla el widget */}
-                {/* {initPoint && (
-                  <div className="text-center">
-                    <p className="text-white/70 text-sm mb-2">¿No carga el botón de pago?</p>
-                    <Button
-                      type="button"
-                      onClick={() => (window.location.href = initPoint)}
-                      className="bg-blue-500 hover:bg-blue-600 text-white w-full sm:w-auto"
-                    >
-                      Pagar en Mercado Pago
-                    </Button>
-                  </div>
-                )} */}
-
-                <div className="bg-red-50 border border-red-200 rounded-lg p-3">
-                  <div className="text-center">
-                    <p className="text-red-700 font-bold text-sm">
-                      ⚠️ Tienes 10 minutos para pagar, de lo contrario tu reserva se cancela
-                      automáticamente.
-                    </p>
-                  </div>
+                {/* Advertencia de tiempo - Diseño sutil */}
+                <div className="flex items-start sm:items-center justify-center gap-2 bg-amber-500/10 border border-amber-500/20 rounded-lg p-2.5 text-amber-200/90 text-xs sm:text-sm">
+                  <Timer className="w-4 h-4 flex-shrink-0 mt-0.5 sm:mt-0" />
+                  <p className="font-medium text-center leading-tight">
+                    Tienes <span className="font-bold text-amber-400">10 minutos</span> para pagar o el turno se liberará.
+                  </p>
                 </div>
               </div>
             )}
