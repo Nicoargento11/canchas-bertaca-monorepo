@@ -52,12 +52,10 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
 
   // Fix: Parse only date portion to avoid timezone conversion
   // DB stores as "2025-12-16 00:00:00" UTC, we want to display "16" not "15"
-  const dateString = nextMatch.date.toString().split('T')[0]; // "2025-12-16"
+  const dateString = nextMatch.date.toString().split("T")[0]; // "2025-12-16"
   const matchDate = parseISO(dateString); // Parses as local date without time
 
-  const daysUntil = Math.ceil(
-    (matchDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-  );
+  const daysUntil = Math.ceil((matchDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
 
   return (
     <div className="space-y-4">
@@ -107,13 +105,9 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
 
           <div className="flex items-center gap-3 bg-white/10 rounded-lg p-3 sm:col-span-2">
             <div className="p-2 rounded-full bg-green-500/20">
-              {nextMatch.complex?.name?.toLowerCase().includes('seven') ? (
-                <img
-                  src="/images/seven_logo.png"
-                  alt="Seven"
-                  className="w-5 h-5 object-contain"
-                />
-              ) : nextMatch.complex?.name?.toLowerCase().includes('bertaca') ? (
+              {nextMatch.complex?.name?.toLowerCase().includes("seven") ? (
+                <img src="/images/seven_logo.png" alt="Seven" className="w-5 h-5 object-contain" />
+              ) : nextMatch.complex?.name?.toLowerCase().includes("bertaca") ? (
                 <img
                   src="/images/bertaca_logo.png"
                   alt="Bertaca"
@@ -156,11 +150,11 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
                 // Fallback to complex name
                 mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(nextMatch.complex.name)}`;
               } else {
-                alert('No hay información de ubicación disponible');
+                alert("No hay información de ubicación disponible");
                 return;
               }
 
-              window.open(mapsUrl, '_blank');
+              window.open(mapsUrl, "_blank");
             }}
           >
             <MapPin className="w-4 h-4 mr-2" />
@@ -178,20 +172,21 @@ export const UpcomingBookings = ({ reserves, onCancelBooking }: UpcomingBookings
               </AlertDialogTrigger>
               <AlertDialogContent className="bg-gray-900 border-white/10 text-white">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                  <AlertDialogTitle>Política de Cancelación</AlertDialogTitle>
                   <AlertDialogDescription className="text-white/70">
-                    Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
+                    Para cancelar o modificar tu reserva, por favor comunicate con el complejo
+                    {nextMatch.complex?.phone ? (
+                      <span className="block mt-2 font-medium text-white">
+                        Tel: {nextMatch.complex.phone}
+                      </span>
+                    ) : (
+                      " directamente."
+                    )}
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10">
-                    Cancelar
-                  </AlertDialogCancel>
-                  <AlertDialogAction
-                    className="bg-Error hover:bg-Error-dark text-white"
-                    onClick={() => onCancelBooking(nextMatch.id)}
-                  >
-                    Confirmar Cancelación
+                  <AlertDialogAction className="bg-white/10 text-white hover:bg-white/20 border-white/10">
+                    Entendido
                   </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
@@ -244,7 +239,7 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
   const statusConfig = getStatusConfig(reserve.status);
 
   // Fix timezone: parse only date portion
-  const dateString = reserve.date.toString().split('T')[0];
+  const dateString = reserve.date.toString().split("T")[0];
   const reserveDate = parseISO(dateString);
 
   return (
@@ -253,7 +248,9 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
     >
-      <Card className={`bg-gray-900/90 backdrop-blur-sm border border-white/10 border-l-4 ${statusConfig.accentColor} overflow-hidden hover:border-white/20 transition-colors`}>
+      <Card
+        className={`bg-gray-900/90 backdrop-blur-sm border border-white/10 border-l-4 ${statusConfig.accentColor} overflow-hidden hover:border-white/20 transition-colors`}
+      >
         <div className="p-3 sm:p-4">
           <div className="flex items-center gap-3 sm:gap-4">
             {/* Left: Date */}
@@ -272,7 +269,9 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
                 <h4 className="text-sm sm:text-base font-bold text-white truncate max-w-[120px] sm:max-w-none">
                   {reserve.court.name}
                 </h4>
-                <Badge className={`${statusConfig.color} border text-[10px] px-1.5 py-0 flex-shrink-0`}>
+                <Badge
+                  className={`${statusConfig.color} border text-[10px] px-1.5 py-0 flex-shrink-0`}
+                >
                   {statusConfig.badge}
                 </Badge>
               </div>
@@ -283,14 +282,24 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
                   <span className="font-semibold text-white/80">{reserve.schedule}</span>
                 </div>
                 <div className="flex items-center gap-1 min-w-0">
-                  {reserve.complex?.name?.toLowerCase().includes('seven') ? (
-                    <img src="/images/seven_logo.png" alt="Seven" className="w-3 h-3 object-contain flex-shrink-0" />
-                  ) : reserve.complex?.name?.toLowerCase().includes('bertaca') ? (
-                    <img src="/images/bertaca_logo.png" alt="Bertaca" className="w-3 h-3 object-contain flex-shrink-0" />
+                  {reserve.complex?.name?.toLowerCase().includes("seven") ? (
+                    <img
+                      src="/images/seven_logo.png"
+                      alt="Seven"
+                      className="w-3 h-3 object-contain flex-shrink-0"
+                    />
+                  ) : reserve.complex?.name?.toLowerCase().includes("bertaca") ? (
+                    <img
+                      src="/images/bertaca_logo.png"
+                      alt="Bertaca"
+                      className="w-3 h-3 object-contain flex-shrink-0"
+                    />
                   ) : (
                     <Building2 className="w-3 h-3 flex-shrink-0" />
                   )}
-                  <span className="truncate max-w-[80px] sm:max-w-none">{reserve.complex?.name || "Complejo"}</span>
+                  <span className="truncate max-w-[80px] sm:max-w-none">
+                    {reserve.complex?.name || "Complejo"}
+                  </span>
                 </div>
               </div>
 
@@ -327,20 +336,21 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-gray-900 border-white/10 text-white max-w-[90vw] sm:max-w-lg">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogTitle>Política de Cancelación</AlertDialogTitle>
                       <AlertDialogDescription className="text-white/70">
-                        Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
+                        Para cancelar o modificar tu reserva, por favor comunicate con el complejo
+                        {reserve.complex?.phone ? (
+                          <span className="block mt-2 font-medium text-white">
+                            Tel: {reserve.complex.phone}
+                          </span>
+                        ) : (
+                          " directamente."
+                        )}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                      <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10">
-                        Volver
-                      </AlertDialogCancel>
-                      <AlertDialogAction
-                        className="bg-Error hover:bg-Error-dark text-white"
-                        onClick={() => onCancel(reserve.id)}
-                      >
-                        Confirmar Cancelación
+                      <AlertDialogAction className="bg-white/10 text-white hover:bg-white/20 border-white/10">
+                        Entendido
                       </AlertDialogAction>
                     </AlertDialogFooter>
                   </AlertDialogContent>
@@ -375,21 +385,22 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
                   </AlertDialogTrigger>
                   <AlertDialogContent className="bg-gray-900 border-white/10 text-white max-w-[90vw]">
                     <AlertDialogHeader>
-                      <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
+                      <AlertDialogTitle>Política de Cancelación</AlertDialogTitle>
                       <AlertDialogDescription className="text-white/70">
-                        Esta acción no se puede deshacer. La reserva será cancelada permanentemente.
+                        Para cancelar o modificar tu reserva, por favor comunicate con el complejo
+                        {reserve.complex?.phone ? (
+                          <span className="block mt-2 font-medium text-white">
+                            Tel: {reserve.complex.phone}
+                          </span>
+                        ) : (
+                          " directamente."
+                        )}
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter className="flex-col gap-2">
-                      <AlertDialogAction
-                        className="bg-Error hover:bg-Error-dark text-white w-full"
-                        onClick={() => onCancel(reserve.id)}
-                      >
-                        Confirmar Cancelación
+                      <AlertDialogAction className="bg-white/10 text-white hover:bg-white/20 border-white/10 w-full m-0">
+                        Entendido
                       </AlertDialogAction>
-                      <AlertDialogCancel className="bg-white/10 text-white hover:bg-white/20 border-white/10 w-full m-0">
-                        Volver
-                      </AlertDialogCancel>
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
@@ -401,4 +412,3 @@ const BookingCard = ({ reserve, onCancel, index }: BookingCardProps) => {
     </motion.div>
   );
 };
-
