@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import Link from "next/link";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 
 import { Calendar } from "@/components/ui/calendar";
 import { cn } from "@/lib/utils";
@@ -236,11 +237,12 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                 )}
               >
                 <CalendarDays className="mr-2 h-4 w-4 text-blue-600" />{" "}
-                {date ? format(date, "PPP") : <span>Elige una fecha</span>}
+                {date ? format(date, "PPP", { locale: es }) : <span>Elige una fecha</span>}
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 border-gray-300 shadow-md" align="start">
               <Calendar
+                locale={es}
                 mode="single"
                 selected={date || undefined}
                 onSelect={(dateCalendar) => {

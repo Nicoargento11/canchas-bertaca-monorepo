@@ -150,7 +150,14 @@ const CompletedReserveDetailsModal = () => {
             <div>
               <p className="text-sm text-white/60 font-medium">Fecha</p>
               <p className="font-semibold text-white">
-                {format(new Date(reserve.date), "PPP", { locale: es })}
+                {format(
+                  new Date(
+                    new Date(reserve.date).getTime() +
+                      new Date(reserve.date).getTimezoneOffset() * 60000
+                  ),
+                  "PPP",
+                  { locale: es }
+                )}
               </p>
             </div>
           </div>
@@ -189,41 +196,42 @@ const CompletedReserveDetailsModal = () => {
       </Card>
 
       {/* Promoción Aplicada */}
-      {reserve.promotion && (() => {
-        const promo = reserve.promotion;
-        let promoDescription = "";
+      {reserve.promotion &&
+        (() => {
+          const promo = reserve.promotion;
+          let promoDescription = "";
 
-        if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
-          promoDescription = `${promo.value}% de descuento`;
-        } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
-          promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
-        } else if (promo.type === "GIFT_PRODUCT") {
-          if (promo.giftProducts && promo.giftProducts.length > 0) {
-            promoDescription = promo.giftProducts
-              .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
-              .join(", ");
-          } else {
-            promoDescription = "Producto de regalo incluido";
+          if (promo.type === "PERCENTAGE_DISCOUNT" && promo.value) {
+            promoDescription = `${promo.value}% de descuento`;
+          } else if (promo.type === "FIXED_AMOUNT_DISCOUNT" && promo.value) {
+            promoDescription = `$${promo.value.toLocaleString("es-AR")} de descuento`;
+          } else if (promo.type === "GIFT_PRODUCT") {
+            if (promo.giftProducts && promo.giftProducts.length > 0) {
+              promoDescription = promo.giftProducts
+                .map((gp: any) => `${gp.quantity}x ${gp.product?.name || "Producto"}`)
+                .join(", ");
+            } else {
+              promoDescription = "Producto de regalo incluido";
+            }
           }
-        }
 
-        return (
-          <Card className="bg-amber-500/10 border-amber-500/30">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-4">
-                <div className="p-2 rounded-full bg-amber-500/20">
-                  <Gift className="text-amber-400" size={24} />
+          return (
+            <Card className="bg-amber-500/10 border-amber-500/30">
+              <CardContent className="p-4">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 rounded-full bg-amber-500/20">
+                    <Gift className="text-amber-400" size={24} />
+                  </div>
+                  <div>
+                    <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
+                    <p className="font-medium text-amber-300">{promo.name}</p>
+                    <p className="text-xs text-amber-400/60">{promoDescription}</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-sm text-amber-400/80 font-medium">Promoción Aplicada</p>
-                  <p className="font-medium text-amber-300">{promo.name}</p>
-                  <p className="text-xs text-amber-400/60">{promoDescription}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })()}
+              </CardContent>
+            </Card>
+          );
+        })()}
 
       {/* Resumen de Pagos */}
       <Card className="border border-green-900/30 bg-green-900/20">

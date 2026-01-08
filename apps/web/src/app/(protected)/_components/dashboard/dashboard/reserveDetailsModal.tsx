@@ -24,6 +24,7 @@ import { Modal } from "@/components/modals/modal";
 import { useDashboardEditReserveModalStore } from "@/store/editReserveDashboardModalStore";
 import { useDashboardDataStore } from "@/store/dashboardDataStore";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import { SessionPayload } from "@/services/auth/session";
 import { deleteReserve, updateReserveStatus } from "@/services/reserve/reserve";
 import { startTransition } from "react";
@@ -203,7 +204,7 @@ const ReserveDetailsModal = ({ userSession }: ReserveDetailsModalProps) => {
               <div>
                 <p className="text-sm text-white/60 font-medium">Fecha</p>
                 <p className="font-medium text-white">
-                  {date ? format(new Date(date), "PPP") : "Fecha no disponible"}
+                  {date ? format(new Date(date), "PPP", { locale: es }) : "Fecha no disponible"}
                 </p>
               </div>
             </div>
