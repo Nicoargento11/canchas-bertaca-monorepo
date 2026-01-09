@@ -14,7 +14,7 @@ export class PaymentsService {
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
     private prisma: PrismaService,
-  ) { }
+  ) {}
 
   // @Cron(CronExpression.EVERY_10_MINUTES)
   // async checkExpiredReservations() {
@@ -66,13 +66,14 @@ export class PaymentsService {
   }
 
   async createPreference({
-    courtId,
+    // courtId,
     date,
     reservationAmount,
     schedule,
     reserveId,
     court,
     complex,
+    clientName,
   }: CreatePreferenceDto) {
     // Validar que las URLs estén configuradas
     if (!process.env.PAYMENT_BACK_URL || !process.env.NOTIFICATION_URL) {
@@ -119,8 +120,8 @@ export class PaymentsService {
               picture_url:
                 'https://http2.mlstatic.com/D_NQ_NP_2X_711116-MLA46114833477_052021-F.jpg',
               id: reserveId,
-              title: `${courtName} - ${schedule}`,
-              description: `${complex.name} - ${formattedDate}`,
+              title: `${courtName} - ${schedule} - ${formattedDate}`,
+              description: `${complex.name} - ${clientName || 'Cliente'}`,
               unit_price: Number(reservationAmount),
               currency_id: 'ARS',
               quantity: 1,
