@@ -67,12 +67,22 @@ export function PaymentsHistory({ complex, userSession }: PaymentsHistoryProps) 
     const dateStr = format(new Date(payment.createdAt), "dd/MM/yyyy", { locale: es });
     const methodStr = payment.method ? payment.method.toLowerCase() : "";
     const typeStr = payment.transactionType ? payment.transactionType.toLowerCase() : "";
+    const clientName =
+      payment.reserve?.clientName?.toLowerCase() ||
+      payment.reserve?.user?.name?.toLowerCase() ||
+      "";
+    const courtName =
+      payment.reserve?.court?.name?.toLowerCase() ||
+      `cancha ${payment.reserve?.court?.courtNumber}` ||
+      "";
 
     return (
       payment.id.toLowerCase().includes(searchLower) ||
       methodStr.includes(searchLower) ||
       typeStr.includes(searchLower) ||
-      dateStr.includes(searchLower)
+      dateStr.includes(searchLower) ||
+      clientName.includes(searchLower) ||
+      courtName.includes(searchLower)
     );
   });
 
@@ -87,7 +97,7 @@ export function PaymentsHistory({ complex, userSession }: PaymentsHistoryProps) 
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Buscar por ID, método, tipo o fecha..."
+            placeholder="Buscar por ID, nombre, cancha, método..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="pl-8"
@@ -103,7 +113,7 @@ export function PaymentsHistory({ complex, userSession }: PaymentsHistoryProps) 
               <TableHead>Monto</TableHead>
               <TableHead>Método</TableHead>
               <TableHead>Tipo</TableHead>
-              <TableHead>Referencia</TableHead>
+              <TableHead className="w-[200px]">Detalle</TableHead>
               <TableHead>Estado</TableHead>
               {canDeletePayments && <TableHead className="w-[50px]">Acción</TableHead>}
             </TableRow>
@@ -148,23 +158,32 @@ export function PaymentsHistory({ complex, userSession }: PaymentsHistoryProps) 
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
-                      <div className="text-xs font-mono text-muted-foreground">
-                        {payment.reserveId ? (
-                          <span className="text-blue-600 font-medium">Reserva</span>
-                        ) : payment.saleId ? (
+                      {payment.reserveId && payment.reserve ? (
+                        <>
+                          <div className="text-xs font-medium text-slate-800">
+                            {payment.reserve.clientName || payment.reserve.user?.name || "Cliente"}
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            {payment.reserve.court?.name ||
+                              `Cancha ${payment.reserve.court?.courtNumber}`}{" "}
+                            - {payment.reserve.schedule}
+                          </div>
+                          <div className="text-[10px] text-blue-600 bg-blue-50 px-1 rounded w-fit">
+                            Reserva
+                          </div>
+                        </>
+                      ) : payment.saleId ? (
+                        <>
                           <span className="text-purple-600 font-medium">Venta POS</span>
-                        ) : payment.transactionType === "EGRESO" ? (
-                          <span className="text-red-600 font-medium">Egreso de caja</span>
-                        ) : (
-                          <span className="text-orange-500 font-medium">Sin referencia</span>
-                        )}
-                      </div>
-                      <div
-                        className="text-[10px] text-gray-400 truncate max-w-[100px]"
-                        title={payment.id}
-                      >
-                        ID: {payment.id.slice(0, 8)}...
-                      </div>
+                          <div className="text-[10px] text-gray-400">
+                            ID: {payment.id.slice(0, 8)}
+                          </div>
+                        </>
+                      ) : payment.transactionType === "EGRESO" ? (
+                        <span className="text-red-600 font-medium">Egreso de caja</span>
+                      ) : (
+                        <span className="text-orange-500 font-medium">Sin referencia</span>
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>
