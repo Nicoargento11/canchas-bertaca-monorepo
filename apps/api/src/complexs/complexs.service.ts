@@ -191,6 +191,12 @@ export class ComplexService {
                 productSales: { include: { product: true } },
               },
             },
+            reserve: {
+              include: {
+                user: true,
+                court: true,
+              },
+            },
           },
         },
         CashRegister: true,
