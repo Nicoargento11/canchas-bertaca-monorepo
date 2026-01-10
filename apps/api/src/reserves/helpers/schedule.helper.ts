@@ -413,7 +413,9 @@ export class ScheduleHelper {
       // Manejar cruce de medianoche en el slot
       if (scheduleEndMinutes <= scheduleStartMinutes) {
         scheduleEndMinutes += 24 * 60;
-      } // Filtramos reservas que se solapan con este horario
+      }
+
+      // Filtramos reservas que se solapan con este horario
       const reservedCourts = allReservations.filter((reservation) => {
         const reservationStartMinutes = timeToMinutes(reservation.startTime);
         let reservationEndMinutes = timeToMinutes(reservation.endTime);
@@ -430,9 +432,11 @@ export class ScheduleHelper {
           reservationStartMinutes < scheduleEndMinutes;
 
         return overlaps;
-      }); // Verificamos disponibilidad para esta cancha específica
+      });
+
+      // Verificamos disponibilidad para esta cancha específica
       const availableCourts = activeCourts.filter((court) => {
-        // 1. Verificar que la cancha no esté reservada en este horario
+        // 1. Verificar que la cancha no esté reservada en este horario (usando el array filtrado arriba)
         const isNotReserved = !reservedCourts.some(
           (reserved) => reserved.court.id === court.id,
         );

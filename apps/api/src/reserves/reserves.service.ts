@@ -232,10 +232,13 @@ export class ReservesService implements OnModuleInit {
     schedule: string;
     id?: string;
   }) {
+    const newTimes = this.parseScheduleToMinutes(dto.schedule);
+
     const where: any = {
       courtId: dto.courtId,
       date: dto.date instanceof Date ? dto.date : new Date(dto.date),
-      schedule: dto.schedule,
+      // No filtramos por schedule exacto, buscamos todas las del día/cancha
+      // schedule: dto.schedule,
       complexId: dto.complexId,
       status: { notIn: ['RECHAZADO', 'CANCELADO'] },
     };
@@ -244,12 +247,66 @@ export class ReservesService implements OnModuleInit {
       where.id = { not: dto.id };
     }
 
-    const existing = await this.prisma.reserve.findFirst({ where });
+    const existingReserves = await this.prisma.reserve.findMany({
+      where,
+      select: { schedule: true, id: true },
+    });
 
-    if (existing) {
-      throw new UnprocessableEntityException(
-        'Conflicto de reserva: fecha/horario no disponible',
+    // Validar conflictos de superposición horaria
+    if (newTimes) {
+      for (const reserve of existingReserves) {
+        const existingTimes = this.parseScheduleToMinutes(reserve.schedule);
+        if (existingTimes) {
+          // Lógica de superposición: (StartA < EndB) y (EndA > StartB)
+          if (
+            newTimes.start < existingTimes.end &&
+            newTimes.end > existingTimes.start
+          ) {
+            throw new UnprocessableEntityException(
+              `Conflicto de reserva: Ya existe una reserva en el horario ${reserve.schedule} que se solapa con el solicitado.`,
+            );
+          }
+        }
+      }
+    } else {
+      // Si por alguna razón el formato no es parseable, hacemos fallback a búsqueda exacta (legacy behavior)
+      const exactMatch = existingReserves.find(
+        (r) => r.schedule === dto.schedule,
       );
+      if (exactMatch) {
+        throw new UnprocessableEntityException(
+          'Conflicto de reserva: fecha/horario no disponible',
+        );
+      }
+    }
+  }
+
+  private parseScheduleToMinutes(
+    schedule: string,
+  ): { start: number; end: number } | null {
+    try {
+      // Formato esperado: "HH:mm - HH:mm"
+      const parts = schedule.split(' - ');
+      if (parts.length !== 2) return null;
+
+      const [startStr, endStr] = parts;
+      const [startH, startM] = startStr.split(':').map(Number);
+      const [endH, endM] = endStr.split(':').map(Number);
+
+      if (isNaN(startH) || isNaN(startM) || isNaN(endH) || isNaN(endM))
+        return null;
+
+      const start = startH * 60 + startM;
+      let end = endH * 60 + endM;
+
+      // Si termina al día siguiente (ej: 23:00 - 01:00), sumamos 24h
+      if (end <= start) {
+        end += 24 * 60;
+      }
+
+      return { start, end };
+    } catch {
+      return null;
     }
   }
 
@@ -476,10 +533,13 @@ export class ReservesService implements OnModuleInit {
     complexId,
     sportTypeId?: string,
   ) {
+    // NOTA: No filtramos por 'schedule' en la query de base de datos
+    // para traer todas las reservas del día y permitir que el helper
+    // detecte solapamientos con reservas de rango mayor (ej: Eventos de 2hs)
     return this.prisma.reserve.findMany({
       where: {
         date: new Date(date),
-        schedule,
+        // schedule, <-- Eliminado para permitir detección de overlap
         status: { notIn: ['RECHAZADO', 'CANCELADO'] },
         complexId,
         court: sportTypeId ? { sportTypeId } : undefined,
