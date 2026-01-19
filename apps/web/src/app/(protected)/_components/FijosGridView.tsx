@@ -135,8 +135,19 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
     const occupied = fixedReserves.find((fr) => {
       if (fr.courtId !== courtId) return false;
       const rStart = parseInt(fr.startTime.split(":")[0]);
-      const rEnd = parseInt(fr.endTime.split(":")[0]);
-      return slotStartHour >= rStart && slotStartHour < rEnd;
+      let rEnd = parseInt(fr.endTime.split(":")[0]);
+
+      // Handle midnight crossing
+      if (rEnd <= rStart) {
+        rEnd += 24;
+      }
+
+      let adjustedSlotHour = slotStartHour;
+      if (slotStartHour < rStart) {
+        adjustedSlotHour += 24;
+      }
+
+      return adjustedSlotHour >= rStart && adjustedSlotHour < rEnd;
     });
 
     if (occupied) {
@@ -263,9 +274,20 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                           const fixedReserve = fixedReserves.find((fr) => {
                             if (fr.courtId !== court.id) return false;
                             const rStart = parseInt(fr.startTime.split(":")[0]);
-                            const rEnd = parseInt(fr.endTime.split(":")[0]);
+                            let rEnd = parseInt(fr.endTime.split(":")[0]);
+
+                            // Handle midnight crossing (e.g., 23:00 - 01:00)
+                            if (rEnd <= rStart) {
+                              rEnd += 24;
+                            }
+
                             // Check if this slot is within the reserve duration
-                            return slotStartHour >= rStart && slotStartHour < rEnd;
+                            let adjustedSlotHour = slotStartHour;
+                            if (slotStartHour < rStart) {
+                              adjustedSlotHour += 24;
+                            }
+
+                            return adjustedSlotHour >= rStart && adjustedSlotHour < rEnd;
                           });
 
                           // If this slot is covered by a reserve
