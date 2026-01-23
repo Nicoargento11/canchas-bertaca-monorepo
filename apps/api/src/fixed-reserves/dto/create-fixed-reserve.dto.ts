@@ -39,4 +39,9 @@ export class CreateFixedReserveDto {
   @IsOptional()
   @IsString()
   promotionId?: string;
+
+  @ApiProperty({ required: false, default: false })
+  @IsOptional()
+  @IsBoolean()
+  force?: boolean;
 }

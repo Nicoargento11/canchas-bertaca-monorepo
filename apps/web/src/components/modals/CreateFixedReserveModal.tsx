@@ -26,13 +26,14 @@ import {
   FixedReserve,
 } from "@/services/fixed-reserve/fixed-reserve";
 import { createUser } from "@/services/user/user";
-import { searchUsers } from "@/services/user/user"; // Assuming this exists or I'll create it
+import { searchUsers } from "@/services/user/user";
 import { User } from "@/services/user/user";
-import { Loader2, UserPlus, Search } from "lucide-react";
+import { Loader2, UserPlus, Search, AlertTriangle } from "lucide-react";
 import { Complex } from "@/services/complex/complex";
 import { SportType } from "@/services/sport-types/sport-types";
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 interface CreateFixedReserveModalProps {
   isOpen: boolean;
@@ -96,6 +97,18 @@ export const CreateFixedReserveModal = ({
   const [selectedDays, setSelectedDays] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [reserveType, setReserveType] = useState<"FIJO" | "ESCUELA">("FIJO");
+
+  const [conflictState, setConflictState] = useState<{
+    isOpen: boolean;
+    conflicts: any[];
+    requests: any[];
+    successfulSoFar: any[];
+  }>({
+    isOpen: false,
+    conflicts: [],
+    requests: [],
+    successfulSoFar: [],
+  });
 
   // User Search State
   const [searchQuery, setSearchQuery] = useState("");
@@ -261,358 +274,496 @@ export const CreateFixedReserveModal = ({
     }
   };
 
+  const finishWithSuccess = (successfulResults: any[]) => {
+    // Reset conflict state on success
+    setConflictState((prev) => ({ ...prev, isOpen: false }));
+
+    const allWarnings = successfulResults
+      .filter((r) => r.data?.instanceError)
+      .map((r) => r.data?.instanceError);
+
+    if (successfulResults.length > 0) {
+      if (allWarnings.length > 0) {
+        toast.warning(
+          `Se crearon ${successfulResults.length} fijos, pero hubo advertencias de instancias: ${[...new Set(allWarnings)].join(", ")}`,
+          { duration: 6000 }
+        );
+      } else {
+        toast.success("Turnos fijos creados correctamente");
+      }
+      onSuccess();
+      onClose();
+    }
+    setIsLoading(false);
+  };
+
+  const handleForceCreate = async () => {
+    setIsLoading(true);
+    // Retry conflicts with force=true
+    const conflictsToForce = conflictState.conflicts.map((c) => c._requestData);
+
+    try {
+      const forcedResults = await Promise.all(
+        conflictsToForce.map(async (data) => {
+          const { _originalDayId, ...apiData } = data;
+          const result = await createFixedReserve({ ...apiData, force: true });
+          return {
+            ...result,
+            _originalDayId,
+            _requestData: data,
+          };
+        })
+      );
+
+      const finalSuccessful = [
+        ...conflictState.successfulSoFar,
+        ...forcedResults.filter((r) => r.success),
+      ];
+      const finalFailed = forcedResults.filter((r) => !r.success);
+
+      if (finalFailed.length > 0) {
+        toast.error(`Error al forzar creación: ${finalFailed.map((f) => f.error).join(", ")}`);
+      }
+
+      finishWithSuccess(finalSuccessful);
+    } catch (err) {
+      toast.error("Error al forzar la creación");
+      setIsLoading(false);
+    }
+  };
+
   const handleCreateFixedReserve = async () => {
     if (!selectedUser || !initialData) return;
 
     setIsLoading(true);
+    setConflictState({ isOpen: false, conflicts: [], requests: [], successfulSoFar: [] });
+
     try {
-      const promises = selectedDays.map(async (dayId) => {
-        const scheduleDay = complex.scheduleDays.find((sd) => sd.dayOfWeek === dayId);
-        if (!scheduleDay) {
-          console.warn(`No schedule day found for day ${dayId}`);
-          return;
-        }
-
-        // Find the correct rate from the backend data (reservationsByDay)
-        const scheduleKey = `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}`;
-        const reservationSlot = state.reservationsByDay?.find((r) => r.schedule === scheduleKey);
-
-        let rateId = complex.rates[0]?.id; // Fallback
-
-        if (reservationSlot?.courtInfo) {
-          // Try to find rate for this specific court
-          const courtData = reservationSlot.courtInfo.courts?.find(
-            (c) => c.courtId === initialData.courtId
-          );
-
-          if (courtData?.rates && courtData.rates.length > 0) {
-            rateId = courtData.rates[0].id;
-          } else if (
-            reservationSlot.courtInfo.rates &&
-            reservationSlot.courtInfo.rates.length > 0
-          ) {
-            rateId = reservationSlot.courtInfo.rates[0].id;
+      const requestsData = selectedDays
+        .map((dayId) => {
+          const scheduleDay = complex.scheduleDays.find((sd) => sd.dayOfWeek === dayId);
+          if (!scheduleDay) {
+            console.warn(`No schedule day found for day ${dayId}`);
+            return null;
           }
-        }
 
-        return createFixedReserve({
-          startTime: formData.startTime,
-          endTime: formData.endTime,
-          courtId: formData.courtId,
-          scheduleDayId: scheduleDay.id,
-          rateId: rateId,
-          userId: selectedUser.id,
-          complexId: complex.id,
-          isActive: true,
-          promotionId: bestPromotion?.id, // Use bestPromotion from hook
-          reserveType: reserveType, // FIJO or ESCUELA
+          const scheduleKey = `${initialData.startTime.slice(0, 5)} - ${initialData.endTime.slice(0, 5)}`;
+          const reservationSlot = state.reservationsByDay?.find((r) => r.schedule === scheduleKey);
+
+          let rateId = complex.rates[0]?.id; // Fallback
+
+          if (reservationSlot?.courtInfo) {
+            const courtData = reservationSlot.courtInfo.courts?.find(
+              (c) => c.courtId === initialData.courtId
+            );
+
+            if (courtData?.rates && courtData.rates.length > 0) {
+              rateId = courtData.rates[0].id;
+            } else if (
+              reservationSlot.courtInfo.rates &&
+              reservationSlot.courtInfo.rates.length > 0
+            ) {
+              rateId = reservationSlot.courtInfo.rates[0].id;
+            }
+          }
+
+          return {
+            startTime: formData.startTime,
+            endTime: formData.endTime,
+            courtId: formData.courtId,
+            scheduleDayId: scheduleDay.id,
+            rateId: rateId,
+            userId: selectedUser.id,
+            complexId: complex.id,
+            isActive: true,
+            promotionId: bestPromotion?.id,
+            reserveType: reserveType,
+            _originalDayId: dayId,
+          };
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null);
+
+      const results = await Promise.all(
+        requestsData.map(async (data) => {
+          const { _originalDayId, ...apiData } = data;
+          const result = await createFixedReserve({ ...apiData, force: false });
+          return {
+            ...result,
+            _originalDayId,
+            _requestData: data,
+          };
+        })
+      );
+
+      const failed = results.filter((r) => !r.success);
+      const conflicts = failed.filter((r) => r.statusCode === 409);
+      const otherErrors = failed.filter((r) => r.statusCode !== 409);
+      const successful = results.filter((r) => r.success);
+
+      if (conflicts.length > 0) {
+        setConflictState({
+          isOpen: true,
+          conflicts: conflicts,
+          requests: requestsData,
+          successfulSoFar: successful,
         });
-      });
-
-      const results = await Promise.all(promises);
-      const failed = results.filter((r) => r && !r.success);
-      const warnings = results
-        .filter((r) => r && r.success && r.data?.instanceError)
-        .map((r) => r?.data?.instanceError);
-
-      if (failed.length > 0) {
-        toast.error(`Fallaron ${failed.length} turnos: ${failed.map((f) => f?.error).join(", ")}`);
-      } else if (warnings.length > 0) {
-        toast.warning(
-          `Turnos creados, pero algunas reservas de hoy no se generaron: ${[...new Set(warnings)].join(", ")}`,
-          { duration: 6000 }
-        );
-        onSuccess();
-        onClose();
-      } else {
-        toast.success("Turnos fijos creados correctamente");
-        onSuccess();
-        onClose();
+        setIsLoading(false);
+        return;
       }
+
+      if (otherErrors.length > 0) {
+        toast.error(`Errores (no conflictos): ${otherErrors.map((f) => f.error).join(", ")}`);
+      }
+
+      finishWithSuccess(successful);
     } catch (error) {
       toast.error("Error al crear los turnos fijos");
-    } finally {
+      console.error(error);
       setIsLoading(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>{editingReserve ? "Editar Turno Fijo" : "Nuevo Turno Fijo"}</DialogTitle>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px] max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{editingReserve ? "Editar Turno Fijo" : "Nuevo Turno Fijo"}</DialogTitle>
+          </DialogHeader>
 
-        {step === "USER_SELECTION" && (
-          <div className="space-y-4 py-4">
-            {!isCreatingUser ? (
-              <>
-                <div className="space-y-2">
-                  <Label>Buscar Cliente</Label>
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                    <Input
-                      placeholder="Nombre, teléfono o email..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-9"
-                    />
-                  </div>
-
-                  {/* Search Results */}
-                  {isSearching && (
-                    <div className="flex justify-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+          {step === "USER_SELECTION" && (
+            <div className="space-y-4 py-4">
+              {!isCreatingUser ? (
+                <>
+                  <div className="space-y-2">
+                    <Label>Buscar Cliente</Label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        placeholder="Nombre, teléfono o email..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-9"
+                      />
                     </div>
-                  )}
 
-                  {!isSearching && searchResults.length > 0 && (
-                    <div className="mt-2 border rounded-md divide-y max-h-[200px] overflow-y-auto">
-                      {searchResults.map((user) => (
-                        <div
-                          key={user.id}
-                          className="p-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setStep("DETAILS");
-                          }}
-                        >
-                          <div>
-                            <p className="font-medium text-sm">{user.name}</p>
-                            <p className="text-xs text-gray-500">{user.phone || user.email}</p>
+                    {/* Search Results */}
+                    {isSearching && (
+                      <div className="flex justify-center p-4">
+                        <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                      </div>
+                    )}
+
+                    {!isSearching && searchResults.length > 0 && (
+                      <div className="mt-2 border rounded-md divide-y max-h-[200px] overflow-y-auto">
+                        {searchResults.map((user) => (
+                          <div
+                            key={user.id}
+                            className="p-3 hover:bg-gray-50 cursor-pointer flex justify-between items-center"
+                            onClick={() => {
+                              setSelectedUser(user);
+                              setStep("DETAILS");
+                            }}
+                          >
+                            <div>
+                              <p className="font-medium text-sm">{user.name}</p>
+                              <p className="text-xs text-gray-500">{user.phone || user.email}</p>
+                            </div>
+                            <Button size="sm" variant="ghost">
+                              Seleccionar
+                            </Button>
                           </div>
-                          <Button size="sm" variant="ghost">
-                            Seleccionar
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                        ))}
+                      </div>
+                    )}
 
-                  {!isSearching && searchQuery.length > 2 && searchResults.length === 0 && (
-                    <div className="text-center p-4 text-sm text-gray-500">
-                      No se encontraron usuarios.
-                    </div>
-                  )}
-                </div>
-
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <span className="w-full border-t" />
+                    {!isSearching && searchQuery.length > 2 && searchResults.length === 0 && (
+                      <div className="text-center p-4 text-sm text-gray-500">
+                        No se encontraron usuarios.
+                      </div>
+                    )}
                   </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">O</span>
-                  </div>
-                </div>
 
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setIsCreatingUser(true)}
-                >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  Crear Nuevo Cliente
-                </Button>
-              </>
-            ) : (
-              <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
-                <div className="space-y-2">
-                  <Label>Nombre Completo</Label>
-                  <Input
-                    value={newUserName}
-                    onChange={(e) => setNewUserName(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label>Teléfono</Label>
-                  <Input
-                    value={newUserPhone}
-                    onChange={(e) => setNewUserPhone(e.target.value)}
-                    placeholder="Ej: 3624..."
-                  />
-                </div>
-                <div className="flex gap-2 pt-2">
+                  <div className="relative">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                      <span className="bg-background px-2 text-muted-foreground">O</span>
+                    </div>
+                  </div>
+
                   <Button
-                    variant="ghost"
-                    onClick={() => setIsCreatingUser(false)}
-                    className="flex-1"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => setIsCreatingUser(true)}
                   >
-                    Cancelar
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Crear Nuevo Cliente
                   </Button>
-                  <Button onClick={handleCreateUser} disabled={isLoading} className="flex-1">
-                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                    Crear y Seleccionar
-                  </Button>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {step === "DETAILS" && (
-          <div className="space-y-6 py-4">
-            <div className="bg-slate-50 p-4 rounded-lg space-y-4">
-              <div className="flex justify-between text-sm items-center">
-                <span className="text-gray-500">Cliente:</span>
-                <span className="font-medium">{selectedUser?.name}</span>
-              </div>
-
-              {/* Reserve Type Selector */}
-              <div className="space-y-2">
-                <Label>Tipo de Reserva</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      reserveType === "FIJO"
-                        ? "border-blue-500 bg-blue-50 text-blue-700"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setReserveType("FIJO")}
-                  >
-                    <div className="text-center">
-                      <div className="text-lg mb-1">📅</div>
-                      <div className="font-semibold">Fijo</div>
-                      <div className="text-xs opacity-75">Turno regular</div>
-                    </div>
-                  </button>
-                  <button
-                    type="button"
-                    className={`p-3 rounded-lg border-2 transition-all ${
-                      reserveType === "ESCUELA"
-                        ? "border-green-500 bg-green-50 text-green-700"
-                        : "border-gray-200 hover:border-gray-300"
-                    }`}
-                    onClick={() => setReserveType("ESCUELA")}
-                  >
-                    <div className="text-center">
-                      <div className="text-lg mb-1">⚽</div>
-                      <div className="font-semibold">Escuelita</div>
-                      <div className="text-xs opacity-75">Entrenamiento</div>
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              {/* Time Selection */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Hora Inicio</Label>
-                  <Select
-                    value={formData.startTime}
-                    onValueChange={(val) => setFormData({ ...formData, startTime: val })}
-                    disabled={!editingReserve}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Inicio" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {/* Generate hours */}
-                      {Array.from({ length: 16 }, (_, i) => i + 8).map((hour) => (
-                        <SelectItem key={hour} value={`${String(hour).padStart(2, "0")}:00`}>
-                          {`${String(hour).padStart(2, "0")}:00`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Hora Fin</Label>
-                  <Select
-                    value={formData.endTime}
-                    onValueChange={(val) => setFormData({ ...formData, endTime: val })}
-                    disabled={!editingReserve}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Fin" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {Array.from({ length: 16 }, (_, i) => i + 9).map((hour) => (
-                        <SelectItem key={hour} value={`${String(hour).padStart(2, "0")}:00`}>
-                          {`${String(hour).padStart(2, "0")}:00`}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Court Selection */}
-              <div className="space-y-2">
-                <Label>Cancha</Label>
-                <Select
-                  value={formData.courtId}
-                  onValueChange={(val) => setFormData({ ...formData, courtId: val })}
-                  disabled={!editingReserve}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Seleccionar Cancha" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {complex.courts.map((court) => (
-                      <SelectItem key={court.id} value={court.id}>
-                        {court.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <Label>Días a repetir</Label>
-              <div className="grid grid-cols-2 gap-2">
-                {DAYS.map((day) => (
-                  <div key={day.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`day-${day.id}`}
-                      checked={selectedDays.includes(day.id)}
-                      onCheckedChange={(checked) => {
-                        if (checked) {
-                          setSelectedDays([...selectedDays, day.id]);
-                        } else {
-                          setSelectedDays(selectedDays.filter((d) => d !== day.id));
-                        }
-                      }}
+                </>
+              ) : (
+                <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4">
+                  <div className="space-y-2">
+                    <Label>Nombre Completo</Label>
+                    <Input
+                      value={newUserName}
+                      onChange={(e) => setNewUserName(e.target.value)}
+                      placeholder="Ej: Juan Pérez"
                     />
-                    <label
-                      htmlFor={`day-${day.id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                      {day.label}
-                    </label>
                   </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <DialogFooter className="sm:justify-end">
-          {step === "DETAILS" && (
-            <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
-              {editingReserve && (
-                <Button
-                  variant="outline"
-                  onClick={() => setStep("USER_SELECTION")}
-                  className="w-full sm:w-auto"
-                >
-                  Cambiar Cliente
-                </Button>
+                  <div className="space-y-2">
+                    <Label>Teléfono</Label>
+                    <Input
+                      value={newUserPhone}
+                      onChange={(e) => setNewUserPhone(e.target.value)}
+                      placeholder="Ej: 3624..."
+                    />
+                  </div>
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="ghost"
+                      onClick={() => setIsCreatingUser(false)}
+                      className="flex-1"
+                    >
+                      Cancelar
+                    </Button>
+                    <Button onClick={handleCreateUser} disabled={isLoading} className="flex-1">
+                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                      Crear y Seleccionar
+                    </Button>
+                  </div>
+                </div>
               )}
-              <Button
-                onClick={editingReserve ? handleUpdateFixedReserve : handleCreateFixedReserve}
-                disabled={isLoading || selectedDays.length === 0}
-                className="w-full sm:w-auto"
-              >
-                {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {editingReserve ? "Guardar" : "Confirmar"}
-              </Button>
             </div>
           )}
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+
+          {step === "DETAILS" && (
+            <div className="space-y-6 py-4">
+              {/* Conflict Warning Inline */}
+              {conflictState.isOpen && (
+                <Alert
+                  variant="destructive"
+                  className="border-red-500 bg-red-50 mb-4 animate-in fade-in slide-in-from-top-2"
+                >
+                  <AlertTriangle className="h-4 w-4 text-red-600" />
+                  <AlertTitle className="text-red-700 font-semibold ml-2">
+                    Conflictos detectados
+                  </AlertTitle>
+                  <AlertDescription className="text-red-700 mt-2">
+                    <div className="text-sm">
+                      <p className="mb-2 font-medium">
+                        No se pueden crear algunos turnos fijos debido a reservas existentes:
+                      </p>
+                      <ul className="list-disc pl-5 space-y-1 mb-3 max-h-[150px] overflow-y-auto">
+                        {conflictState.conflicts.map((c, i) => (
+                          <li key={i}>{c.error}</li>
+                        ))}
+                      </ul>
+                      <p className="font-medium">
+                        ¿Deseas forzar la creación? <br />
+                        <span className="font-normal opacity-90 block mt-1 text-xs">
+                          Esto creará el fijo ignorando la advertencia. Las reservas existentes NO
+                          se borrarán.
+                        </span>
+                      </p>
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!conflictState.isOpen && (
+                <div className="bg-slate-50 p-4 rounded-lg space-y-4">
+                  <div className="flex justify-between text-sm items-center">
+                    <span className="text-gray-500">Cliente:</span>
+                    <span className="font-medium">{selectedUser?.name}</span>
+                  </div>
+
+                  {/* Reserve Type Selector */}
+                  <div className="space-y-2">
+                    <Label>Tipo de Reserva</Label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          reserveType === "FIJO"
+                            ? "border-blue-500 bg-blue-50 text-blue-700"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => setReserveType("FIJO")}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">📅</div>
+                          <div className="font-semibold">Fijo</div>
+                          <div className="text-xs opacity-75">Turno regular</div>
+                        </div>
+                      </button>
+                      <button
+                        type="button"
+                        className={`p-3 rounded-lg border-2 transition-all ${
+                          reserveType === "ESCUELA"
+                            ? "border-green-500 bg-green-50 text-green-700"
+                            : "border-gray-200 hover:border-gray-300"
+                        }`}
+                        onClick={() => setReserveType("ESCUELA")}
+                      >
+                        <div className="text-center">
+                          <div className="text-lg mb-1">⚽</div>
+                          <div className="font-semibold">Escuelita</div>
+                          <div className="text-xs opacity-75">Entrenamiento</div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Time Selection */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label>Hora Inicio</Label>
+                      <Select
+                        value={formData.startTime}
+                        onValueChange={(val) => setFormData({ ...formData, startTime: val })}
+                        disabled={!editingReserve}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Inicio" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {/* Generate hours */}
+                          {Array.from({ length: 16 }, (_, i) => i + 8).map((hour) => (
+                            <SelectItem key={hour} value={`${String(hour).padStart(2, "0")}:00`}>
+                              {`${String(hour).padStart(2, "0")}:00`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label>Hora Fin</Label>
+                      <Select
+                        value={formData.endTime}
+                        onValueChange={(val) => setFormData({ ...formData, endTime: val })}
+                        disabled={!editingReserve}
+                      >
+                        <SelectTrigger>
+                          <SelectValue placeholder="Fin" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {Array.from({ length: 16 }, (_, i) => i + 9).map((hour) => (
+                            <SelectItem key={hour} value={`${String(hour).padStart(2, "0")}:00`}>
+                              {`${String(hour).padStart(2, "0")}:00`}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* Court Selection */}
+                  <div className="space-y-2">
+                    <Label>Cancha</Label>
+                    <Select
+                      value={formData.courtId}
+                      onValueChange={(val) => setFormData({ ...formData, courtId: val })}
+                      disabled={!editingReserve}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Seleccionar Cancha" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {complex.courts.map((court) => (
+                          <SelectItem key={court.id} value={court.id}>
+                            {court.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {!conflictState.isOpen && (
+                <div className="space-y-3">
+                  <Label>Días a repetir</Label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {DAYS.map((day) => (
+                      <div key={day.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`day-${day.id}`}
+                          checked={selectedDays.includes(day.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedDays([...selectedDays, day.id]);
+                            } else {
+                              setSelectedDays(selectedDays.filter((d) => d !== day.id));
+                            }
+                          }}
+                        />
+                        <label
+                          htmlFor={`day-${day.id}`}
+                          className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        >
+                          {day.label}
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          <DialogFooter className="sm:justify-end gap-2">
+            {step === "DETAILS" && (
+              <div className="flex flex-col-reverse sm:flex-row gap-2 w-full sm:w-auto">
+                {(editingReserve || conflictState.isOpen) && (
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      if (conflictState.isOpen) {
+                        // Cancel conflict mode
+                        setConflictState({
+                          isOpen: false,
+                          conflicts: [],
+                          requests: [],
+                          successfulSoFar: [],
+                        });
+                      } else {
+                        setStep("USER_SELECTION");
+                      }
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    {conflictState.isOpen ? "Cancelar" : "Cambiar Cliente"}
+                  </Button>
+                )}
+
+                {conflictState.isOpen ? (
+                  <Button
+                    onClick={handleForceCreate}
+                    disabled={isLoading}
+                    variant="destructive"
+                    className="w-full sm:w-auto"
+                  >
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    Sí, forzar creación
+                  </Button>
+                ) : (
+                  <Button
+                    onClick={editingReserve ? handleUpdateFixedReserve : handleCreateFixedReserve}
+                    disabled={isLoading || selectedDays.length === 0}
+                    className="w-full sm:w-auto"
+                    variant={editingReserve ? "default" : "default"}
+                  >
+                    {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                    {editingReserve ? "Guardar" : "Confirmar"}
+                  </Button>
+                )}
+              </div>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
