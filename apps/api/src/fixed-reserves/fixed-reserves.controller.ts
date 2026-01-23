@@ -100,7 +100,10 @@ export class FixedReservesController {
     description: 'The status of the fixed reserve has been toggled.',
   })
   @ApiResponse({ status: 404, description: 'Fixed reserve not found.' })
-  async toggleStatus(@Param('id') id: string): Promise<FixedReserve> {
-    return this.fixedReservesService.toggleStatus(id);
+  async toggleStatus(
+    @Param('id') id: string,
+    @Body('force') force?: boolean,
+  ): Promise<FixedReserve> {
+    return this.fixedReservesService.toggleStatus(id, force);
   }
 }

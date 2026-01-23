@@ -40,12 +40,14 @@ export interface FixedReserveData {
   isActive?: boolean;
   promotionId?: string;
   reserveType?: "FIJO" | "ESCUELA";
+  force?: boolean;
 }
 
 type FixedReserveResult<T = any> = {
   success: boolean;
   data?: T;
   error?: string;
+  statusCode?: number;
 };
 
 const handleFixedReserveError = (error: unknown): FixedReserveResult => {
@@ -54,12 +56,7 @@ const handleFixedReserveError = (error: unknown): FixedReserveResult => {
       const status = error.response.status;
       const message = error.response.data?.message || "Error en la solicitud";
 
-      if (status === 401) return { success: false, error: message || "No autorizado" };
-      if (status === 404) return { success: false, error: message || "Horario fijo no encontrado" };
-      if (status === 409)
-        return { success: false, error: message || "Conflicto con los datos proporcionados" };
-
-      return { success: false, error: message };
+      return { success: false, error: message, statusCode: status };
     }
     return { success: false, error: "Error de conexión" };
   }

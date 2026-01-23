@@ -43,12 +43,39 @@ export class FixedReservesService {
       );
     }
 
+    const { force, ...reserveData } = createFixedReserveDto;
+
+    // Validar conflictos con reservas existentes en las próximas semanas si no se fuerza
+    if (!force) {
+      const checkDate = new Date();
+      const weeksToCheck = 8; // Revisar próximas 8 semanas
+      const currentDayOfWeek = checkDate.getDay();
+      const targetDayOfWeek = scheduleDay.dayOfWeek;
+
+      // Calcular días hasta la próxima ocurrencia
+      let daysUntilNext = targetDayOfWeek - currentDayOfWeek;
+      if (daysUntilNext < 0) {
+        daysUntilNext += 7;
+      }
+      checkDate.setDate(checkDate.getDate() + daysUntilNext);
+
+      // Iterar verificando conflictos
+      for (let i = 0; i < weeksToCheck; i++) {
+        try {
+          await this.validateNoOverlap(courtId, checkDate, startTime, endTime);
+        } catch (error) {
+          throw error;
+        }
+        checkDate.setDate(checkDate.getDate() + 7);
+      }
+    }
+
     // Validar si coincide con hoy y hay reservas existentes
-    const today = new Date();
+    const today = this.getArgentineDate();
     const todayDayOfWeek = today.getDay();
 
     const fixedReserve = await this.prisma.fixedReserve.create({
-      data: createFixedReserveDto,
+      data: reserveData,
       include: {
         scheduleDay: true,
         user: true,
@@ -298,7 +325,10 @@ export class FixedReservesService {
     }
   }
 
-  async toggleStatus(id: string): Promise<FixedReserve> {
+  async toggleStatus(
+    id: string,
+    force: boolean = false,
+  ): Promise<FixedReserve> {
     const fixedReserve = await this.prisma.fixedReserve.findUnique({
       where: { id },
       include: {
@@ -316,12 +346,36 @@ export class FixedReservesService {
 
     const newStatus = !fixedReserve.isActive;
 
+    if (newStatus && !force) {
+      // Activating: Validate future conflicts
+      const checkDate = new Date();
+      const weeksToCheck = 8;
+      const currentDayOfWeek = checkDate.getDay();
+      let daysUntilNext = fixedReserve.scheduleDay.dayOfWeek - currentDayOfWeek;
+      if (daysUntilNext < 0) daysUntilNext += 7;
+      checkDate.setDate(checkDate.getDate() + daysUntilNext);
+
+      for (let i = 0; i < weeksToCheck; i++) {
+        try {
+          await this.validateNoOverlap(
+            fixedReserve.courtId,
+            checkDate,
+            fixedReserve.startTime,
+            fixedReserve.endTime,
+          );
+        } catch (error) {
+          throw error;
+        }
+        checkDate.setDate(checkDate.getDate() + 7);
+      }
+    }
+
     const updated = await this.prisma.fixedReserve.update({
       where: { id },
       data: { isActive: newStatus },
     });
 
-    const today = new Date();
+    const today = this.getArgentineDate();
     const todayDayOfWeek = today.getDay();
 
     if (newStatus) {
@@ -374,7 +428,7 @@ export class FixedReservesService {
   ): Promise<void> {
     // Convertir la fecha a UTC manteniendo solo año, mes y día
     const targetDate = new Date(
-      Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()),
+      Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()),
     );
 
     // Verificar si ya existe una reserva para esta fecha y horario
@@ -505,11 +559,49 @@ export class FixedReservesService {
 
       // Check overlap: (StartA < EndB) and (EndA > StartB)
       if (newStart < rEnd && newEnd > rStart) {
+        const dateStr = date.toLocaleDateString('es-AR', {
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        });
         throw new ConflictException(
-          `Ya existe una reserva (${reserve.status}) en el horario ${reserve.schedule} para el día de hoy.`,
+          `Ya existe una reserva (${reserve.status}) en el horario ${reserve.schedule} para la fecha ${dateStr}.`,
         );
       }
     }
+  }
+
+  /**
+   * Obtiene la fecha actual en zona horaria Argentina (GMT-3)
+   * Devuelve un objeto Date que representa el día en Argentina, con hora 00:00:00 local del servidor
+   * Para asegurar que getDate() y getDay() devuelvan los valores de Argentina
+   */
+  private getArgentineDate(): Date {
+    const now = new Date();
+    const timeZone = 'America/Argentina/Buenos_Aires';
+    const dateParts = new Intl.DateTimeFormat('en-US', {
+      timeZone,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+    }).formatToParts(now);
+
+    const getPart = (type: string) =>
+      parseInt(dateParts.find((p) => p.type === type)?.value || '0');
+
+    // Construimos fecha local con los componentes de Argentina
+    const result = new Date(
+      getPart('year'),
+      getPart('month') - 1,
+      getPart('day'),
+    );
+
+    // Log para debug
+    this.logger.debug(
+      `[Timezone Fix] Server=${now.toISOString()} -> Arg=${result.toDateString()}`,
+    );
+
+    return result;
   }
 
   private timeToMinutes(timeStr: string): number {
