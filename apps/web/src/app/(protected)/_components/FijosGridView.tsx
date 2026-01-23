@@ -31,6 +31,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
@@ -68,6 +78,11 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
   } | null>(null);
   const [editingReserve, setEditingReserve] = useState<FixedReserve | null>(null);
 
+  // Estado para manejo de conflictos al activar
+  const [conflictDialogOpen, setConflictDialogOpen] = useState(false);
+  const [pendingToggleId, setPendingToggleId] = useState<string | null>(null);
+  const [conflictMessage, setConflictMessage] = useState("");
+
   const fetchFixedReserves = async () => {
     setIsLoading(true);
     try {
@@ -96,7 +111,7 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
     const daysUntil = (selectedDay - today.getDay() + 7) % 7;
     const targetDate = new Date(today);
     targetDate.setDate(today.getDate() + (daysUntil === 0 ? 0 : daysUntil));
-    const dateStr = targetDate.toISOString().split('T')[0];
+    const dateStr = targetDate.toISOString().split("T")[0];
 
     if (complex.sportTypes && complex.sportTypes.length > 0) {
       fetchReservationsByDay(dateStr, complex.id, complex.sportTypes[0].id);
@@ -106,7 +121,7 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
   // Use schedules from backend (like biTableDay)
   const timeSlots = useMemo(() => {
     if (state.reservationsByDay && state.reservationsByDay.length > 0) {
-      return state.reservationsByDay.map(r => r.schedule);
+      return state.reservationsByDay.map((r) => r.schedule);
     }
     // Fallback
     const slots = [];
@@ -116,13 +131,32 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
     return slots;
   }, [state.reservationsByDay]);
 
-  const handleToggleStatus = async (id: string) => {
-    const result = await toggleFixedReserveStatus(id, true);
+  const handleToggleStatus = async (id: string, force = false) => {
+    const reserve = fixedReserves.find((fr) => fr.id === id);
+    if (!reserve) return;
+
+    const result = await toggleFixedReserveStatus(id, !reserve.isActive, force);
+
     if (result.success) {
       toast({ title: "Éxito", description: "Estado actualizado correctamente." });
+      setConflictDialogOpen(false);
+      setPendingToggleId(null);
+      setConflictMessage("");
       fetchFixedReserves();
     } else {
-      toast({ title: "Error", description: result.error, variant: "destructive" });
+      if (result.statusCode === 409) {
+        setPendingToggleId(id);
+        setConflictMessage(result.error || "Existen conflictos con reservas existentes.");
+        setConflictDialogOpen(true);
+      } else {
+        toast({ title: "Error", description: result.error, variant: "destructive" });
+      }
+    }
+  };
+
+  const handleForceToggle = () => {
+    if (pendingToggleId) {
+      handleToggleStatus(pendingToggleId, true);
     }
   };
 
@@ -321,15 +355,17 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                   onClick={() => handleCellClick(timeSlot, court.id)}
                                   className="p-1 cursor-pointer align-top"
                                 >
-                                  <div className={`h-full w-full bg-white rounded-lg p-2 hover:shadow-md transition-all flex flex-col relative overflow-hidden border-l-4 ${fixedReserve.isActive ? "border-l-violet-500" : "border-l-gray-400"}`}>
-
+                                  <div
+                                    className={`h-full w-full bg-white rounded-lg p-2 hover:shadow-md transition-all flex flex-col relative overflow-hidden border-l-4 ${fixedReserve.isActive ? "border-l-violet-500" : "border-l-gray-400"}`}
+                                  >
                                     {/* Contenido principal */}
                                     <div className="flex-1 min-w-0">
                                       <p className="font-semibold text-gray-900 text-sm truncate leading-tight">
                                         {fixedReserve.user.name.split(" ")[0]}
                                       </p>
                                       <p className="text-xs text-gray-500 truncate mt-0.5">
-                                        {fixedReserve.startTime.slice(0, 5)} - {fixedReserve.endTime.slice(0, 5)}
+                                        {fixedReserve.startTime.slice(0, 5)} -{" "}
+                                        {fixedReserve.endTime.slice(0, 5)}
                                       </p>
                                     </div>
 
@@ -391,7 +427,9 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                               className="p-1 cursor-pointer transition-all group"
                             >
                               <div className="w-full h-full min-h-[56px] rounded-lg border border-dashed border-gray-200 flex items-center justify-center hover:border-gray-400 hover:bg-gray-50 transition-all">
-                                <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">+</span>
+                                <span className="text-gray-300 text-lg font-light group-hover:text-gray-500 transition-colors">
+                                  +
+                                </span>
                               </div>
                             </td>
                           );
@@ -421,6 +459,29 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
         initialData={modalInitialData}
         editingReserve={editingReserve}
       />
+
+      <AlertDialog open={conflictDialogOpen} onOpenChange={setConflictDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Conflictos detectados</AlertDialogTitle>
+            <AlertDialogDescription>
+              {conflictMessage}
+              <br className="my-2" />
+              ¿Deseas activar el turno fijo de todas formas? Las reservas existentes se mantendrán y
+              el turno fijo NO se generará en esos días conflictivos.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingToggleId(null)}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleForceToggle}
+              className="bg-violet-600 hover:bg-violet-700"
+            >
+              Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

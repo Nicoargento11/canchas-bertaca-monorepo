@@ -135,10 +135,14 @@ export const deleteFixedReserve = async (id: string): Promise<FixedReserveResult
 
 export const toggleFixedReserveStatus = async (
   id: string,
-  isActive: boolean
+  isActive: boolean,
+  force?: boolean
 ): Promise<FixedReserveResult<FixedReserve>> => {
   try {
-    const response = await api.patch(`/fixed-reserves/${id}/toggle-status`, { isActive });
+    const response = await api.patch(`/fixed-reserves/${id}/toggle-status`, { 
+      isActive,
+      force 
+    });
     return { success: true, data: response.data };
   } catch (error) {
     return handleFixedReserveError(error);
