@@ -139,9 +139,9 @@ export const toggleFixedReserveStatus = async (
   force?: boolean
 ): Promise<FixedReserveResult<FixedReserve>> => {
   try {
-    const response = await api.patch(`/fixed-reserves/${id}/toggle-status`, { 
+    const response = await api.patch(`/fixed-reserves/${id}/toggle-status`, {
       isActive,
-      force 
+      force,
     });
     return { success: true, data: response.data };
   } catch (error) {
