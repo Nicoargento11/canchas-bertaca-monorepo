@@ -348,10 +348,12 @@ export class FixedReservesService {
 
     if (newStatus && !force) {
       // Activating: Validate future conflicts
-      const checkDate = new Date();
+      const checkDate = this.getArgentineDate();
       const weeksToCheck = 8;
-      const currentDayOfWeek = checkDate.getDay();
-      let daysUntilNext = fixedReserve.scheduleDay.dayOfWeek - currentDayOfWeek;
+      // const currentDayOfWeek = checkDate.getDay();
+
+      let daysUntilNext =
+        fixedReserve.scheduleDay.dayOfWeek - checkDate.getDay();
       if (daysUntilNext < 0) daysUntilNext += 7;
       checkDate.setDate(checkDate.getDate() + daysUntilNext);
 
