@@ -102,8 +102,16 @@ export const EventBookingModal = ({
   const endTime = useMemo(() => {
     if (!selectedPackage) return "";
     const [hours, minutes] = startTime.split(":").map(Number);
-    const endHour = hours + selectedPackage.durationHours;
+    const totalEndHour = hours + selectedPackage.durationHours;
+    const endHour = totalEndHour % 24;
     return `${String(endHour).padStart(2, "0")}:${String(minutes).padStart(2, "0")}`;
+  }, [startTime, selectedPackage]);
+
+  const crossesMidnight = useMemo(() => {
+    if (!selectedPackage) return false;
+    const [hours] = startTime.split(":").map(Number);
+    const totalEndHour = hours + selectedPackage.durationHours;
+    return totalEndHour >= 24;
   }, [startTime, selectedPackage]);
 
   const schedule = useMemo(() => {
@@ -562,7 +570,7 @@ export const EventBookingModal = ({
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      {Array.from({ length: 13 }, (_, i) => i + 8).map((hour) => {
+                      {Array.from({ length: 16 }, (_, i) => i + 8).map((hour) => {
                         const timeStr = `${String(hour).padStart(2, "0")}:00`;
                         return (
                           <SelectItem key={timeStr} value={timeStr}>
@@ -572,7 +580,14 @@ export const EventBookingModal = ({
                       })}
                     </SelectContent>
                   </Select>
-                  {endTime && <p className="text-xs text-gray-500">Termina a las {endTime}</p>}
+                  {endTime && (
+                    <p className="text-xs text-gray-500">
+                      Termina a las {endTime}
+                      {crossesMidnight && (
+                        <span className="text-amber-600 font-medium ml-1">(día siguiente)</span>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
 
