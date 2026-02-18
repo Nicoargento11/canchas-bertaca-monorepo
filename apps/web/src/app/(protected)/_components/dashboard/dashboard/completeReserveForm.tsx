@@ -93,7 +93,9 @@ export const CompleteReserveForm = () => {
   const handleCompleteReservation = async () => {
     if (!reserve) return;
 
-    const remainingAmount = reserve.price - (reserve.reservationAmount || 0);
+    // Calcular el monto restante basado en la suma real de pagos existentes
+    const existingPaymentsTotal = reserve.payment?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0;
+    const remainingAmount = reserve.price - existingPaymentsTotal;
     const totalPayments = calculateTotalPayments();
 
     if (Math.abs(totalPayments - remainingAmount) > 0.01) {
@@ -186,7 +188,8 @@ export const CompleteReserveForm = () => {
 
   if (!reserve) return null;
 
-  const remainingAmount = reserve.price - (reserve.reservationAmount || 0);
+  const existingPaymentsTotal = reserve.payment?.reduce((sum: number, p: any) => sum + p.amount, 0) || 0;
+  const remainingAmount = reserve.price - existingPaymentsTotal;
   const totalPayments = calculateTotalPayments();
   const isValidTotal = Math.abs(totalPayments - remainingAmount) < 0.01;
 
@@ -213,7 +216,7 @@ export const CompleteReserveForm = () => {
           <div>
             <p className="text-white/60">Ya pagado:</p>
             <p className="font-semibold text-white">
-              {reserve.reservationAmount?.toLocaleString("es-AR", {
+              {existingPaymentsTotal.toLocaleString("es-AR", {
                 style: "currency",
                 currency: "ARS",
               })}

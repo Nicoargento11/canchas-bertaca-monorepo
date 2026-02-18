@@ -217,14 +217,15 @@ export class PaymentsController {
         );
       }
 
-      // ✅ IDEMPOTENCIA: Si la reserva ya fue aprobada y MP dice "approved",
+      // ✅ IDEMPOTENCIA: Si la reserva ya fue aprobada/completada y MP dice "approved",
       // es un webhook duplicado/reenviado → no reprocesar
       if (
-        searchedReserve.status === Status.APROBADO &&
+        (searchedReserve.status === Status.APROBADO ||
+          searchedReserve.status === Status.COMPLETADO) &&
         searchedPayment.status === 'approved'
       ) {
         console.log(
-          `⚠️ Webhook duplicado ignorado: reserva ${searchedReserve.id} ya está APROBADA (MP payment: ${paymentId})`,
+          `⚠️ Webhook duplicado ignorado: reserva ${searchedReserve.id} ya está ${searchedReserve.status} (MP payment: ${paymentId})`,
         );
         return {
           message: 'Payment already processed',

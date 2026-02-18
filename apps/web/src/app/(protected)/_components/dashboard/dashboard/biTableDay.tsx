@@ -392,6 +392,10 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                           }
                         }
 
+                        // Pre-calcular el total de pagos para usar en className y display
+                        const totalPaid = isReserved.payment?.reduce((s: number, p: any) => s + p.amount, 0) || isReserved.reservationAmount || 0;
+                        const hasPendingPayment = (isReserved.price || 0) - totalPaid > 0;
+
                         return (
                           <td
                             key={`${scheduleReserve.schedule}-${court.courtNumber}`}
@@ -426,16 +430,14 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                           : isReserved.reserveType === "OTRO"
                                             ? "bg-slate-50 border-l-slate-600 hover:bg-slate-100"
                                             : // Color por estado (para MANUAL y otros)
-                                              isReserved.status === "PENDIENTE"
+                                            isReserved.status === "PENDIENTE"
                                               ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
                                               : isReserved.status === "COMPLETADO"
                                                 ? "bg-blue-50 border-l-blue-600 hover:bg-blue-100"
-                                                : (isReserved.price || 0) -
-                                                      (isReserved.reservationAmount || 0) >
-                                                    0
+                                                : hasPendingPayment
                                                   ? "bg-amber-50 border-l-amber-600 hover:bg-amber-100"
                                                   : "bg-emerald-50 border-l-emerald-600 hover:bg-emerald-100"
-                              }`}
+                                }`}
                             >
                               {/* Nombre del cliente */}
                               <p className="font-semibold text-sm md:text-base text-slate-900 truncate leading-tight">
@@ -470,19 +472,18 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                                   <span className="text-xs md:text-sm text-slate-700 font-semibold">
                                     OTRO
                                   </span>
-                                ) : (isReserved.price || 0) - (isReserved.reservationAmount || 0) >
-                                  0 ? (
-                                  <span className="text-xs md:text-sm text-amber-700 font-semibold">
-                                    $
-                                    {(
-                                      (isReserved.price || 0) - (isReserved.reservationAmount || 0)
-                                    ).toLocaleString()}
-                                  </span>
-                                ) : (
-                                  <span className="text-xs md:text-sm text-emerald-700 font-semibold">
-                                    ✓ Pagado
-                                  </span>
-                                )}
+                                ) : (() => {
+                                  const remaining = (isReserved.price || 0) - totalPaid;
+                                  return remaining > 0 ? (
+                                    <span className="text-xs md:text-sm text-amber-700 font-semibold">
+                                      {"$"}{remaining.toLocaleString()}
+                                    </span>
+                                  ) : (
+                                    <span className="text-xs md:text-sm text-emerald-700 font-semibold">
+                                      ✓<span className="hidden md:inline"> Pagado</span>
+                                    </span>
+                                  );
+                                })()}
                               </div>
                               {/* Botón de completar */}
                               {isReserved.status === "APROBADO" && (
@@ -600,64 +601,64 @@ const BiTableDay: React.FC<TableReservesProps> = ({
                           {scheduleReserve.courtInfo.courts.find(
                             (courtData) => courtData.courtId === court.id
                           ) && (
-                            <div
-                              onClick={async () => {
-                                if (date) {
-                                  const reserveData = {
-                                    date: date,
-                                    schedule: scheduleReserve.schedule,
-                                    userId: userId!,
-                                    price:
-                                      scheduleReserve.courtInfo.courts.find(
-                                        (courtData) => courtData.courtId === court.id
-                                      )?.rates[0].price || scheduleReserve.courtInfo.rates[0].price,
-                                    courtId: court.id,
-                                    complexId: complex.id,
-                                    reserveType: "MANUAL" as const,
-                                  };
+                              <div
+                                onClick={async () => {
+                                  if (date) {
+                                    const reserveData = {
+                                      date: date,
+                                      schedule: scheduleReserve.schedule,
+                                      userId: userId!,
+                                      price:
+                                        scheduleReserve.courtInfo.courts.find(
+                                          (courtData) => courtData.courtId === court.id
+                                        )?.rates[0].price || scheduleReserve.courtInfo.rates[0].price,
+                                      courtId: court.id,
+                                      complexId: complex.id,
+                                      reserveType: "MANUAL" as const,
+                                    };
 
-                                  // Check if there's an active cash session
-                                  let hasActiveCashSession = false;
-                                  if (complex?.id) {
-                                    const { success: registersSuccess, data: cashRegisters } =
-                                      await getAllCashRegisters(complex.id);
-                                    if (
-                                      registersSuccess &&
-                                      cashRegisters &&
-                                      cashRegisters.length > 0
-                                    ) {
-                                      const activeCashRegister = cashRegisters.find(
-                                        (register) => register.isActive
-                                      );
-                                      if (activeCashRegister) {
-                                        const { success, data: activeCashSession } =
-                                          await getActiveCashSession(activeCashRegister.id);
-                                        if (success && activeCashSession) {
-                                          hasActiveCashSession = true;
+                                    // Check if there's an active cash session
+                                    let hasActiveCashSession = false;
+                                    if (complex?.id) {
+                                      const { success: registersSuccess, data: cashRegisters } =
+                                        await getAllCashRegisters(complex.id);
+                                      if (
+                                        registersSuccess &&
+                                        cashRegisters &&
+                                        cashRegisters.length > 0
+                                      ) {
+                                        const activeCashRegister = cashRegisters.find(
+                                          (register) => register.isActive
+                                        );
+                                        if (activeCashRegister) {
+                                          const { success, data: activeCashSession } =
+                                            await getActiveCashSession(activeCashRegister.id);
+                                          if (success && activeCashSession) {
+                                            hasActiveCashSession = true;
+                                          }
                                         }
                                       }
                                     }
-                                  }
 
-                                  setCreateReserve(reserveData);
+                                    setCreateReserve(reserveData);
 
-                                  // Show warning if no active session, otherwise open reserve form directly
-                                  if (!hasActiveCashSession) {
-                                    handleOpenCashWarning(reserveData);
-                                  } else {
-                                    handleChangeReserve();
+                                    // Show warning if no active session, otherwise open reserve form directly
+                                    if (!hasActiveCashSession) {
+                                      handleOpenCashWarning(reserveData);
+                                    } else {
+                                      handleChangeReserve();
+                                    }
                                   }
-                                }
-                              }}
-                              className={`w-full h-full min-h-[48px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all group active:scale-95 ${courtPromo ? "border-amber-400 bg-amber-50 hover:border-amber-500 hover:bg-amber-100" : "border-slate-300 bg-slate-50 hover:border-emerald-500 hover:bg-emerald-50"}`}
-                            >
-                              <span
-                                className={`text-2xl font-light transition-colors ${courtPromo ? "text-amber-500 group-hover:text-amber-700" : "text-slate-400 group-hover:text-emerald-600"}`}
+                                }}
+                                className={`w-full h-full min-h-[48px] rounded-lg border-2 border-dashed flex items-center justify-center cursor-pointer transition-all group active:scale-95 ${courtPromo ? "border-amber-400 bg-amber-50 hover:border-amber-500 hover:bg-amber-100" : "border-slate-300 bg-slate-50 hover:border-emerald-500 hover:bg-emerald-50"}`}
                               >
-                                +
-                              </span>
-                            </div>
-                          )}
+                                <span
+                                  className={`text-2xl font-light transition-colors ${courtPromo ? "text-amber-500 group-hover:text-amber-700" : "text-slate-400 group-hover:text-emerald-600"}`}
+                                >
+                                  +
+                                </span>
+                              </div>
+                            )}
                         </td>
                       );
                     })}

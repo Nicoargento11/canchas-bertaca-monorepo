@@ -23,7 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Loader2, PartyPopper, Calendar, Clock, Phone, User, Lightbulb } from "lucide-react";
 import { Complex } from "@/services/complex/complex";
 import { EventPackage, getActiveEventPackages } from "@/services/event-package/event-package";
-import { createReserve } from "@/services/reserve/reserve";
+import { createReserve, updateReserveStatus } from "@/services/reserve/reserve";
 import { createPayment, PaymentMethod } from "@/services/payment/payment";
 import { format } from "date-fns";
 import { Card, CardContent } from "@/components/ui/card";
@@ -31,6 +31,7 @@ import PhoneInput from "react-phone-number-input";
 import "react-phone-number-input/style.css";
 import { getActiveCashSession } from "@/services/cash-session/cash-session";
 import { getAllCashRegisters } from "@/services/cash-register/cash-register";
+import { toast as sonnerToast } from "sonner";
 
 interface EventBookingModalProps {
   isOpen: boolean;
@@ -333,6 +334,13 @@ export const EventBookingModal = ({
         }
       }
 
+      // Si la seña cubre el precio total, marcar todas las reservas como COMPLETADO
+      if (reservationAmount >= finalPrice) {
+        await Promise.all(
+          reserveIds.map((id) => updateReserveStatus(id, "COMPLETADO"))
+        );
+      }
+
       // Success message with details
       const courtNames = courtsToReserve.map((c) => `Cancha ${c.courtNumber || c.name}`).join(", ");
 
@@ -411,11 +419,10 @@ export const EventBookingModal = ({
                 {eventPackages.map((pkg) => (
                   <Card
                     key={pkg.id}
-                    className={`cursor-pointer transition-all ${
-                      selectedPackage?.id === pkg.id
-                        ? "border-purple-500 bg-purple-50"
-                        : "hover:border-gray-400"
-                    }`}
+                    className={`cursor-pointer transition-all ${selectedPackage?.id === pkg.id
+                      ? "border-purple-500 bg-purple-50"
+                      : "hover:border-gray-400"
+                      }`}
                     onClick={() => setSelectedPackage(pkg)}
                   >
                     <CardContent className="p-4">
@@ -503,13 +510,12 @@ export const EventBookingModal = ({
                           }
                         }}
                         disabled={!canSelect}
-                        className={`p-3 rounded-lg border-2 text-left transition-all ${
-                          isSelected
-                            ? "border-purple-500 bg-purple-50"
-                            : canSelect
-                              ? "border-gray-200 hover:border-purple-300 bg-white"
-                              : "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
-                        }`}
+                        className={`p-3 rounded-lg border-2 text-left transition-all ${isSelected
+                          ? "border-purple-500 bg-purple-50"
+                          : canSelect
+                            ? "border-gray-200 hover:border-purple-300 bg-white"
+                            : "border-gray-100 bg-gray-50 opacity-50 cursor-not-allowed"
+                          }`}
                       >
                         <div className="flex items-center justify-between">
                           <div>
@@ -668,13 +674,27 @@ export const EventBookingModal = ({
                       type="number"
                       className="pl-8"
                       value={reservationAmount}
-                      onChange={(e) => setReservationAmount(Number(e.target.value) || 0)}
+                      onChange={(e) => {
+                        const val = Number(e.target.value) || 0;
+                        if (val > finalPrice) {
+                          setReservationAmount(finalPrice);
+                          sonnerToast.warning(`La seña no puede superar el precio ($${finalPrice.toLocaleString()})`);
+                        } else {
+                          setReservationAmount(val);
+                        }
+                      }}
                       placeholder="0"
                     />
                   </div>
-                  <p className="text-xs text-gray-500">
-                    Restante: ${(finalPrice - reservationAmount).toLocaleString()}
-                  </p>
+                  {reservationAmount >= finalPrice ? (
+                    <p className="text-xs text-emerald-600 font-semibold">
+                      ✓ Pagado completo — se marcará como COMPLETADO
+                    </p>
+                  ) : (
+                    <p className="text-xs text-gray-500">
+                      Restante: ${(finalPrice - reservationAmount).toLocaleString()}
+                    </p>
+                  )}
                 </div>
               </div>
             </>

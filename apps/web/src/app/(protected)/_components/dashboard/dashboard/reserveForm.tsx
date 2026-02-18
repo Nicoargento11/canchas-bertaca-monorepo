@@ -9,7 +9,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import PhoneInput from "react-phone-number-input";
-import { createReserve } from "@/services/reserve/reserve";
+import { createReserve, updateReserveStatus } from "@/services/reserve/reserve";
 // import { useToast } from "@/hooks/use-toast";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -170,7 +170,13 @@ export const ReserveForm = () => {
         const paymentSuccess = await handlePayment(reserveResult!.id);
 
         if (paymentSuccess) {
-          toast.success("Reserva y pago registrados correctamente");
+          // Si la seña cubre el precio total, marcar como COMPLETADO
+          if (Number(values.reservationAmount) >= priceInfo.finalPrice) {
+            await updateReserveStatus(reserveResult!.id, "COMPLETADO");
+            toast.success("Reserva completada (pago total registrado)");
+          } else {
+            toast.success("Reserva y seña registrados correctamente");
+          }
           if (state.sportType && state.currentComplex) {
             fetchReservationsByDay(selectedDate!, state.currentComplex?.id, state.sportType.id);
           }
@@ -380,7 +386,14 @@ export const ReserveForm = () => {
                         value={field.value || ""}
                         onChange={(e) => {
                           const value = e.target.value;
-                          field.onChange(value === "" ? 0 : parseFloat(value) || 0);
+                          const numValue = value === "" ? 0 : parseFloat(value) || 0;
+                          // No permitir que la seña supere el precio final
+                          if (numValue > priceInfo.finalPrice) {
+                            field.onChange(priceInfo.finalPrice);
+                            toast.warning(`La seña no puede superar el precio ($${priceInfo.finalPrice.toLocaleString()})`);
+                          } else {
+                            field.onChange(numValue);
+                          }
                         }}
                         className="pl-8 bg-white/5 border-white/10 text-white placeholder:text-white/30 focus:border-Primary"
                       />
