@@ -29,12 +29,18 @@ import {
   Banknote,
   ArrowUpDown,
   Loader2,
+  Pencil,
+  Trash2,
+  Check,
 } from "lucide-react";
 import { GiSoccerField } from "@react-icons/all-files/gi/GiSoccerField";
 import { usePathname } from "next/navigation";
+import { toast } from "sonner";
 
 import formatDateUTC from "@/utils/formatDateUtc";
 import { getPaginatedReserves, Reserve, Status, ReserveType } from "@/services/reserve/reserve";
+import { updatePayment, deletePayment, PaymentMethod } from "@/services/payment/payment";
+import { getSession, SessionPayload } from "@/services/auth/session";
 import { DashboardHeader } from "../DashboardHeader";
 import { getComplexBySlug } from "@/services/complex/complex";
 
@@ -101,7 +107,14 @@ const PageDashboardReserves = () => {
   const [totalReserves, setTotalReserves] = useState(0);
   const [complexId, setComplexId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [session, setSession] = useState<SessionPayload | null>(null);
+  const [editingPaymentId, setEditingPaymentId] = useState<string | null>(null);
+  const [editAmount, setEditAmount] = useState("");
+  const [editMethod, setEditMethod] = useState<string>("");
+  const [deletingPaymentId, setDeletingPaymentId] = useState<string | null>(null);
   const observerTarget = useRef(null);
+
+  const isSuperAdmin = session?.user?.role === "SUPER_ADMIN";
 
   // Filters
   const [search, setSearch] = useState("");
@@ -111,6 +124,11 @@ const PageDashboardReserves = () => {
   const [dateTo, setDateTo] = useState("");
   const [showFilters, setShowFilters] = useState(false);
   const searchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch session for role check
+  useEffect(() => {
+    getSession().then(setSession);
+  }, []);
 
   // Get complexId from slug
   useEffect(() => {
@@ -353,10 +371,10 @@ const PageDashboardReserves = () => {
             <div
               key={reserve.id}
               className={`bg-white rounded-lg border overflow-hidden hover:shadow-sm transition-shadow border-l-[3px] ${reserve.status === "COMPLETADO" ? "border-l-blue-500" :
-                  reserve.status === "APROBADO" ? "border-l-emerald-500" :
-                    reserve.status === "PENDIENTE" ? "border-l-amber-500" :
-                      reserve.status === "CANCELADO" || reserve.status === "RECHAZADO" ? "border-l-red-400" :
-                        "border-l-gray-300"
+                reserve.status === "APROBADO" ? "border-l-emerald-500" :
+                  reserve.status === "PENDIENTE" ? "border-l-amber-500" :
+                    reserve.status === "CANCELADO" || reserve.status === "RECHAZADO" ? "border-l-red-400" :
+                      "border-l-gray-300"
                 } border-gray-200`}
             >
               {/* Main Row — clickable */}
@@ -380,11 +398,11 @@ const PageDashboardReserves = () => {
                       <span>C{reserve.court?.courtNumber || reserve.court?.name}</span>
                       <span>·</span>
                       <span className={`font-medium ${type === "FIJO" ? "text-violet-600" :
-                          type === "EVENTO" ? "text-pink-600" :
-                            type === "ONLINE" ? "text-sky-600" :
-                              type === "ESCUELA" ? "text-cyan-600" :
-                                type === "TORNEO" ? "text-orange-600" :
-                                  "text-gray-500"
+                        type === "EVENTO" ? "text-pink-600" :
+                          type === "ONLINE" ? "text-sky-600" :
+                            type === "ESCUELA" ? "text-cyan-600" :
+                              type === "TORNEO" ? "text-orange-600" :
+                                "text-gray-500"
                         }`}>{typeConfig.label}</span>
                     </div>
                   </div>
@@ -396,10 +414,10 @@ const PageDashboardReserves = () => {
                         ${(reserve.price || 0).toLocaleString()}
                       </div>
                       <div className={`text-[11px] font-medium ${reserve.status === "COMPLETADO" ? "text-blue-600" :
-                          reserve.status === "APROBADO" && pendingAmount <= 0 ? "text-emerald-600" :
-                            reserve.status === "APROBADO" ? "text-amber-600" :
-                              reserve.status === "PENDIENTE" ? "text-amber-500" :
-                                "text-red-500"
+                        reserve.status === "APROBADO" && pendingAmount <= 0 ? "text-emerald-600" :
+                          reserve.status === "APROBADO" ? "text-amber-600" :
+                            reserve.status === "PENDIENTE" ? "text-amber-500" :
+                              "text-red-500"
                         }`}>
                         {reserve.status === "COMPLETADO" ? "Completado" :
                           reserve.status === "APROBADO" && pendingAmount > 0 ? `Debe $${pendingAmount.toLocaleString()}` :
@@ -493,10 +511,120 @@ const PageDashboardReserves = () => {
                             icon: DollarSign,
                           };
                           const MethodIcon = methodInfo.icon;
+                          const isEditing = editingPaymentId === payment.id;
+                          const isDeleting = deletingPaymentId === payment.id;
+
+                          // Edit mode
+                          if (isEditing) {
+                            return (
+                              <div
+                                key={payment.id || idx}
+                                className="bg-blue-50 rounded-lg border border-blue-200 px-3 py-3 space-y-2"
+                              >
+                                <div className="text-xs font-medium text-blue-700 mb-1">Editando pago</div>
+                                <div className="flex gap-2">
+                                  <Input
+                                    type="number"
+                                    value={editAmount}
+                                    onChange={(e) => setEditAmount(e.target.value)}
+                                    placeholder="Monto"
+                                    className="h-8 text-sm bg-white"
+                                  />
+                                  <select
+                                    value={editMethod}
+                                    onChange={(e) => setEditMethod(e.target.value)}
+                                    className="h-8 text-sm border rounded-md px-2 bg-white"
+                                  >
+                                    <option value="EFECTIVO">Efectivo</option>
+                                    <option value="TARJETA_CREDITO">Tarjeta</option>
+                                    <option value="TRANSFERENCIA">Transferencia</option>
+                                    <option value="MERCADOPAGO">MercadoPago</option>
+                                    <option value="OTRO">Otro</option>
+                                  </select>
+                                </div>
+                                <div className="flex gap-2 justify-end">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => setEditingPaymentId(null)}
+                                  >
+                                    Cancelar
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    className="h-7 text-xs bg-blue-600 hover:bg-blue-700"
+                                    onClick={async () => {
+                                      const amt = Number(editAmount);
+                                      if (!amt || amt <= 0) {
+                                        toast.error("El monto debe ser mayor a 0");
+                                        return;
+                                      }
+                                      const { success } = await updatePayment(payment.id, {
+                                        amount: amt,
+                                        method: editMethod as PaymentMethod,
+                                      });
+                                      if (success) {
+                                        toast.success("Pago actualizado");
+                                        setEditingPaymentId(null);
+                                        fetchReserves(1, false);
+                                      } else {
+                                        toast.error("Error al actualizar el pago");
+                                      }
+                                    }}
+                                  >
+                                    <Check className="h-3 w-3 mr-1" /> Guardar
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          }
+
+                          // Delete confirmation
+                          if (isDeleting) {
+                            return (
+                              <div
+                                key={payment.id || idx}
+                                className="bg-red-50 rounded-lg border border-red-200 px-3 py-3 flex items-center justify-between"
+                              >
+                                <span className="text-sm text-red-700 font-medium">
+                                  ¿Eliminar pago de ${payment.amount.toLocaleString()}?
+                                </span>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-7 text-xs"
+                                    onClick={() => setDeletingPaymentId(null)}
+                                  >
+                                    No
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="destructive"
+                                    className="h-7 text-xs"
+                                    onClick={async () => {
+                                      const { success } = await deletePayment(payment.id);
+                                      if (success) {
+                                        toast.success("Pago eliminado");
+                                        setDeletingPaymentId(null);
+                                        fetchReserves(1, false);
+                                      } else {
+                                        toast.error("Error al eliminar el pago");
+                                      }
+                                    }}
+                                  >
+                                    Sí, eliminar
+                                  </Button>
+                                </div>
+                              </div>
+                            );
+                          }
+
                           return (
                             <div
                               key={payment.id || idx}
-                              className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2.5 hover:border-gray-200 transition-colors"
+                              className="flex items-center justify-between bg-white rounded-lg border border-gray-100 px-3 py-2.5 hover:border-gray-200 transition-colors group"
                             >
                               <div className="flex items-center gap-2.5">
                                 <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center">
@@ -517,14 +645,38 @@ const PageDashboardReserves = () => {
                                   </span>
                                 </div>
                               </div>
-                              <div className="text-right">
-                                <span className="font-bold text-sm text-gray-900 block">
-                                  ${payment.amount.toLocaleString()}
-                                </span>
-                                {payment.cashSessionId ? (
-                                  <span className="text-[10px] text-green-600 font-medium">Caja</span>
-                                ) : (
-                                  <span className="text-[10px] text-blue-600 font-medium">Online</span>
+                              <div className="flex items-center gap-2">
+                                <div className="text-right">
+                                  <span className="font-bold text-sm text-gray-900 block">
+                                    ${payment.amount.toLocaleString()}
+                                  </span>
+                                  {payment.cashSessionId ? (
+                                    <span className="text-[10px] text-green-600 font-medium">Caja</span>
+                                  ) : (
+                                    <span className="text-[10px] text-blue-600 font-medium">Online</span>
+                                  )}
+                                </div>
+                                {isSuperAdmin && (
+                                  <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <button
+                                      onClick={() => {
+                                        setEditingPaymentId(payment.id);
+                                        setEditAmount(String(payment.amount));
+                                        setEditMethod(payment.method);
+                                      }}
+                                      className="p-1 rounded hover:bg-blue-50 text-gray-400 hover:text-blue-600 transition-colors"
+                                      title="Editar pago"
+                                    >
+                                      <Pencil className="h-3.5 w-3.5" />
+                                    </button>
+                                    <button
+                                      onClick={() => setDeletingPaymentId(payment.id)}
+                                      className="p-1 rounded hover:bg-red-50 text-gray-400 hover:text-red-600 transition-colors"
+                                      title="Eliminar pago"
+                                    >
+                                      <Trash2 className="h-3.5 w-3.5" />
+                                    </button>
+                                  </div>
                                 )}
                               </div>
                             </div>
