@@ -16,7 +16,7 @@ export class ReservesService implements OnModuleInit {
   constructor(
     private prisma: PrismaService,
     private usersService: UsersService,
-  ) {}
+  ) { }
 
   private timeouts = new Map<string, NodeJS.Timeout>();
 
@@ -93,8 +93,19 @@ export class ReservesService implements OnModuleInit {
     return this.createReservation(createReserveDto);
   }
 
-  async paginate(page: number, limit: number, complexId?: string) {
-    return this.paginateReserves(page, limit, complexId);
+  async paginate(
+    page: number,
+    limit: number,
+    complexId?: string,
+    filters?: {
+      search?: string;
+      status?: string;
+      reserveType?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
+  ) {
+    return this.paginateReserves(page, limit, complexId, filters);
   }
 
   async update(id: string, data: UpdateReserveDto) {
@@ -325,10 +336,52 @@ export class ReservesService implements OnModuleInit {
     page: number,
     limit: number,
     complexId?: string,
+    filters?: {
+      search?: string;
+      status?: string;
+      reserveType?: string;
+      dateFrom?: string;
+      dateTo?: string;
+    },
   ) {
     const skip = (page - 1) * limit;
 
-    const whereClause = complexId ? { complexId } : {};
+    // Build dynamic where clause
+    const whereClause: any = {};
+    if (complexId) whereClause.complexId = complexId;
+
+    // Status filter
+    if (filters?.status) {
+      whereClause.status = filters.status;
+    }
+
+    // Reserve type filter
+    if (filters?.reserveType) {
+      whereClause.reserveType = filters.reserveType;
+    }
+
+    // Date range filter
+    if (filters?.dateFrom || filters?.dateTo) {
+      whereClause.date = {};
+      if (filters?.dateFrom) {
+        whereClause.date.gte = new Date(filters.dateFrom);
+      }
+      if (filters?.dateTo) {
+        whereClause.date.lte = new Date(filters.dateTo);
+      }
+    }
+
+    // Text search (name, phone, or ID)
+    if (filters?.search) {
+      const searchTerm = filters.search.trim();
+      whereClause.OR = [
+        { clientName: { contains: searchTerm, mode: 'insensitive' } },
+        { phone: { contains: searchTerm, mode: 'insensitive' } },
+        { id: { contains: searchTerm, mode: 'insensitive' } },
+        { user: { name: { contains: searchTerm, mode: 'insensitive' } } },
+        { user: { email: { contains: searchTerm, mode: 'insensitive' } } },
+      ];
+    }
 
     const [total, reserves] = await Promise.all([
       this.prisma.reserve.count({ where: whereClause }),
@@ -449,6 +502,8 @@ export class ReservesService implements OnModuleInit {
           id: true,
           name: true,
           image: true,
+          email: true,
+          phone: true,
         },
       },
       court: {
@@ -465,6 +520,21 @@ export class ReservesService implements OnModuleInit {
           type: true,
           value: true,
         },
+      },
+      payment: {
+        select: {
+          id: true,
+          amount: true,
+          method: true,
+          createdAt: true,
+          cashSessionId: true,
+          CashSession: {
+            select: {
+              id: true,
+            },
+          },
+        },
+        orderBy: { createdAt: 'asc' as const },
       },
     };
   }

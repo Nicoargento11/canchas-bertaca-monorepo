@@ -108,11 +108,27 @@ export const getAllReserves = async (): Promise<ReserveResult<Reserve[]>> => {
 export const getPaginatedReserves = async (
   page = 1,
   limit = 10,
-  complexId?: string
+  complexId?: string,
+  filters?: {
+    search?: string;
+    status?: string;
+    reserveType?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }
 ): Promise<ReserveResult<{ total: number; reserves: Reserve[] }>> => {
   try {
-    const complexParam = complexId ? `&complexId=${complexId}` : "";
-    const response = await api.get(`/reserves/paginate?page=${page}&limit=${limit}${complexParam}`);
+    const params = new URLSearchParams();
+    params.set("page", String(page));
+    params.set("limit", String(limit));
+    if (complexId) params.set("complexId", complexId);
+    if (filters?.search) params.set("search", filters.search);
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.reserveType) params.set("reserveType", filters.reserveType);
+    if (filters?.dateFrom) params.set("dateFrom", filters.dateFrom);
+    if (filters?.dateTo) params.set("dateTo", filters.dateTo);
+
+    const response = await api.get(`/reserves/paginate?${params.toString()}`);
     return { success: true, data: response.data };
   } catch (error) {
     return handleReserveError(error);

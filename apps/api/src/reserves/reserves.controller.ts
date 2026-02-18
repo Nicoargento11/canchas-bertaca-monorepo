@@ -52,11 +52,17 @@ export class ReservesController {
     @Query('page') page: number,
     @Query('limit') limit: number,
     @Query('complexId') complexId?: string,
+    @Query('search') search?: string,
+    @Query('status') status?: string,
+    @Query('reserveType') reserveType?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
   ) {
     return this.reservesService.paginate(
       Number(page),
       Number(limit),
       complexId,
+      { search, status, reserveType, dateFrom, dateTo },
     );
   }
 
