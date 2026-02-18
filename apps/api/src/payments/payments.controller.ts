@@ -216,6 +216,41 @@ export class PaymentsController {
           HttpStatus.NOT_FOUND,
         );
       }
+
+      // ✅ IDEMPOTENCIA: Si la reserva ya fue aprobada y MP dice "approved",
+      // es un webhook duplicado/reenviado → no reprocesar
+      if (
+        searchedReserve.status === Status.APROBADO &&
+        searchedPayment.status === 'approved'
+      ) {
+        console.log(
+          `⚠️ Webhook duplicado ignorado: reserva ${searchedReserve.id} ya está APROBADA (MP payment: ${paymentId})`,
+        );
+        return {
+          message: 'Payment already processed',
+          status: 'already_approved',
+        };
+      }
+
+      // ✅ IDEMPOTENCIA: Verificar si ya existe un pago de MercadoPago para esta reserva
+      if (searchedPayment.status === 'approved') {
+        const existingPayment = await this.prisma.payment.findFirst({
+          where: {
+            reserveId: searchedReserve.id,
+            method: PaymentMethod.MERCADOPAGO,
+          },
+        });
+        if (existingPayment) {
+          console.log(
+            `⚠️ Pago duplicado ignorado: ya existe payment MP para reserva ${searchedReserve.id} (payment: ${existingPayment.id})`,
+          );
+          return {
+            message: 'Payment already recorded',
+            status: 'already_paid',
+          };
+        }
+      }
+
       const statusMapping = {
         approved: {
           status: Status.APROBADO,
