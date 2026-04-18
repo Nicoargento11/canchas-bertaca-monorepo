@@ -27,6 +27,7 @@ import {
 import { ChangePasswordDto } from 'src/auth/dto/change-password.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { Role } from '@prisma/client';
+import { RolesGuard } from 'src/auth/guards/roles.guard';
 
 @ApiTags('Usuarios')
 @ApiBearerAuth()
@@ -45,13 +46,51 @@ export class UsersController {
   @ApiResponse({ status: 400, description: 'Datos inválidos' })
   @ApiResponse({ status: 403, description: 'No autorizado' })
   @ApiBody({ type: CreateUserDto })
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(
+    Role.SUPER_ADMIN,
+    Role.ORGANIZACION_ADMIN,
+    Role.COMPLEJO_ADMIN,
+    Role.RECEPCION,
+  )
   @Post()
   async createUser(
     @CurrentUser() currentUser: UserEntity,
     @Body() createUserDto: CreateUserDto,
   ) {
+    // RECEPCION y COMPLEJO_ADMIN solo pueden crear usuarios cliente
+    if (
+      (currentUser.role === Role.RECEPCION ||
+        currentUser.role === Role.COMPLEJO_ADMIN) &&
+      createUserDto.role &&
+      createUserDto.role !== Role.USUARIO
+    ) {
+      throw new ForbiddenException(
+        'No tienes permisos para crear usuarios con este rol',
+      );
+    }
+
+    // Si viene sin rol, siempre cae a USUARIO
+    if (!createUserDto.role) {
+      createUserDto.role = Role.USUARIO;
+    }
+
+    // Para roles operativos de complejo, forzar scope al complejo actual
+    if (
+      currentUser.role === Role.RECEPCION ||
+      currentUser.role === Role.COMPLEJO_ADMIN
+    ) {
+      if (!currentUser.complexId) {
+        throw new ForbiddenException(
+          'Tu usuario no está asociado a un complejo',
+        );
+      }
+
+      createUserDto.role = Role.USUARIO;
+      createUserDto.complexId = currentUser.complexId;
+      createUserDto.organizationId = undefined;
+    }
+
     // Solo SUPER_ADMIN puede asignar roles de admin
     if (
       (createUserDto.role === Role.SUPER_ADMIN ||
