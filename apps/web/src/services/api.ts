@@ -48,7 +48,7 @@ const processQueue = (error: AxiosError | null) => {
   failedQueue = [];
 };
 
-const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/logout"];
+const AUTH_ROUTES = ["/auth/login", "/auth/register", "/auth/logout", "/auth/refresh"];
 
 // Función para verificar si una URL es una ruta de autenticación
 const isAuthRoute = (url?: string): boolean => {
