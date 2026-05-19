@@ -213,7 +213,9 @@ export class SchedulesService {
     });
   }
 
-  async bulkUpdateTime(dto: BulkUpdateTimeDto): Promise<{ updated: number }> {
+  async bulkUpdateTime(
+    dto: BulkUpdateTimeDto,
+  ): Promise<{ updated: number }> {
     const { complexId, oldTime, newTime, field } = dto;
 
     const today = new Date();
@@ -224,22 +226,27 @@ export class SchedulesService {
     let scheduleCount = 0;
 
     // --- Schedules ---
+    // Guard: exclude schedules where the OTHER field already equals newTime
+    // to avoid ending up with startTime === endTime (e.g. 18:00-18:00)
     if (field === 'startTime' || field === 'both') {
       const r = await this.prisma.schedule.updateMany({
-        where: { complexId, startTime: oldTime },
+        where: { complexId, startTime: oldTime, endTime: { not: newTime } },
         data: { startTime: newTime },
       });
       scheduleCount += r.count;
     }
     if (field === 'endTime' || field === 'both') {
       const r = await this.prisma.schedule.updateMany({
-        where: { complexId, endTime: oldTime },
+        where: { complexId, endTime: oldTime, startTime: { not: newTime } },
         data: { endTime: newTime },
       });
       scheduleCount += r.count;
     }
 
-    // --- FixedReserves + cascade a instancias pendientes ---
+    // --- FixedReserves: auto-detect new rate + recalculate price ---
+    // Times are never touched. After the boundary change, each fijo's startTime
+    // may now fall into a different schedule template (e.g. Diurna → Nocturna),
+    // so we re-detect the rate and cascade the new price to pending instances.
     const fixedWhere: any[] = [];
     if (field === 'startTime' || field === 'both')
       fixedWhere.push({ complexId, startTime: oldTime });
@@ -251,21 +258,52 @@ export class SchedulesService {
       include: { rate: true },
     });
 
-    for (const fr of affectedFixed) {
-      const newStart = field === 'startTime' || (field === 'both' && fr.startTime === oldTime)
-        ? newTime
-        : fr.startTime;
-      const newEnd = field === 'endTime' || (field === 'both' && fr.endTime === oldTime)
-        ? newTime
-        : fr.endTime;
+    const toMin = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
 
-      await this.prisma.fixedReserve.update({
-        where: { id: fr.id },
-        data: { startTime: newStart, endTime: newEnd },
+    let updatedFixed = 0;
+
+    for (const fr of affectedFixed) {
+      // Find which updated schedule template the fijo's startTime falls into
+      const courtSchedules = await this.prisma.schedule.findMany({
+        where: { courtId: fr.courtId, scheduleDayId: fr.scheduleDayId },
+        include: { rates: true },
       });
 
-      const duration = this.calculateDurationHours(newStart, newEnd);
-      const newPrice = fr.rate.price * duration;
+      let newRateId: string | undefined;
+      const startMin = toMin(fr.startTime);
+
+      for (const s of courtSchedules) {
+        if (!s.rates?.length) continue;
+        const sStart = toMin(s.startTime);
+        let sEnd = toMin(s.endTime);
+        if (sEnd <= sStart) sEnd += 24 * 60;
+        let check = startMin;
+        if (check < sStart) check += 24 * 60;
+        if (check >= sStart && check < sEnd) {
+          newRateId = s.rates[0].id;
+          break;
+        }
+      }
+
+      let ratePrice = fr.rate.price;
+
+      if (newRateId && newRateId !== fr.rateId) {
+        const newRate = await this.prisma.rate.findUnique({
+          where: { id: newRateId },
+        });
+        if (newRate) ratePrice = newRate.price;
+
+        await this.prisma.fixedReserve.update({
+          where: { id: fr.id },
+          data: { rateId: newRateId },
+        });
+      }
+
+      const duration = this.calculateDurationHours(fr.startTime, fr.endTime);
+      const newPrice = ratePrice * duration;
 
       await this.prisma.reserve.updateMany({
         where: {
@@ -273,14 +311,12 @@ export class SchedulesService {
           date: { gte: targetDate },
           status: { notIn: ['COMPLETADO', 'CANCELADO'] },
         },
-        data: {
-          schedule: `${newStart} - ${newEnd}`,
-          price: newPrice,
-        },
+        data: { price: newPrice },
       });
+      updatedFixed++;
     }
 
-    return { updated: scheduleCount + affectedFixed.length };
+    return { updated: scheduleCount + updatedFixed };
   }
 
   private calculateDurationHours(startTime: string, endTime: string): number {
