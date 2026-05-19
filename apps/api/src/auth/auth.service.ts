@@ -117,14 +117,19 @@ export class AuthService {
     );
 
     if (!refreshTokenMatches) {
-      await this.usersService.setRefreshToken(userId, null);
-      throw new ForbiddenException('Access Denied - Possible token reuse');
+      throw new ForbiddenException('Access Denied');
     }
 
-    const tokens = await this.getTokens(user.id, user.email, user.role);
-    await this.updateRefreshToken(user.id, tokens.refresh_token);
+    // Solo emitir nuevo access token — el refresh token no rota
+    const accessToken = await this.jwtService.signAsync(
+      { sub: user.id, email: user.email, role: user.role },
+      {
+        secret: this.config.get('JWT_SECRET'),
+        expiresIn: this.config.get('JWT_EXPIRES_IN', '8h'),
+      },
+    );
 
-    return tokens;
+    return { access_token: accessToken, refresh_token: refreshToken };
   }
 
   // Validación de tokens

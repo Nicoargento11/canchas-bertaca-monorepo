@@ -6,14 +6,21 @@ import {
   Param,
   Delete,
   Put,
+  Patch,
 } from '@nestjs/common';
 import { SchedulesService } from './schedules.service';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { BulkUpdateTimeDto } from './dto/bulk-update-time.dto';
 
 @Controller('schedules')
 export class SchedulesController {
   constructor(private readonly scheduleService: SchedulesService) {}
+
+  @Patch('bulk-update-time')
+  bulkUpdateTime(@Body() dto: BulkUpdateTimeDto) {
+    return this.scheduleService.bulkUpdateTime(dto);
+  }
 
   @Post()
   create(@Body() createScheduleDto: CreateScheduleDto) {

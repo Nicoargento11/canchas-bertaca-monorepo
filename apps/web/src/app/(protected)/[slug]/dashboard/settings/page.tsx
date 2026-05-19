@@ -29,6 +29,7 @@ import { SportTypeSection } from "./sport-types/sportTypeSection";
 import { DashboardHeader } from "../DashboardHeader";
 import { PromotionSection } from "./promotions/promotionSection";
 import { EventPackageSection } from "./event-packages/eventPackageSection";
+import { BulkUpdateTime } from "./schedules/bulkUpdateTime";
 
 const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
   const { slug } = await params;
@@ -152,6 +153,10 @@ const Page = async ({ params }: { params: Promise<{ slug: string }> }) => {
             {/* Formulario de Horarios */}
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
               <ScheduleForm complex={complejo} />
+            </div>
+            {/* Cambio masivo de horario */}
+            <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">
+              <BulkUpdateTime complex={complejo} />
             </div>
             {/* Sección: Ver y Editar Horarios */}
             <div className="bg-white rounded-xl shadow-lg p-4 md:p-6">

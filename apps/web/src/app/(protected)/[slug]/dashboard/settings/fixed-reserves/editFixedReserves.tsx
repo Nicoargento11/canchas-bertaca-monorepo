@@ -75,6 +75,11 @@ const daysOfWeek = [
   { name: "Sábado", value: 6 },
 ];
 
+const toMin = (t: string) => {
+  const [h, m] = t.split(":").map(Number);
+  return h * 60 + m;
+};
+
 const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -92,6 +97,22 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [generateInstanceId, setGenerateInstanceId] = useState<string | null>(null);
   const [instanceDate, setInstanceDate] = useState<string>("");
+
+  const findRateForTime = (startTime: string, courtId: string, scheduleDayId: string): string | null => {
+    if (!startTime || !courtId || !scheduleDayId) return null;
+    const startMin = toMin(startTime);
+    for (const s of complex.schedules) {
+      if (s.courtId !== courtId || s.scheduleDayId !== scheduleDayId) continue;
+      if (!s.rates || s.rates.length === 0) continue;
+      const sStart = toMin(s.startTime);
+      let sEnd = toMin(s.endTime);
+      if (sEnd <= sStart) sEnd += 24 * 60;
+      let check = startMin;
+      if (check < sStart) check += 24 * 60;
+      if (check >= sStart && check < sEnd) return s.rates[0].id;
+    }
+    return null;
+  };
 
   const handleToggle = async (id: string, isActive: boolean) => {
     setIsProcessing(true);
@@ -127,15 +148,16 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
     try {
       const { success, error } = await updateFixedReserve(id, editedData);
       if (!success) {
-        throw new Error(error);
+        toast.error(error || "Error al actualizar turno");
+      } else {
+        toast.success("Turno fijo actualizado");
+        setEditingId(null);
       }
-      toast.success("Turno fijo actualizado");
-      setEditingId(null);
-      router.refresh();
-    } catch (error) {
-      toast.error("Error al actualizar turno");
+    } catch {
+      toast.error("Error inesperado al actualizar turno");
     } finally {
       setIsProcessing(false);
+      router.refresh();
     }
   };
 
@@ -220,7 +242,14 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
                     <Label>Hora de inicio</Label>
                     <Select
                       value={editedData.startTime}
-                      onValueChange={(value) => setEditedData({ ...editedData, startTime: value })}
+                      onValueChange={(value) => {
+                        const detectedRate = findRateForTime(value, editedData.courtId, editedData.scheduleDayId);
+                        setEditedData({
+                          ...editedData,
+                          startTime: value,
+                          ...(detectedRate ? { rateId: detectedRate } : {}),
+                        });
+                      }}
                       disabled={isProcessing}
                     >
                       <SelectTrigger>
@@ -262,9 +291,14 @@ const EditFixedSchedules = ({ complex }: EditFixedSchedulesProps) => {
                     <Label>Día</Label>
                     <Select
                       value={editedData.scheduleDayId}
-                      onValueChange={(value) =>
-                        setEditedData({ ...editedData, scheduleDayId: value })
-                      }
+                      onValueChange={(value) => {
+                        const detectedRate = findRateForTime(editedData.startTime, editedData.courtId, value);
+                        setEditedData({
+                          ...editedData,
+                          scheduleDayId: value,
+                          ...(detectedRate ? { rateId: detectedRate } : {}),
+                        });
+                      }}
                       disabled={isProcessing}
                     >
                       <SelectTrigger>

@@ -123,3 +123,17 @@ export const getSchedulesByDay = async (dayId: string): Promise<ScheduleResult<S
     return handleScheduleError(error);
   }
 };
+
+export const bulkUpdateTimeFetch = async (
+  complexId: string,
+  oldTime: string,
+  newTime: string,
+  field: "startTime" | "endTime" | "both"
+): Promise<ScheduleResult<{ updated: number }>> => {
+  try {
+    const response = await api.patch("/schedules/bulk-update-time", { complexId, oldTime, newTime, field });
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handleScheduleError(error);
+  }
+};

@@ -20,7 +20,7 @@ export default registerAs(
     refreshSecret: process.env.JWT_REFRESH_SECRET || 'refreshSecretKey',
 
     signOptions: {
-      expiresIn: process.env.JWT_EXPIRES_IN || '15m', // 15 minutos
+      expiresIn: process.env.JWT_EXPIRES_IN || '8h',
     },
 
     // Opciones para cookies
