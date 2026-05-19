@@ -1,6 +1,7 @@
 import { Injectable, ConflictException } from '@nestjs/common';
 import { CreateScheduleDto } from './dto/create-schedule.dto';
 import { UpdateScheduleDto } from './dto/update-schedule.dto';
+import { BulkUpdateTimeDto } from './dto/bulk-update-time.dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 // import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { Prisma } from '@prisma/client';
@@ -210,5 +211,86 @@ export class SchedulesService {
       where: { id },
       include: { sportType: true, court: true },
     });
+  }
+
+  async bulkUpdateTime(dto: BulkUpdateTimeDto): Promise<{ updated: number }> {
+    const { complexId, oldTime, newTime, field } = dto;
+
+    const today = new Date();
+    const targetDate = new Date(
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+    );
+
+    let scheduleCount = 0;
+
+    // --- Schedules ---
+    if (field === 'startTime' || field === 'both') {
+      const r = await this.prisma.schedule.updateMany({
+        where: { complexId, startTime: oldTime },
+        data: { startTime: newTime },
+      });
+      scheduleCount += r.count;
+    }
+    if (field === 'endTime' || field === 'both') {
+      const r = await this.prisma.schedule.updateMany({
+        where: { complexId, endTime: oldTime },
+        data: { endTime: newTime },
+      });
+      scheduleCount += r.count;
+    }
+
+    // --- FixedReserves + cascade a instancias pendientes ---
+    const fixedWhere: any[] = [];
+    if (field === 'startTime' || field === 'both')
+      fixedWhere.push({ complexId, startTime: oldTime });
+    if (field === 'endTime' || field === 'both')
+      fixedWhere.push({ complexId, endTime: oldTime });
+
+    const affectedFixed = await this.prisma.fixedReserve.findMany({
+      where: { OR: fixedWhere },
+      include: { rate: true },
+    });
+
+    for (const fr of affectedFixed) {
+      const newStart = field === 'startTime' || (field === 'both' && fr.startTime === oldTime)
+        ? newTime
+        : fr.startTime;
+      const newEnd = field === 'endTime' || (field === 'both' && fr.endTime === oldTime)
+        ? newTime
+        : fr.endTime;
+
+      await this.prisma.fixedReserve.update({
+        where: { id: fr.id },
+        data: { startTime: newStart, endTime: newEnd },
+      });
+
+      const duration = this.calculateDurationHours(newStart, newEnd);
+      const newPrice = fr.rate.price * duration;
+
+      await this.prisma.reserve.updateMany({
+        where: {
+          fixedReserveId: fr.id,
+          date: { gte: targetDate },
+          status: { notIn: ['COMPLETADO', 'CANCELADO'] },
+        },
+        data: {
+          schedule: `${newStart} - ${newEnd}`,
+          price: newPrice,
+        },
+      });
+    }
+
+    return { updated: scheduleCount + affectedFixed.length };
+  }
+
+  private calculateDurationHours(startTime: string, endTime: string): number {
+    const toMinutes = (t: string) => {
+      const [h, m] = t.split(':').map(Number);
+      return h * 60 + m;
+    };
+    const start = toMinutes(startTime);
+    let end = toMinutes(endTime);
+    if (end <= start) end += 24 * 60;
+    return (end - start) / 60;
   }
 }

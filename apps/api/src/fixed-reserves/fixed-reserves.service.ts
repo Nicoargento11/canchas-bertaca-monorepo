@@ -31,15 +31,16 @@ export class FixedReservesService {
       where: {
         courtId,
         scheduleDayId: scheduleDay.id,
-        // Solapamiento de horarios
         startTime: { lt: endTime },
         endTime: { gt: startTime },
       },
+      include: { user: true },
     });
 
     if (overlapping) {
+      const status = overlapping.isActive ? 'activo' : 'inactivo';
       throw new ConflictException(
-        'Ya existe un turno fijo solapado para esa cancha, día y horario.',
+        `Ya existe un turno fijo ${status} de ${overlapping.startTime} a ${overlapping.endTime} para ${overlapping.user.name} en esa cancha y día.`,
       );
     }
 
@@ -253,54 +254,134 @@ export class FixedReservesService {
     updateFixedReserveDto: UpdateFixedReserveDto,
   ): Promise<FixedReserve> {
     try {
-      // 1. Actualizar la reserva fija
+      // 1. Leer estado actual para comparar cambios
+      const existing = await this.prisma.fixedReserve.findUnique({
+        where: { id },
+        include: { user: true },
+      });
+      if (!existing) {
+        throw new NotFoundException(`FixedReserve with ID ${id} not found`);
+      }
+
+      const newCourtId = updateFixedReserveDto.courtId ?? existing.courtId;
+      const newScheduleDayId =
+        updateFixedReserveDto.scheduleDayId ?? existing.scheduleDayId;
+      const newStartTime = updateFixedReserveDto.startTime ?? existing.startTime;
+      const newEndTime = updateFixedReserveDto.endTime ?? existing.endTime;
+
+      const dayChanged = newScheduleDayId !== existing.scheduleDayId;
+      const slotChanged =
+        newStartTime !== existing.startTime ||
+        newEndTime !== existing.endTime ||
+        newCourtId !== existing.courtId ||
+        dayChanged;
+
+      // 2. Validar solapamiento con otros fijos si cambió algo relevante
+      if (slotChanged) {
+        const overlapping = await this.prisma.fixedReserve.findFirst({
+          where: {
+            id: { not: id },
+            courtId: newCourtId,
+            scheduleDayId: newScheduleDayId,
+            startTime: { lt: newEndTime },
+            endTime: { gt: newStartTime },
+          },
+          include: { user: true },
+        });
+
+        if (overlapping) {
+          const status = overlapping.isActive ? 'activo' : 'inactivo';
+          throw new ConflictException(
+            `Ya existe un turno fijo ${status} de ${overlapping.startTime} a ${overlapping.endTime} para ${overlapping.user.name} en esa cancha y día.`,
+          );
+        }
+      }
+
+      const today = new Date();
+      const targetDate = new Date(
+        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+      );
+
+      // 3. Si cambió el día, eliminar instancias futuras (están en fechas del día viejo)
+      if (dayChanged) {
+        const deleted = await this.prisma.reserve.deleteMany({
+          where: {
+            fixedReserveId: id,
+            date: { gte: targetDate },
+            status: { notIn: ['COMPLETADO', 'CANCELADO'] },
+          },
+        });
+        this.logger.log(
+          `Día cambiado en fijo ${id}: eliminadas ${deleted.count} instancias futuras`,
+        );
+      }
+
+      // 4. Si cambió el slot, auto-detectar la tarifa correspondiente al nuevo horario
+      if (slotChanged && !updateFixedReserveDto.rateId) {
+        const schedules = await this.prisma.schedule.findMany({
+          where: { courtId: newCourtId, scheduleDayId: newScheduleDayId },
+          include: { rates: true },
+        });
+        const toMin = (t: string) => {
+          const [h, m] = t.split(':').map(Number);
+          return h * 60 + m;
+        };
+        const startMin = toMin(newStartTime);
+        for (const s of schedules) {
+          if (!s.rates?.length) continue;
+          const sStart = toMin(s.startTime);
+          let sEnd = toMin(s.endTime);
+          if (sEnd <= sStart) sEnd += 24 * 60;
+          let check = startMin;
+          if (check < sStart) check += 24 * 60;
+          if (check >= sStart && check < sEnd) {
+            updateFixedReserveDto.rateId = s.rates[0].id;
+            break;
+          }
+        }
+      }
+
+      // 5. Actualizar la plantilla
       const updatedFixedReserve = await this.prisma.fixedReserve.update({
         where: { id },
         data: updateFixedReserveDto,
         include: { rate: true },
       });
 
-      // 2. Actualizar instancias futuras (incluyendo hoy) que no se hayan jugado
-      const today = new Date();
-      const targetDate = new Date(
-        Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
-      );
+      // 5. Si el día NO cambió, actualizar instancias pendientes con los nuevos datos
+      if (!dayChanged) {
+        const pendingReserves = await this.prisma.reserve.findMany({
+          where: {
+            fixedReserveId: id,
+            date: { gte: targetDate },
+            status: { notIn: ['COMPLETADO', 'CANCELADO'] },
+          },
+        });
 
-      const pendingReserves = await this.prisma.reserve.findMany({
-        where: {
-          fixedReserveId: id,
-          date: { gte: targetDate },
-          status: { notIn: ['COMPLETADO', 'CANCELADO'] },
-        },
-      });
+        const user = await this.prisma.user.findUnique({
+          where: { id: updatedFixedReserve.userId },
+        });
+        const clientName = user?.name ?? existing.user.name;
 
-      for (const reserve of pendingReserves) {
-        // Recalcular precio
         const duration = this.calculateHoursDuration(
           updatedFixedReserve.startTime,
           updatedFixedReserve.endTime,
         );
         const newPrice = updatedFixedReserve.rate.price * duration;
 
-        await this.prisma.reserve.update({
-          where: { id: reserve.id },
-          data: {
-            schedule: `${updatedFixedReserve.startTime} - ${updatedFixedReserve.endTime}`,
-            courtId: updatedFixedReserve.courtId,
-            price: newPrice,
-            // Si cambió el usuario en el fijo, también deberíamos actualizarlo en la reserva?
-            // updateFixedReserveDto.userId ? { userId: ... } : undefined
-            userId: updatedFixedReserve.userId,
-            clientName: (
-              await this.prisma.user.findUnique({
-                where: { id: updatedFixedReserve.userId },
-              })
-            ).name,
-          },
-        });
-        this.logger.log(
-          `Instancia de reserva ${reserve.id} actualizada por cambios en el fijo ${id}`,
-        );
+        for (const reserve of pendingReserves) {
+          await this.prisma.reserve.update({
+            where: { id: reserve.id },
+            data: {
+              schedule: `${updatedFixedReserve.startTime} - ${updatedFixedReserve.endTime}`,
+              courtId: updatedFixedReserve.courtId,
+              price: newPrice,
+              userId: updatedFixedReserve.userId,
+              clientName,
+            },
+          });
+          this.logger.log(`Instancia ${reserve.id} actualizada por cambios en fijo ${id}`);
+        }
       }
 
       return updatedFixedReserve;

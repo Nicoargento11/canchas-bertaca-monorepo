@@ -147,44 +147,48 @@ const FixedScheduleForm = ({ complex, usersData }: FixedScheduleFormProps) => {
 
       const results = await Promise.all(requests);
 
-      // Filtrar solo las respuestas fallidas
       const failedResults = results.filter((result) => !result.success);
+      const succeededCount = results.length - failedResults.length;
+
+      // Si al menos uno se creó, refrescar la página para que aparezca
+      if (succeededCount > 0) {
+        router.refresh();
+      }
 
       if (failedResults.length > 0) {
-        // Extraer todos los mensajes de error únicos
         const errorMessages = [...new Set(failedResults.map((r) => r.error))];
 
-        if (failedResults.length === results.length) {
-          // Todos fallaron
-          toast.error(`No se pudo crear ningún turno: ${errorMessages.join(", ")}`);
+        if (succeededCount === 0) {
+          toast.error(errorMessages.join(" | "), { duration: 8000 });
         } else {
-          // Algunos fallaron
-          toast.error(
-            `Se crearon ${results.length - failedResults.length} turnos, pero fallaron ${failedResults.length}: ${errorMessages.join(", ")}`
+          toast.warning(
+            `Se crearon ${succeededCount} turno${succeededCount !== 1 ? "s" : ""}. No se pudo crear ${failedResults.length}: ${errorMessages.join(" | ")}`,
+            { duration: 8000 }
           );
         }
         return;
       }
 
-      // Verificar advertencias de instancias no creadas (por solapamiento, etc.)
+      // Advertencias de instancias de hoy no generadas
       const warnings = results
         .filter((r) => r.success && r.data?.instanceError)
         .map((r) => r.data?.instanceError);
 
       if (warnings.length > 0) {
-        const uniqueWarnings = [...new Set(warnings)];
         toast.warning(
-          `Turnos fijos creados, pero algunas reservas de hoy no se generaron: ${uniqueWarnings.join(", ")}`,
+          `Turnos creados, pero las reservas de hoy no se generaron: ${[...new Set(warnings)].join(", ")}`,
           { duration: 6000 }
         );
       } else {
-        toast.success(`Se crearon ${results.length} turnos fijos correctamente`);
+        toast.success(`Se crearon ${results.length} turno${results.length !== 1 ? "s" : ""} fijo${results.length !== 1 ? "s" : ""} correctamente`);
       }
 
+      // Limpiar el form después del éxito total
+      reset();
+      setSelectedUser(null);
       router.refresh();
     } catch (error) {
       console.error("Error inesperado:", error);
-      // Esto capturaría errores no controlados por tu API (errores de red, etc.)
       toast.error("Error inesperado al procesar la solicitud");
     } finally {
       setIsSubmitting(false);
