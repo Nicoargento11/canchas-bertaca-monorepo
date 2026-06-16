@@ -20,6 +20,7 @@ export type SessionPayload = {
     complexSlug?: string | null;
   };
   accessToken: string;
+  refreshToken?: string;
 };
 
 const SESSION_DURATION_MS = 365 * 24 * 60 * 60 * 1000; // 365 días

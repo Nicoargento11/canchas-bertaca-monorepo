@@ -394,16 +394,57 @@ export class FixedReservesService {
   }
 
   async remove(id: string): Promise<void> {
-    try {
-      await this.prisma.fixedReserve.delete({
-        where: { id },
-      });
-    } catch (error) {
-      if (error.code === 'P2025') {
-        throw new NotFoundException(`FixedReserve with ID ${id} not found`);
-      }
-      throw error;
+    // 1. Verificar que existe
+    const fixedReserve = await this.prisma.fixedReserve.findUnique({
+      where: { id },
+    });
+
+    if (!fixedReserve) {
+      throw new NotFoundException(`FixedReserve with ID ${id} not found`);
     }
+
+    // 2. Eliminar instancias de reservas futuras (hoy incluido), excepto COMPLETADAS
+    const today = this.getArgentineDate();
+    const targetDate = new Date(
+      Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()),
+    );
+
+    const deletedReserves = await this.prisma.reserve.deleteMany({
+      where: {
+        fixedReserveId: id,
+        date: { gte: targetDate },
+        status: { not: 'COMPLETADO' },
+      },
+    });
+
+    this.logger.log(
+      `Eliminadas ${deletedReserves.count} instancias futuras del turno fijo ${id}`,
+    );
+
+    // 3. Desvincular reservas restantes (pasadas, completadas, canceladas, etc.)
+    //    para no perder historial y evitar que bloqueen la eliminación
+    const unlinked = await this.prisma.reserve.updateMany({
+      where: {
+        fixedReserveId: id,
+      },
+      data: {
+        fixedReserveId: null,
+        reserveType: 'MANUAL',
+      },
+    });
+
+    if (unlinked.count > 0) {
+      this.logger.log(
+        `${unlinked.count} instancias pasadas desvinculadas del turno fijo ${id}`,
+      );
+    }
+
+    // 4. Eliminar el turno fijo
+    await this.prisma.fixedReserve.delete({
+      where: { id },
+    });
+
+    this.logger.log(`Turno fijo ${id} eliminado definitivamente`);
   }
 
   async toggleStatus(

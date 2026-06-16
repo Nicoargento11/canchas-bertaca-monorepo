@@ -28,3 +28,6 @@ logs/
 
 apps/api/src/modules
 apps/api/src/shared
+
+.agent
+.agents

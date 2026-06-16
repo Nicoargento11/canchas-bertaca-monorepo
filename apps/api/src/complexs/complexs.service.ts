@@ -7,7 +7,7 @@ import {
 import { PrismaService } from 'src/prisma/prisma.service';
 import { PaginationParams } from './dto/pagination.dto';
 import { CreateComplexDto } from './dto/create-complex.dto';
-import { Complex, Prisma } from '@prisma/client';
+import { Complex, Prisma, Role } from '@prisma/client';
 import { MercadoPagoConfig, OAuth } from 'mercadopago';
 
 @Injectable()
@@ -107,6 +107,9 @@ export class ComplexService {
           courts: true,
           Organization: true,
           managers: {
+            where: {
+              role: { in: [Role.COMPLEJO_ADMIN, Role.RECEPCION] },
+            },
             select: {
               id: true,
               name: true,

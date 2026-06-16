@@ -47,7 +47,7 @@ export const signIn = async (values: z.infer<typeof loginSchema>): Promise<AuthR
 
   try {
     const response = await api.post("/auth/login", data);
-    const { user, access_token } = response.data;
+    const { user, access_token, refresh_token } = response.data;
 
     await createSession({
       user: {
@@ -60,7 +60,7 @@ export const signIn = async (values: z.infer<typeof loginSchema>): Promise<AuthR
         complexSlug: user.Complex?.slug,
       },
       accessToken: access_token,
-      // No almacenamos refreshToken en el cliente (se maneja por cookies)
+      refreshToken: refresh_token,
     });
 
     return { success: true, data: { message: "Inicio de sesión exitoso" } };
@@ -84,10 +84,9 @@ export const refreshTokens = async (): Promise<AuthResult> => {
   try {
     const response = await api.post("/auth/refresh");
 
-    await updateSession({
-      accessToken: response.data.access_token,
-      // No actualizamos refreshToken (se maneja por cookies)
-    });
+    if (response.data?.access_token) {
+      await updateSession({ accessToken: response.data.access_token });
+    }
 
     return { success: true };
   } catch (error) {
