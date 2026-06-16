@@ -15,12 +15,12 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   ) {
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        // 1. Primero, intenta extraerlo de una cookie llamada 'access_token'
+        // 1. Primero, busca en el header 'Authorization' (el interceptor lo setea tras refresh)
+        ExtractJwt.fromAuthHeaderAsBearerToken(),
+        // 2. Si no hay header, intenta extraerlo de la cookie 'access_token'
         (request: Request) => {
           return request?.cookies?.access_token;
         },
-        // 2. Si no la encuentra, busca en el header 'Authorization' como antes
-        ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       secretOrKey: jwtConfiguration.secret,
       ignoreExpiration: false,

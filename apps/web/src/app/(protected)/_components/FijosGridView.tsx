@@ -12,14 +12,23 @@ import {
   Clock9,
   Power,
   Pencil,
+  Trash2,
+  MoreHorizontal,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Complex } from "@/services/complex/complex";
 import {
   getFixedReserves,
   toggleFixedReserveStatus,
+  deleteFixedReserve,
   FixedReserve,
 } from "@/services/fixed-reserve/fixed-reserve";
 import { CreateFixedReserveModal } from "@/components/modals/CreateFixedReserveModal";
@@ -66,6 +75,10 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
   const [fixedReserves, setFixedReserves] = useState<FixedReserve[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Delete state
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -157,6 +170,25 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
   const handleForceToggle = () => {
     if (pendingToggleId) {
       handleToggleStatus(pendingToggleId, true);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      const result = await deleteFixedReserve(deleteId);
+      if (result.success) {
+        toast({ title: "Eliminado", description: "Turno fijo eliminado correctamente." });
+        setDeleteId(null);
+        fetchFixedReserves();
+      } else {
+        toast({ title: "Error", description: result.error || "No se pudo eliminar el turno fijo.", variant: "destructive" });
+      }
+    } catch {
+      toast({ title: "Error", description: "Error inesperado al eliminar.", variant: "destructive" });
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -376,8 +408,8 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                       </span>
                                     </div>
 
-                                    {/* Botones en fila separada */}
-                                    <div className="flex items-center justify-end gap-1 mt-1">
+                                    {/* Botones: Desktop individuales, Mobile dropdown */}
+                                    <div className="hidden md:flex items-center justify-end gap-1 mt-1">
                                       <Button
                                         size="icon"
                                         variant="ghost"
@@ -408,6 +440,65 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
                                       >
                                         <Power className="h-3.5 w-3.5" />
                                       </Button>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-md"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setDeleteId(fixedReserve.id);
+                                        }}
+                                      >
+                                        <Trash2 className="h-3.5 w-3.5" />
+                                      </Button>
+                                    </div>
+
+                                    <div className="flex md:hidden items-center justify-end mt-1">
+                                      <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                          <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            className="h-8 w-8"
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MoreHorizontal className="h-4 w-4" />
+                                          </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end" className="w-40" onClick={(e) => e.stopPropagation()}>
+                                          <DropdownMenuItem
+                                            className="py-2.5 text-sm"
+                                            onClick={() => {
+                                              setEditingReserve(fixedReserve);
+                                              setModalInitialData({
+                                                courtId: fixedReserve.courtId,
+                                                startTime: fixedReserve.startTime,
+                                                endTime: fixedReserve.endTime,
+                                                dayOfWeek: selectedDay,
+                                                sportType: complex.sportTypes[0],
+                                              });
+                                              setIsModalOpen(true);
+                                            }}
+                                          >
+                                            <Pencil className="h-4 w-4 mr-2.5" />
+                                            Editar
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            className="py-2.5 text-sm"
+                                            onClick={() => handleToggleStatus(fixedReserve.id)}
+                                          >
+                                            <Power className="h-4 w-4 mr-2.5" />
+                                            {fixedReserve.isActive ? "Desactivar" : "Activar"}
+                                          </DropdownMenuItem>
+                                          <DropdownMenuItem
+                                            className="py-2.5 text-sm text-red-500 focus:text-red-500"
+                                            onClick={() => setDeleteId(fixedReserve.id)}
+                                          >
+                                            <Trash2 className="h-4 w-4 mr-2.5" />
+                                            Eliminar
+                                          </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                      </DropdownMenu>
                                     </div>
                                   </div>
                                 </td>
@@ -478,6 +569,32 @@ export function FijosGridView({ complex }: FijosGridViewProps) {
               className="bg-violet-600 hover:bg-violet-700"
             >
               Confirmar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar turno fijo</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de eliminar este turno fijo? Se eliminarán las reservas futuras asociadas.
+              Las reservas pasadas se conservarán en el historial.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={isDeleting}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              {isDeleting ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-1" />
+              ) : null}
+              Eliminar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

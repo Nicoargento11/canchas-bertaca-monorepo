@@ -28,6 +28,7 @@ export async function GET(req: NextRequest) {
       complexSlug,
     },
     accessToken,
+    refreshToken: refreshToken || undefined,
   });
 
   redirect(returnTo);

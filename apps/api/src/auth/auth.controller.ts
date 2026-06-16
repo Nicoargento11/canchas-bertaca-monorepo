@@ -229,8 +229,7 @@ export class AuthController {
       );
       this.setAuthCookies(res, tokens.access_token, tokens.refresh_token);
 
-      // return tokens;
-      return { message: 'Tokens refreshed successfully' };
+      return { message: 'Tokens refreshed successfully', access_token: tokens.access_token };
     } catch {
       throw new UnauthorizedException('Invalid refresh token');
     }

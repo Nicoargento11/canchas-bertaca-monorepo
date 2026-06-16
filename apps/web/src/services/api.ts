@@ -94,29 +94,35 @@ api.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // Hacemos la llamada al endpoint de refresh. No necesitamos enviar datos,
-        // el navegador adjuntará la cookie 'refresh_token' automáticamente.
+        // Primary: use backend cookies (works when cookies are present)
         await api.post("/auth/refresh");
-
-        // Si la llamada fue exitosa, el backend ya nos ha enviado la nueva cookie 'access_token'.
-        // Ahora procesamos la cola, resolviendo todas las promesas pendientes.
         processQueue(null);
-
-        // Reintentamos la petición original que falló.
         return api(originalRequest);
-      } catch (refreshError) {
-        // Si la llamada a /auth/refresh falla (ej: refresh token expirado o inválido)...
-        processQueue(refreshError as AxiosError);
+      } catch {
+        // Fallback: backend cookies are missing — use the refreshToken stored in auth-session
+        try {
+          const fallbackRes = await fetch("/api/auth/refresh", { method: "POST" });
+          if (!fallbackRes.ok) throw new Error("Fallback refresh failed");
 
-        // Aquí es donde deslogueas al usuario.
-        console.error("Session refresh failed. Logging out.", refreshError);
-        // Podrías limpiar el estado de tu aplicación (ej: Zustand, Redux)
-        // y redirigir al usuario a la página de login.
-        // window.location.href = '/login';
+          const { access_token: newToken } = await fallbackRes.json();
+          if (newToken) {
+            api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+            originalRequest.headers["Authorization"] = `Bearer ${newToken}`;
+          }
 
-        return Promise.reject(refreshError);
+          processQueue(null);
+          return api(originalRequest);
+        } catch (fallbackError) {
+          processQueue(fallbackError as AxiosError);
+          console.error("All token refresh methods failed. Redirecting to login.");
+
+          if (typeof window !== "undefined") {
+            window.location.href = "/";
+          }
+
+          return Promise.reject(fallbackError);
+        }
       } finally {
-        // Sea cual sea el resultado, desactivamos la bandera y limpiamos la cola.
         isRefreshing = false;
       }
     }
