@@ -689,6 +689,24 @@ export class ReservesService implements OnModuleInit {
     });
   }
 
+  findByDayForAvailability(date: string, complexId: string, sportTypeId?: string) {
+    return this.prisma.reserve.findMany({
+      where: {
+        date: new Date(date),
+        status: { notIn: ['RECHAZADO', 'CANCELADO'] },
+        complexId,
+        court: sportTypeId ? { sportTypeId } : undefined,
+      },
+      select: {
+        schedule: true,
+        fixedReserveId: true,
+        court: {
+          select: { id: true, name: true, courtNumber: true },
+        },
+      },
+    });
+  }
+
   findByMonth(
     month: number,
     year: number,

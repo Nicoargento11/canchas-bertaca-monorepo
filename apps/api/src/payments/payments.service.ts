@@ -8,8 +8,15 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
 
+const MP_CACHE_TTL_MS = 2 * 60 * 1000;
+
 @Injectable()
 export class PaymentsService {
+  private readonly mpSearchCache = new Map<
+    string,
+    { data: any; expiresAt: number }
+  >();
+
   constructor(
     private readonly reserveService: ReservesService,
     private jwtService: JwtService,
@@ -39,7 +46,13 @@ export class PaymentsService {
   //     }),
   //   );
   // }
+
   async searchPayments(complexId: string) {
+    const cached = this.mpSearchCache.get(complexId);
+    if (cached && Date.now() < cached.expiresAt) {
+      return cached.data;
+    }
+
     const paymentConfig = await this.prisma.paymentConfig.findUnique({
       where: { complexId },
     });
@@ -54,7 +67,7 @@ export class PaymentsService {
 
     const payment = new Payment(client);
 
-    return await payment.search({
+    const result = await payment.search({
       options: {
         limit: 100,
         sort: 'date_created',
@@ -63,6 +76,13 @@ export class PaymentsService {
         end_date: 'NOW',
       },
     });
+
+    this.mpSearchCache.set(complexId, {
+      data: result,
+      expiresAt: Date.now() + MP_CACHE_TTL_MS,
+    });
+
+    return result;
   }
 
   async createPreference({
