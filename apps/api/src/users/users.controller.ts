@@ -163,8 +163,7 @@ export class UsersController {
   })
   @ApiResponse({ status: 404, description: 'Usuario no encontrado' })
   @ApiResponse({ status: 403, description: 'No autorizado' })
-  // @UseGuards(JwtAuthGuard)
-  // @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN)
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   async findOne(@Param('id') id: string) {
     const user = await this.usersService.findOne(id);

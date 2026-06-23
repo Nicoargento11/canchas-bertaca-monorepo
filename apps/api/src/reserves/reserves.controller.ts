@@ -72,7 +72,6 @@ export class ReservesController {
     return this.reservesService.findById(id);
   }
 
-  @Public()
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateReserveDto: UpdateReserveDto) {
     const utcDate = this.convertToUTC(updateReserveDto.date);
@@ -89,7 +88,6 @@ export class ReservesController {
     return this.reservesService.updateStatus(id, status as Status);
   }
 
-  @Public()
   @Delete(':id')
   async remove(@Param('id') id: string) {
     await this.validateReserveExists(id);

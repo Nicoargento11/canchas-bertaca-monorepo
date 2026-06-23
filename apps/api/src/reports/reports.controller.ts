@@ -441,7 +441,6 @@ export class ReportsController {
   // ENDPOINTS TEMPORALES PARA TESTING (SIN AUTENTICACIÓN)
   // ===================================
 
-  @Public()
   @Get('test/daily-summary/export/excel')
   @ApiOperation({
     summary: '[TESTING] Exportar resumen diario a Excel (sin auth)',
@@ -474,7 +473,6 @@ export class ReportsController {
     }
   }
 
-  @Public()
   @Get('test/daily-summary/export/pdf')
   @ApiOperation({
     summary: '[TESTING] Exportar resumen diario a PDF (sin auth)',
@@ -506,7 +504,6 @@ export class ReportsController {
     }
   }
 
-  @Public()
   @Get('test/date-range')
   @ApiOperation({
     summary: '[TESTING] Obtener resumen por rango de fechas (sin auth)',
@@ -612,7 +609,6 @@ export class ReportsController {
     }
   }
 
-  @Public()
   @Get('test/dashboard')
   @ApiOperation({
     summary: '[TESTING] Obtener datos del dashboard (sin auth)',
