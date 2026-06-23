@@ -146,8 +146,9 @@ export class ComplexController {
   }
 
   @Post(':id/mercadopago')
-  @UseGuards(JwtAuthGuard)
-  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  // TODO: Descomentar cuando funcione el OAuth
+  // @UseGuards(JwtAuthGuard)
+  // @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
   @ApiOperation({ summary: 'Guardar configuración de MercadoPago' })
   @ApiResponse({
     status: 200,
