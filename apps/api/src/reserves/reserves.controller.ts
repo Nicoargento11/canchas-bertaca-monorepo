@@ -222,21 +222,14 @@ export class ReservesController {
     this.validateDateQueryParam(dateString);
     const date = this.parseDate(dateString);
 
-    const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
-      date,
-      complexId,
-      sportTypeId,
-    );
+    const [scheduleInfo, reservations] = await Promise.all([
+      this.scheduleHelper.getScheduleInfo(date, complexId, sportTypeId),
+      this.reservesService.findByDayForAvailability(dateString, complexId, sportTypeId),
+    ]);
 
     if (!scheduleInfo) {
       return [];
     }
-
-    const reservations = await this.reservesService.findByDay(
-      dateString,
-      complexId,
-      sportTypeId,
-    );
 
     return this.scheduleHelper.getAvailableSchedules(
       scheduleInfo,

@@ -182,12 +182,14 @@ export class ComplexService {
         sportTypes: true,
         products: true,
         productSales: {
+          where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
           include: {
             sale: { include: { payments: true } },
             product: true,
           },
         },
         payments: {
+          where: { createdAt: { gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } },
           include: {
             sale: {
               include: {
