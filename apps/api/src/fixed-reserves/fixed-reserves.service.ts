@@ -123,16 +123,11 @@ export class FixedReservesService {
     const where: any = {};
 
     if (complexId) {
-      where.scheduleDay = {
-        complexId,
-      };
+      where.complexId = complexId;
     }
 
     if (dayOfWeek !== undefined) {
-      where.scheduleDay = {
-        ...where.scheduleDay,
-        dayOfWeek,
-      };
+      where.scheduleDay = { dayOfWeek };
     }
 
     return await this.prisma.fixedReserve.findMany({
@@ -369,19 +364,21 @@ export class FixedReservesService {
         );
         const newPrice = updatedFixedReserve.rate.price * duration;
 
-        for (const reserve of pendingReserves) {
-          await this.prisma.reserve.update({
-            where: { id: reserve.id },
-            data: {
-              schedule: `${updatedFixedReserve.startTime} - ${updatedFixedReserve.endTime}`,
-              courtId: updatedFixedReserve.courtId,
-              price: newPrice,
-              userId: updatedFixedReserve.userId,
-              clientName,
-            },
-          });
-          this.logger.log(`Instancia ${reserve.id} actualizada por cambios en fijo ${id}`);
-        }
+        await this.prisma.reserve.updateMany({
+          where: {
+            fixedReserveId: id,
+            date: { gte: targetDate },
+            status: { notIn: ['COMPLETADO', 'CANCELADO'] },
+          },
+          data: {
+            schedule: `${updatedFixedReserve.startTime} - ${updatedFixedReserve.endTime}`,
+            courtId: updatedFixedReserve.courtId,
+            price: newPrice,
+            userId: updatedFixedReserve.userId,
+            clientName,
+          },
+        });
+        this.logger.log(`Instancias futuras del fijo ${id} actualizadas en batch`);
       }
 
       return updatedFixedReserve;
