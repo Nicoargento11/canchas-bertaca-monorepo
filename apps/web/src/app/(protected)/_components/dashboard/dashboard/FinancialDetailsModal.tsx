@@ -5,7 +5,7 @@ import { useFinancialDetailsModalStore } from "@/store/financialDetailsModalStor
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { useCashRegisterStore } from "@/store/cash-register";
 import { Reserve } from "@/services/reserve/reserve";
-import { Payment, searchPayments } from "@/services/payment/payment";
+import { Payment, getPaymentsByCashSession } from "@/services/payment/payment";
 import { useEffect, useState, useMemo } from "react";
 import { DollarSign, TrendingUp, AlertTriangle, Wallet, CreditCard, Smartphone, Building2 } from "lucide-react";
 
@@ -16,18 +16,18 @@ export const FinancialDetailsModal = () => {
     const { activeSession } = useCashRegisterStore();
     const [allPayments, setAllPayments] = useState<Payment[]>([]);
 
-    // Fetch payments when modal opens
+    // Fetch session payments when modal opens
     useEffect(() => {
         const fetchPayments = async () => {
-            if (isOpen && state.currentComplex?.id) {
-                const result = await searchPayments(state.currentComplex.id);
+            if (isOpen && activeSession?.id) {
+                const result = await getPaymentsByCashSession(activeSession.id);
                 if (result.success && result.data) {
                     setAllPayments(result.data);
                 }
             }
         };
         fetchPayments();
-    }, [isOpen, state.currentComplex?.id]);
+    }, [isOpen, activeSession?.id]);
 
     // Calculate details based on type
     const details = useMemo(() => {

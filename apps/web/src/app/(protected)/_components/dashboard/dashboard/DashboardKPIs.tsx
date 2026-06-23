@@ -4,7 +4,7 @@ import { Wallet, AlertTriangle, Clock, TrendingUp, DollarSign } from "lucide-rea
 import { useReservationDashboard } from "@/contexts/ReserveDashboardContext";
 import { Reserve } from "@/services/reserve/reserve";
 import { useCashRegisterStore } from "@/store/cash-register";
-import { Payment, searchPayments } from "@/services/payment/payment";
+import { Payment, getPaymentsByCashSession } from "@/services/payment/payment";
 import { useFinancialDetailsModalStore } from "@/store/financialDetailsModalStore";
 
 interface KPICardProps {
@@ -63,18 +63,18 @@ export const DashboardKPIs = () => {
     const [allPayments, setAllPayments] = useState<Payment[]>([]);
     const { handleOpen } = useFinancialDetailsModalStore();
 
-    // Fetch all payments for egresos calculation
+    // Fetch session payments for egresos calculation
     useEffect(() => {
         const fetchPayments = async () => {
-            if (state.currentComplex?.id) {
-                const result = await searchPayments(state.currentComplex.id);
+            if (activeSession?.id) {
+                const result = await getPaymentsByCashSession(activeSession.id);
                 if (result.success && result.data) {
                     setAllPayments(result.data);
                 }
             }
         };
         fetchPayments();
-    }, [state.currentComplex?.id]);
+    }, [activeSession?.id]);
 
     // Calcular métricas
     const metrics = useMemo(() => {

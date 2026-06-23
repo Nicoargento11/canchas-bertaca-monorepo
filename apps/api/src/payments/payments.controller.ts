@@ -43,6 +43,11 @@ export class PaymentsController {
     private readonly prisma: PrismaService,
     private jwtService: JwtService,
   ) { }
+  @Get('by-session/:cashSessionId')
+  async getPaymentsByCashSession(@Param('cashSessionId') cashSessionId: string) {
+    return this.paymentsService.findByCashSession(cashSessionId);
+  }
+
   @Get('search')
   async searchPayments(@Query('complexId') complexId: string) {
     if (!complexId) {
