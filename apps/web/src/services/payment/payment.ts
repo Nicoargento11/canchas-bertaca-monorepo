@@ -162,3 +162,12 @@ export const searchPayments = async (complexId: string): Promise<PaymentResult<a
     return handlePaymentError(error);
   }
 };
+
+export const getPaymentsByCashSession = async (cashSessionId: string): Promise<PaymentResult<Payment[]>> => {
+  try {
+    const response = await api.get(`/payments/by-session/${cashSessionId}`);
+    return { success: true, data: response.data };
+  } catch (error) {
+    return handlePaymentError(error);
+  }
+};

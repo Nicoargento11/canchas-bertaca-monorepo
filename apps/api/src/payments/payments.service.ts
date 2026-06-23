@@ -258,6 +258,13 @@ export class PaymentsService {
     });
   }
 
+  async findByCashSession(cashSessionId: string) {
+    return this.prisma.payment.findMany({
+      where: { cashSessionId },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
   async getTotalPaid(reserveId: string) {
     const payments = await this.findByReserve(reserveId);
     return payments.reduce((sum, payment) => sum + payment.amount, 0);
