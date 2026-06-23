@@ -181,27 +181,6 @@ export class ComplexService {
         unavailableDays: true,
         sportTypes: true,
         products: true,
-        productSales: {
-          include: {
-            sale: { include: { payments: true } },
-            product: true,
-          },
-        },
-        payments: {
-          include: {
-            sale: {
-              include: {
-                productSales: { include: { product: true } },
-              },
-            },
-            reserve: {
-              include: {
-                user: true,
-                court: true,
-              },
-            },
-          },
-        },
         CashRegister: true,
         promotions: {
           include: {
