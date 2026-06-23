@@ -121,20 +121,15 @@ export class ReservesController {
     this.validateDateQueryParam(date);
     const parsedDate = this.parseDate(date);
 
-    const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
-      parsedDate,
-      complexId,
-    );
+    const [scheduleInfo, reservations] = await Promise.all([
+      this.scheduleHelper.getScheduleInfo(parsedDate, complexId),
+      this.reservesService.findByDay(date, complexId, sportTypeId),
+    ]);
 
     if (!scheduleInfo) {
       return [];
     }
 
-    const reservations = await this.reservesService.findByDay(
-      date,
-      complexId,
-      sportTypeId,
-    );
     return this.scheduleHelper.getAvailableSchedules(
       scheduleInfo,
       reservations,
@@ -153,28 +148,16 @@ export class ReservesController {
     this.validateDateQueryParam(date);
     const parsedDate = this.parseDate(date);
 
-    const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
-      parsedDate,
-      complexId,
-      sportTypeId,
-    );
+    const [scheduleInfo, reservations] = await Promise.all([
+      this.scheduleHelper.getScheduleInfo(parsedDate, complexId, sportTypeId),
+      this.reservesService.findByDay(date, complexId, sportTypeId),
+    ]);
 
     if (!scheduleInfo) {
       return [];
     }
 
-    const reservations = await this.reservesService.findByDay(
-      date,
-      complexId,
-      sportTypeId,
-    );
-
-    const result = this.scheduleHelper.getReservationsBySchedule(
-      scheduleInfo,
-      reservations,
-    );
-
-    return result;
+    return this.scheduleHelper.getReservationsBySchedule(scheduleInfo, reservations);
   }
 
   @Get('availability/schedule')
@@ -187,30 +170,22 @@ export class ReservesController {
     this.validateDateAndScheduleParams(date, schedule);
     const parsedDate = this.parseDate(date);
 
-    const scheduleInfo = await this.scheduleHelper.getScheduleInfo(
-      parsedDate,
-      complexId,
-    );
+    const [scheduleInfo, reservations] = await Promise.all([
+      this.scheduleHelper.getScheduleInfo(parsedDate, complexId),
+      this.reservesService.findBySchedule(date, schedule, complexId, sportTypeId),
+    ]);
 
     if (!scheduleInfo) {
       return [];
     }
 
-    const reservations = await this.reservesService.findBySchedule(
-      date,
+    return this.scheduleHelper.getAvailabilityForSchedule(
+      scheduleInfo,
+      reservations,
       schedule,
       complexId,
       sportTypeId,
     );
-
-    const result = await this.scheduleHelper.getAvailabilityForSchedule(
-      scheduleInfo,
-      reservations,
-      schedule,
-      complexId, // Pasar el complexId
-      sportTypeId,
-    );
-    return result;
   }
 
   @Get('availability/daily')
