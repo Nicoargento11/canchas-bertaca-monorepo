@@ -169,6 +169,8 @@ export class PaymentsService {
     } catch (error) {
       const isUnauthorized =
         error?.status === 401 ||
+        error?.code === 'unauthorized' ||
+        error?.message?.includes('invalid access token') ||
         (error?.cause as any[])?.some?.((c: any) => c?.code === 401);
 
       if (isUnauthorized) {
