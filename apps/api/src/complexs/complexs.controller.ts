@@ -196,6 +196,16 @@ export class ComplexController {
     return await this.complexService.getMercadoPagoPublicKey(complexId);
   }
 
+  @Post(':id/mercadopago/refresh')
+  @UseGuards(JwtAuthGuard)
+  @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)
+  @ApiOperation({ summary: 'Renovar access token de MercadoPago usando el refresh token' })
+  @ApiResponse({ status: 200, description: 'Token renovado exitosamente' })
+  async refreshMercadoPagoToken(@Param('id') complexId: string) {
+    await this.complexService.refreshMercadoPagoToken(complexId);
+    return { message: 'Token renovado exitosamente' };
+  }
+
   @Delete(':id/mercadopago')
   @UseGuards(JwtAuthGuard)
   @Roles(Role.SUPER_ADMIN, Role.ORGANIZACION_ADMIN, Role.COMPLEJO_ADMIN)

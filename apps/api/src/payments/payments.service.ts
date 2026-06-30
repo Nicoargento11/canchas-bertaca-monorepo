@@ -7,6 +7,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { CreatePaymentDto } from './dto/create-payment.dto';
 import { UpdatePaymentDto } from './dto/update-payment.dto';
+import { ComplexService } from 'src/complexs/complexs.service';
 
 const MP_CACHE_TTL_MS = 2 * 60 * 1000;
 
@@ -19,6 +20,7 @@ export class PaymentsService {
 
   constructor(
     private readonly reserveService: ReservesService,
+    private readonly complexService: ComplexService,
     private jwtService: JwtService,
     private prisma: PrismaService,
   ) {}
@@ -132,48 +134,56 @@ export class PaymentsService {
 
     // Build detailed description
     const courtName = court.name || `Cancha ${court.courtNumber}`;
-    try {
-      const payment = await new Preference(client).create({
-        body: {
-          items: [
-            {
-              picture_url:
-                'https://http2.mlstatic.com/D_NQ_NP_2X_711116-MLA46114833477_052021-F.jpg',
-              id: reserveId,
-              title: `${courtName} - ${schedule} - ${formattedDate}`,
-              description: `${complex.name} - ${clientName || 'Cliente'}`,
-              unit_price: Number(reservationAmount),
-              currency_id: 'ARS',
-              quantity: 1,
-              category_id: 'services',
-            },
-          ],
-
-          auto_return: 'approved',
-          back_urls: {
-            success: `${process.env.FRONT_END_URL}/payment/success`,
-            failure: `${process.env.FRONT_END_URL}/payment/failure`,
-            pending: `${process.env.FRONT_END_URL}/payment/pending`,
-          },
-
-          notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago?complexId=${complex.id}`,
-          statement_descriptor: 'Reserva F5 Dimas',
-          expires: true,
-          expiration_date_from: currentDateTime,
-          expiration_date_to: expirationDateTime,
-          binary_mode: true,
-          external_reference: reserveId,
-          payment_methods: {
-            // excluded_payment_methods: [{ id: 'visa' }], // Temporalmente deshabilitado - puede causar rechazo de políticas
-            // installments: 6,
-          },
+    const preferenceBody = {
+      items: [
+        {
+          picture_url:
+            'https://http2.mlstatic.com/D_NQ_NP_2X_711116-MLA46114833477_052021-F.jpg',
+          id: reserveId,
+          title: `${courtName} - ${schedule} - ${formattedDate}`,
+          description: `${complex.name} - ${clientName || 'Cliente'}`,
+          unit_price: Number(reservationAmount),
+          currency_id: 'ARS',
+          quantity: 1,
+          category_id: 'services',
         },
-      });
+      ],
+      auto_return: 'approved' as const,
+      back_urls: {
+        success: `${process.env.FRONT_END_URL}/payment/success`,
+        failure: `${process.env.FRONT_END_URL}/payment/failure`,
+        pending: `${process.env.FRONT_END_URL}/payment/pending`,
+      },
+      notification_url: `${process.env.NOTIFICATION_URL}/payments/mercadopago?complexId=${complex.id}`,
+      statement_descriptor: 'Reserva F5 Dimas',
+      expires: true,
+      expiration_date_from: currentDateTime,
+      expiration_date_to: expirationDateTime,
+      binary_mode: true,
+      external_reference: reserveId,
+      payment_methods: {},
+    };
 
-      return payment;
+    try {
+      return await new Preference(client).create({ body: preferenceBody });
     } catch (error) {
+      const isUnauthorized =
+        error?.status === 401 ||
+        (error?.cause as any[])?.some?.((c: any) => c?.code === 401);
+
+      if (isUnauthorized) {
+        await this.complexService.refreshMercadoPagoToken(complex.id);
+        const newConfig = await this.prisma.paymentConfig.findUnique({
+          where: { complexId: complex.id },
+        });
+        const newClient = new MercadoPagoConfig({
+          accessToken: newConfig.accessToken,
+        });
+        return await new Preference(newClient).create({ body: preferenceBody });
+      }
+
       console.error('Error creating MercadoPago preference:', error);
-      throw new Error('Failed to create payment preference');
+      throw error;
     }
   }
 

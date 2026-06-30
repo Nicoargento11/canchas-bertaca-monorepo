@@ -361,6 +361,48 @@ export class ComplexService {
     }
   }
 
+  async refreshMercadoPagoToken(complexId: string): Promise<void> {
+    const config = await this.prisma.paymentConfig.findUnique({
+      where: { complexId },
+    });
+
+    if (!config?.refreshToken) {
+      throw new NotFoundException(
+        'No se encontró refresh token para este complejo',
+      );
+    }
+
+    const platformClient = new MercadoPagoConfig({
+      accessToken: process.env.MP_ACCESS_TOKEN,
+    });
+
+    try {
+      const oauth = new OAuth(platformClient);
+      const credentials = await oauth.refresh({
+        body: {
+          client_secret: process.env.MP_CLIENT_SECRET,
+          client_id: process.env.MP_CLIENT_ID,
+          refresh_token: config.refreshToken,
+        },
+      });
+
+      await this.prisma.paymentConfig.update({
+        where: { complexId },
+        data: {
+          accessToken: credentials.access_token,
+          ...(credentials.refresh_token && {
+            refreshToken: credentials.refresh_token,
+          }),
+          ...(credentials.public_key && { publicKey: credentials.public_key }),
+        },
+      });
+    } catch (error) {
+      throw new BadRequestException(
+        'Error al renovar token de MercadoPago: ' + error.message,
+      );
+    }
+  }
+
   /**
    * Guardar o actualizar configuración de MercadoPago para un complejo
    */
