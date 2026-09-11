@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import { SessionPayload } from "@/services/auth/session";
 import { hasPromotionForSchedule, getPromotionForSchedule } from "@/hooks/useApplicablePromotions";
 import { formatPromotionValue } from "@/services/promotion/promotion";
+import { getComplexBrand } from "@/utils/complexBrand";
 
 // Import reserve components
 import DateTimePicker from "../reserve/date-time-picker";
@@ -321,6 +322,8 @@ const BookingModal = ({
     return complex;
   }, [hasPreselection, preSelectedComplex, selectedComplex, complex, sevenComplex]);
 
+  const activeComplexBrand = getComplexBrand(activeComplex);
+
   const handleSubmit = async () => {
     let fetched = false;
 
@@ -454,7 +457,21 @@ const BookingModal = ({
         {/* Header del Modal */}
         <div className="bg-black/50 backdrop-blur-sm border-b border-white/10 p-4 sm:p-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[currentStep]}</h2>
+            <div>
+              <h2 className="text-2xl sm:text-3xl font-bold text-white">{stepTitles[currentStep]}</h2>
+              {(hasPreselection || selectedComplex) && (
+                <div className="flex items-center gap-1.5 mt-1">
+                  <img
+                    src={activeComplexBrand.logoSrc}
+                    alt={activeComplex.name}
+                    className="w-5 h-5 object-contain"
+                  />
+                  <p className={`text-sm font-medium ${activeComplexBrand.color}`}>
+                    Sede {activeComplex.name}
+                  </p>
+                </div>
+              )}
+            </div>
             <button
               onClick={onClose}
               className="text-white/60 hover:text-white text-3xl leading-none"
