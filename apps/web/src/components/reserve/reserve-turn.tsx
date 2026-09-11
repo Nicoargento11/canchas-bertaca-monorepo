@@ -38,6 +38,7 @@ import { getUserById, User } from "@/services/user/user";
 import { reserveTurnSchema } from "@/schemas/reserve";
 import { SportType } from "@/services/sport-types/sport-types";
 import { createPaymentOnline } from "@/services/payment/payment";
+import { getComplexBrand } from "@/utils/complexBrand";
 import { Input } from "../ui/input";
 import { useApplicablePromotions } from "@/hooks/useApplicablePromotions";
 import { PromoSummary } from "@/components/promotions/PromoSummary";
@@ -251,10 +252,7 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
     );
   }
 
-  const isSeven = complex.name.toLowerCase().includes("seven");
-  const complexColor = isSeven ? "text-green-400" : "text-blue-400";
-  const complexBg = isSeven ? "bg-green-500/10" : "bg-blue-500/10";
-  const complexBorder = isSeven ? "border-green-500/20" : "border-blue-500/20";
+  const complexBrand = getComplexBrand(complex);
 
   const handleReserve = async (values: z.infer<typeof reserveTurnSchema>) => {
     if (!currentUser) return;
@@ -318,20 +316,20 @@ const ReserveTurn: React.FC<ReserveTurnProps> = ({
 
           {/* Complex Indicator */}
           <div
-            className={`mb-6 p-4 rounded-xl border ${complexBorder} ${complexBg} flex items-center justify-center gap-3`}
+            className={`mb-6 p-4 rounded-xl border ${complexBrand.border} ${complexBrand.bg} flex items-center justify-center gap-3`}
           >
             <div className="w-12 h-12 flex items-center justify-center">
               <img
-                src={`/images/${isSeven ? "seven" : "bertaca"}_logo.png`}
+                src={complexBrand.logoSrc}
                 alt={complex.name}
                 className="w-full h-full object-contain"
               />
             </div>
             <div className="text-center">
-              <p className={`text-sm font-medium ${complexColor} uppercase tracking-wider`}>
+              <p className={`text-sm font-medium ${complexBrand.color} uppercase tracking-wider`}>
                 Estás reservando en
               </p>
-              <p className={`text-xl font-bold ${complexColor}`}>Sede {complex.name}</p>
+              <p className={`text-xl font-bold ${complexBrand.color}`}>Sede {complex.name}</p>
             </div>
           </div>
 

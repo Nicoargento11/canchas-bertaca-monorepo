@@ -9,6 +9,7 @@ import { tennisRacket, soccerBall } from "@lucide/lab";
 import { SportType, SportTypeKey } from "@/services/sport-types/sport-types";
 import priceCalculator from "@/utils/priceCalculator";
 import { Promotion, formatPromotionValue } from "@/services/promotion/promotion";
+import { getComplexBrand } from "@/utils/complexBrand";
 
 interface AvailableFieldsProps {
   complex: Complex;
@@ -133,12 +134,29 @@ const AvailableFields = ({ complex, sportTypes, targetStep = 2, complexName, pro
     // goToNextStep(); // Eliminado porque preloadReservation ya establece el step correcto
   };
 
+  const complexBrand = getComplexBrand(complex);
+
   return (
     <div className="p-6 bg-white/5 rounded-xl shadow-lg border border-white/10 relative overflow-visible">
       <h2 className="text-center font-bold text-2xl text-white mb-6">Canchas disponibles</h2>
 
+      <div
+        className={`mb-6 p-2 sm:p-3 rounded-xl border ${complexBrand.border} ${complexBrand.bg} flex items-center justify-center gap-2`}
+      >
+        <div className="w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center flex-shrink-0">
+          <img
+            src={complexBrand.logoSrc}
+            alt={complex.name}
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <p className={`text-sm sm:text-base font-bold ${complexBrand.color}`}>
+          Sede {complex.name}
+        </p>
+      </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 relative">
-        <div className="space-y-3 relative max-h-[400px] overflow-y-auto overflow-x-hidden pr-2 w-full [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+        <div className="space-y-3 relative w-full">
           {allFields.length <= 0 ? (
             <div>
               <CheckCircle2 className="mx-auto h-12 w-12 text-white/40" />

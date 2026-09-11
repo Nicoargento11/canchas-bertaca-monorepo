@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import Link from "next/link";
 import { m } from "framer-motion";
 import {
@@ -22,10 +22,27 @@ interface HeroSectionProps {
     reviews: number;
     monthlyGames: number;
   };
+  isPaused?: boolean;
 }
 
-export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionProps) => {
+export const HeroSection = React.memo(({ onOpenModal, trustData, isPaused = false }: HeroSectionProps) => {
   const { openModal } = useModal();
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Pause the looping background video while a modal (e.g. booking modal) is open on top of it,
+  // since the backdrop-blur on the modal forces continuous GPU re-blur of anything animating behind it.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (isPaused) {
+      video.pause();
+    } else {
+      video.play().catch(() => {
+        // Autoplay can be rejected by the browser (e.g. no user interaction yet); safe to ignore.
+      });
+    }
+  }, [isPaused]);
 
   const handleScrollToSchedule = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -46,6 +63,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
       {/* Fondo con video */}
       <div className="absolute inset-0">
         <video
+          ref={videoRef}
           className="w-full h-full object-cover"
           autoPlay
           loop
@@ -107,7 +125,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
 
             {/* Subtle click indicator */}
             <div
-              className="absolute bottom-3 left-1/2 w-2.5 h-2.5 bg-Primary-light rounded-full animate-pulse"
+              className={`absolute bottom-3 left-1/2 w-2.5 h-2.5 bg-Primary-light rounded-full ${isPaused ? "" : "animate-pulse"}`}
               style={{
                 boxShadow: "0 0 8px rgba(9, 111, 177, 0.8)",
               }}
@@ -119,7 +137,7 @@ export const HeroSection = React.memo(({ onOpenModal, trustData }: HeroSectionPr
         </m.div>
 
         {/* TIER 2 - PREMIUM SHORTCUT CARDS */}
-        <PremiumShortcutCards onOpenModal={onOpenModal} />
+        <PremiumShortcutCards onOpenModal={onOpenModal} isPaused={isPaused} />
 
         {/* TIER 3 - UTILITY BUTTONS */}
         <m.div
@@ -194,7 +212,13 @@ HeroSection.displayName = "HeroSection";
 // PREMIUM SHORTCUT CARDS (Memoized)
 // ============================================
 const PremiumShortcutCards = React.memo(
-  ({ onOpenModal }: { onOpenModal: (complexType: "bertaca" | "seven") => void }) => {
+  ({
+    onOpenModal,
+    isPaused = false,
+  }: {
+    onOpenModal: (complexType: "bertaca" | "seven") => void;
+    isPaused?: boolean;
+  }) => {
     return (
       <m.div
         initial={{ opacity: 0, y: 20 }}
@@ -267,7 +291,7 @@ const PremiumShortcutCards = React.memo(
               </div>
             </div>
             <div
-              className="absolute bottom-4 right-4 w-2.5 h-2.5 bg-blue-400 rounded-full animate-pulse"
+              className={`absolute bottom-4 right-4 w-2.5 h-2.5 bg-blue-400 rounded-full ${isPaused ? "" : "animate-pulse"}`}
               style={{
                 boxShadow: "0 0 8px rgba(59, 130, 246, 0.8)",
               }}
@@ -338,7 +362,7 @@ const PremiumShortcutCards = React.memo(
               </div>
             </div>
             <div
-              className="absolute bottom-4 right-4 w-2.5 h-2.5 bg-green-400 rounded-full animate-pulse"
+              className={`absolute bottom-4 right-4 w-2.5 h-2.5 bg-green-400 rounded-full ${isPaused ? "" : "animate-pulse"}`}
               style={{
                 boxShadow: "0 0 8px rgba(34, 197, 94, 0.8)",
               }}

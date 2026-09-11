@@ -17,6 +17,14 @@ interface SportData {
   courts: Court[];
 }
 
+// Static trust indicators — hoisted to module scope so this object is not
+// recreated on every render of MainSectionImproved.
+const TRUST_DATA = {
+  rating: 4.8,
+  reviews: 120,
+  monthlyGames: 2340,
+};
+
 interface MainSectionProps {
   complex: Complex;
   sportTypes: Record<SportTypeKey, SportType>;
@@ -120,13 +128,6 @@ export const MainSectionImproved = React.memo(
       }
     }, [currentUser, sevenComplex, preloadReservation]);
 
-    // Trust indicators
-    const trustData = {
-      rating: 4.8,
-      reviews: 120,
-      monthlyGames: 2340,
-    };
-
     // COMENTADO - Usar solo BookingModal nuevo
     // const handleOpenModal = (complexType?: "bertaca" | "seven") => {
     //   // Si hay un tipo de complejo específico, usar el sportType correspondiente
@@ -155,8 +156,6 @@ export const MainSectionImproved = React.memo(
       if (!effectiveComplexType) {
         // Revisar si hay datos guardados - primero el 'general' porque es el flujo sin preselección
         const generalData = loadReservationData('general');
-        const sevenData = loadReservationData('seven');
-        const bertacaData = loadReservationData('bertaca');
 
         // Si hay datos en 'general' con un complexId, usar ese
         if (generalData?.complexId && generalData?.hour) {
@@ -166,12 +165,6 @@ export const MainSectionImproved = React.memo(
           } else if (generalData.complexId === complex.id) {
             effectiveComplexType = 'bertaca';
           }
-        }
-        // Si no hay en general, revisar los específicos
-        else if (sevenData?.complexName === 'seven' && sevenData?.hour) {
-          effectiveComplexType = 'seven';
-        } else if (bertacaData?.complexName === 'bertaca' && bertacaData?.hour) {
-          effectiveComplexType = 'bertaca';
         }
       }
 
@@ -253,7 +246,11 @@ export const MainSectionImproved = React.memo(
     return (
       <>
         {/* HERO SECTION */}
-        <HeroSection onOpenModal={handleOpenBookingModal} trustData={trustData} />
+        <HeroSection
+          onOpenModal={handleOpenBookingModal}
+          trustData={TRUST_DATA}
+          isPaused={showBookingModal}
+        />
 
         {/* SECTIONS BELOW THE FOLD */}
         <UnifiedComplexSection

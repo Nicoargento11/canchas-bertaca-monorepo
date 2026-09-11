@@ -140,9 +140,10 @@ export const UnifiedComplexSection = React.memo(
     ];
 
     const sevenImages = [
-      "https://images.unsplash.com/photo-1579952363873-27f3bade9f55?w=1200&h=800&fit=crop",
-      "https://images.unsplash.com/photo-1551958219-acbc608c6377?w=1200&h=800&fit=crop",
-      "https://images.unsplash.com/photo-1431324155629-1a6deb1dec8d?w=1200&h=800&fit=crop",
+      "/images/seven-cancha-1.jpg",
+      "/images/seven-cancha-2.jpg",
+      "/images/seven-cancha-3.jpg",
+      "/images/seven-instalaciones-1.jpg",
     ];
 
     // Helper to merge data from all sports into a single table structure

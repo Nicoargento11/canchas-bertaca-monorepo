@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import formatDateUTC from "@/utils/formatDateUtc";
 import { Reserve } from "@/services/reserve/reserve";
 import { ReserveDetail } from "./reserveDetail";
+import { getComplexBrand } from "@/utils/complexBrand";
 
 interface ReserveItemProps {
   reserve: Reserve;
@@ -86,6 +87,18 @@ export const ReserveItem = ({ reserve, deleteReserve }: ReserveItemProps) => {
               <GiSoccerField className="text-Primary" size={24} />
             </div>
             <div className="min-w-0">
+              {reserve.complex?.name && (
+                <div className="flex items-center gap-1.5">
+                  <img
+                    src={getComplexBrand(reserve.complex).logoSrc}
+                    alt={reserve.complex.name}
+                    className="w-4 h-4 sm:w-5 sm:h-5 object-contain flex-shrink-0"
+                  />
+                  <p className="text-xs sm:text-sm font-semibold uppercase tracking-wide text-Neutral-dark/60 truncate">
+                    Sede {reserve.complex.name}
+                  </p>
+                </div>
+              )}
               <h3 className="font-bold text-lg sm:text-xl text-Neutral-dark truncate">
                 Cancha {reserve.court.courtNumber || "N/A"}
               </h3>
